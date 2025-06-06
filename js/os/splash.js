@@ -7,7 +7,7 @@ function showSplash() {
   splashDiv.innerHTML = `
   <div class="flex flex-col items-center justify-center h-full">
     <img id="splash-image" src="./image/startup.jpeg" alt="Startup" class="mb-4 rounded-lg shadow-lg">
-    <h1 class="text-4xl text-gray-900 font-bold mb-2">psychoSoft - Information Access</h1>
+    <h1 class="text-4xl text-gray-900 font-bold mb-2">Nostalgia OS</h1>
     <div class="mx-auto w-72 text-sm pl-3 mb-2 bg-black py-1 border-2 border-lime-400 text-lime-300"><em>i hacked the mainframe credentials for u</em><br><span class="text-xs text-lime-500">sincerely, _N30_phreak_</span></div>
     <form id="splash-form" class="bg-gray-300 border border-gray-500 p-4 w-96">
       <div class="mb-2">

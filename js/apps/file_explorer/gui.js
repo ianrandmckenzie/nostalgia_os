@@ -39,29 +39,36 @@ function refreshExplorerViews() {
   });
 }
 
-/* =====================
-   getBreadcrumbs
-   Builds the breadcrumb trail for a given fullPath. Each segment is a clickable link.
-====================== */
-function getBreadcrumbs(fullPath) {
+/*
+ * Return an HTML-string breadcrumb trail for the path.
+ * Each <span> has data-path="…" so the global delegated
+ * click-handler (see §3) still works.
+ */
+function getBreadcrumbsHtml(fullPath) {
   fullPath = normalizePath(fullPath);
-  let driveMatch = fullPath.match(/^([A-Z]:\/\/)(.*)/);
-  if (!driveMatch) return fullPath;
-  let drivePart = driveMatch[1];
-  let rest = driveMatch[2]; // e.g., "folder-34862398/folder-9523759823"
-  let breadcrumbHtml = `<span class="cursor-pointer hover:underline" onclick="openExplorer('${drivePart}')">${drivePart}</span>`;
-  if (!rest) return breadcrumbHtml;
-  let parts = rest.split('/').filter(p => p !== '');
-  let currentPath = drivePart;
-  parts.forEach(partKey => {
-    // Append the folder key to currentPath.
-    currentPath = currentPath.endsWith('/') ? currentPath + partKey : currentPath + "/" + partKey;
-    let folderObj = findFolderObjectByFullPath(currentPath);
-    let displayName = folderObj ? folderObj.name : partKey;
-    breadcrumbHtml += ` / <span class="cursor-pointer hover:underline" onclick="openExplorer('${folderObj ? folderObj.id : currentPath}')">${displayName}</span>`;
+
+  const m = fullPath.match(/^([A-Z]:\/\/)(.*)/);
+  if (!m) return fullPath;                       // fallback
+
+  const drive   = m[1];                          // "C://"
+  const rest    = m[2];                          // "folder-1/…"
+
+  let html = `<span class="cursor-pointer hover:underline" data-path="${drive}">${drive}</span>`;
+  if (!rest) return html;
+
+  let current = drive;
+  rest.split('/').filter(Boolean).forEach(partKey => {
+    current = current.endsWith('/') ? current + partKey : `${current}/${partKey}`;
+    const folderObj   = findFolderObjectByFullPath(current);
+    const displayName = folderObj ? folderObj.name : partKey;
+
+    html += ` / <span class="cursor-pointer hover:underline" ` +
+            `data-path="${folderObj ? folderObj.id : current}">${displayName}</span>`;
   });
-  return breadcrumbHtml;
+
+  return html;
 }
+
 
 /* =====================
    File Explorer Window Content
@@ -69,59 +76,106 @@ function getBreadcrumbs(fullPath) {
 ====================== */
 function getExplorerWindowContent(currentPath = 'C://') {
   currentPath = normalizePath(currentPath);
-  let itemsObj = getItemsForPath(currentPath);
-  let items = Object.values(itemsObj);
-  let listHtml = '<ul class="pl-5">';
-  items.forEach(item => {
-    const isFolder = item.type === 'folder';
-    let icon = isFolder ? 'image/folder.svg' : 'image/file.svg';
 
-    if (item.icon_url) { icon = item.icon_url; }
+  /* ─────────────────────────────────────────────────────────
+     Build file/folder list (each <li> carries data-attributes)
+     ───────────────────────────────────────────────────────── */
+  const itemsObj = getItemsForPath(currentPath);
+  const list   = ['<ul class="pl-5">'];
+
+  Object.values(itemsObj).forEach(item => {
+    const isFolder  = item.type === 'folder';
+    let   icon      = isFolder ? 'image/folder.svg' : 'image/file.svg';
+    if (item.icon_url) icon = item.icon_url;
+
+    const classes   = 'cursor-pointer hover:bg-gray-50 file-item' +
+                      (isFolder ? ' folder-item' : '');
+    const extraDesc = item.description ? ` (${item.description})` : '';
+
     if (isFolder) {
-      // For folders, the clickable link calls openExplorer with the folder’s id.
-      listHtml += `<li class="cursor-pointer hover:bg-gray-50 folder-item file-item" data-item-id="${item.id}" ondblclick="openExplorer('${item.id}')" onmobiledbltap="openExplorer('${item.id}')">
-        <img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}
-      </li>`;
-    } else if (item.type == 'shortcut') {
-      listHtml += `<li class="cursor-pointer hover:bg-gray-50 file-item" data-item-id="${item.id}" ondblclick="openShortcut(this);" data-url="${item.url}" onmobiledbltap="openShortcut(this);" data-url="${item.url}">
-        <img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${item.description ? ' (' + item.description + ')' : ''}
-      </li>`;
+      list.push(
+        `<li class="${classes}" data-item-id="${item.id}" ` +
+        `data-open-folder="${item.id}">` +
+        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}</li>`
+      );
+    } else if (item.type === 'shortcut') {
+      list.push(
+        `<li class="${classes}" data-item-id="${item.id}" ` +
+        `data-open-shortcut="true" data-url="${item.url}">` +
+        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
+      );
     } else {
-      listHtml += `<li class="cursor-pointer hover:bg-gray-50 file-item" data-item-id="${item.id}" ondblclick="openFile('${item.id}', event); event.stopPropagation();" onmobiledbltap="openFile('${item.id}', event); event.stopPropagation();">
-        <img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${item.description ? ' (' + item.description + ')' : ''}
-      </li>`;
+      list.push(
+        `<li class="${classes}" data-item-id="${item.id}" ` +
+        `data-open-file="${item.id}">` +
+        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
+      );
     }
   });
-  listHtml += '</ul>';
-  
+
+  list.push('</ul>');
+
+  /* ─────────────────────────────────────────────────────────
+     Sidebar (each drive uses data-open-drive)
+     ───────────────────────────────────────────────────────── */
+  const drivesHtml = ['C://','A://','D://'].map(d =>
+    `<li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" ` +
+    `data-open-drive="${d}">` +
+    `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0] === 'a' ? 'floppy' : 'cd'}.svg" ` +
+    `class="inline h-4 w-4 mr-2"> ${d}</li>`
+  ).join('');
+
+  const breadcrumbHtml = getBreadcrumbsHtml(currentPath);
+
   return `
-  <div class="file-explorer-window" data-current-path="${currentPath}">
+    <div class="file-explorer-window" data-current-path="${currentPath}">
       <div class="flex">
         <!-- Left Sidebar -->
         <div id="file-sidebar" class="w-1/4 border-r p-2">
-          <ul>
-            <li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" onclick="openExplorer('C://')">
-              <img src="image/drive_c.svg" class="inline h-4 w-4 mr-2"> C://
-            </li>
-            <li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" onclick="openExplorer('A://')">
-              <img src="image/floppy.svg" class="inline h-4 w-4 mr-2"> A://
-            </li>
-            <li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" onclick="openExplorer('D://')">
-              <img src="image/cd.svg" class="inline h-4 w-4 mr-2"> D://
-            </li>
-          </ul>
+          <ul>${drivesHtml}</ul>
         </div>
+
         <!-- Main Content -->
         <div id="file-main" class="w-3/4 p-2">
-          <div id="breadcrumbs" class="mb-2">Path: ${getBreadcrumbs(currentPath)}</div>
+          <div id="breadcrumbs" class="mb-2">Path: ${breadcrumbHtml}</div>
           <div id="files-area">
-            ${listHtml}
+            ${list.join('')}
           </div>
         </div>
       </div>
     </div>
   `;
+
 }
+
+/* File-explorer interaction — single place, zero inline JS */
+document.addEventListener('dblclick', e => {
+  const li = e.target.closest('[data-open-folder],[data-open-file],[data-open-shortcut]');
+  if (!li) return;
+
+  if (li.dataset.openFolder) {
+    openExplorer(li.dataset.openFolder);
+  } else if (li.dataset.openFile) {
+    openFile(li.dataset.openFile, e);
+  } else if (li.dataset.openShortcut) {
+    openShortcut(li);           // same API you were already using
+  }
+});
+
+document.addEventListener('click', e => {
+  const drive = e.target.closest('[data-open-drive]');
+  if (drive) openExplorer(drive.dataset.openDrive);
+});
+
+
+// Works for all spans (or other elements) that have data-path
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-path]');
+  if (el) {
+    e.stopPropagation();
+    openExplorer(el.dataset.path);
+  }
+});
 
 // Looks up a file by its ID (from desktop or current folder) and opens it.
 function openFile(incoming_file, e) {

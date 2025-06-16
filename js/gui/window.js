@@ -305,13 +305,26 @@ function openWindow(id, content = '', dimensions = { type: 'default' }, windowTy
 
 function showDialogBox(message, dialogType) {
   const uniqueWindowId = 'dialogWindow-' + Date.now();
-  const dialogElement = `
-    <h2 class="text-3xl">${message}</h2>
-    <button id="${uniqueWindowId}-button" onclick="setTimeout(function(){toggleButtonActiveState('${uniqueWindowId}-button', 'OK')}, 1000);toggleButtonActiveState('${uniqueWindowId}-button', 'Cool!');"
-      class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-      <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">OK</span>
-    </button>
-  `;
+  const dialogElement = document.createElement('div');
+  const dialogTitle = document.createElement('h2');
+  dialogTitle.className = 'text-3xl';
+  dialogTitle.textContent = message;
+  dialogElement.appendChild(dialogTitle);
+
+  const dialogButton = document.createElement('button');
+  dialogButton.id = `${uniqueWindowId}-button`;
+  dialogButton.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
+  dialogElement.appendChild(dialogButton);
+
+  const dialogButtonInner = document.createElement('span');
+  dialogButtonInner.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
+  dialogButtonInner.textContent = 'OK';
+  dialogButton.appendChild(dialogButtonInner);
+
+  dialogButton.addEventListener('click', () => {
+    setTimeout(function(){toggleButtonActiveState('${uniqueWindowId}-button', 'OK')}, 1000);
+    toggleButtonActiveState('${uniqueWindowId}-button', 'Cool!');
+  });
 
   let title = '⚠️ Information';
   if (dialogType === 'confirmation') {

@@ -39,39 +39,52 @@ function renderDesktopIcons() {
   const desktopIconsContainer = document.getElementById('desktop-icons');
   desktopIconsContainer.innerHTML = "";
   let fs = getFileSystemState();
-  // Retrieve the Desktop folder from the "C://" drive.
-  let desktopFolder = fs.folders['C://'] ? fs.folders['C://']['Desktop'] : null;
+  const desktopFolder = fs.folders['C://']?.['Desktop'];
   if (!desktopFolder) return;
-  // Iterate over the items in the Desktop folder (now stored as an object).
+
   Object.values(desktopFolder.contents).forEach(item => {
     const iconElem = document.createElement('div');
     iconElem.id = "icon-" + item.id;
     iconElem.className = 'flex flex-col items-center cursor-pointer m-2 draggable-icon desktop-folder-icon';
+
     let iconSrc = (item.type === 'folder') ? 'image/folder.svg' : 'image/file.svg';
-    if (item.type === 'file' || item.type === 'ugc-file') {
-      iconElem.setAttribute('ondblclick', `openFile('${item.id}', event);event.stopPropagation()`);
-      iconElem.setAttribute('onmobiledbltap', `openFile('${item.id}', event);event.stopPropagation()`);
-    }
-    else if (item.type === 'app') {
-      iconElem.setAttribute('ondblclick', `openApp('${item.id}')`);
-      iconElem.setAttribute('onmobiledbltap', `openApp('${item.id}')`);
-      iconElem.setAttribute('data-is-vendor-application', true);
-      iconSrc = item.icon;
-    } else if (item.type === 'folder') {
-      iconElem.setAttribute('ondblclick', `openExplorer('${item.id}')`);
-      iconElem.setAttribute('onmobiledbltap', `openExplorer('${item.id}')`);
-    } else if (item.type == 'shortcut') {
-      iconElem.setAttribute('ondblclick', `openShortcut(this)`);
-      iconElem.setAttribute('onmobiledbltap', `openShortcut(this)`);
-      iconElem.setAttribute('data-url', item.url);
-      iconSrc = item.icon_url;
-    }
+
+    // Common metadata
     iconElem.setAttribute('data-item-id', item.id);
     iconElem.setAttribute('data-current-path', 'C://Desktop');
-    iconElem.innerHTML = `<img src="${iconSrc}" alt="${item.name}" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
-      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon">${item.name}</span>`;
+
+    if (item.type === 'ugc-file' || item.type === 'file') {
+      iconElem.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        openFile(item.id, e);
+      });
+      iconElem.addEventListener('mobiledbltap', e => {
+        e.stopPropagation();
+        openFile(item.id, e);
+      });
+    } else if (item.type === 'app') {
+      iconElem.dataset.isVendorApplication = true;
+      iconSrc = item.icon;
+      iconElem.addEventListener('dblclick', () => openApp(item.id));
+      iconElem.addEventListener('mobiledbltap', () => openApp(item.id));
+    } else if (item.type === 'folder') {
+      iconElem.addEventListener('dblclick', () => openExplorer(item.id));
+      iconElem.addEventListener('mobiledbltap', () => openExplorer(item.id));
+    } else if (item.type === 'shortcut') {
+      iconElem.dataset.url = item.url;
+      iconSrc = item.icon_url;
+      iconElem.addEventListener('dblclick', () => openShortcut(iconElem));
+      iconElem.addEventListener('mobiledbltap', () => openShortcut(iconElem));
+    }
+
+    iconElem.innerHTML = `
+      <img src="${iconSrc}" alt="${item.name}" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
+      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon">${item.name}</span>
+    `;
+
     desktopIconsContainer.appendChild(iconElem);
     makeIconDraggable(iconElem);
+    detectDoubleTap(iconElem); // ensures mobile dbltap support
   });
 }
 

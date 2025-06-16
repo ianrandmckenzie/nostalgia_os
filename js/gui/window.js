@@ -337,3 +337,27 @@ function showDialogBox(message, dialogType) {
   createWindow(title, dialogElement, false, null, false, false, { type: 'integer', width: 300, height: 100 }, "Default");
   return;
 }
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('#settings-apply-button');
+  if (!btn) return;
+
+  e.stopPropagation();
+  toggleButtonActiveState('settings-apply-button', 'Applied!');
+  setTimeout(() => {
+    toggleButtonActiveState('settings-apply-button', 'Apply');
+  }, 1000);
+
+  updateDesktopSettings();
+
+  createWindow(
+    'Settings Applied',
+    'Your settings have successfully been saved!',
+    false,
+    'settings-saved',
+    false,
+    false,
+    { type: 'integer', height: 300, width: 200 },
+    'default'
+  );
+});

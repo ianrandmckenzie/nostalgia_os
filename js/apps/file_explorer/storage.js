@@ -32,7 +32,7 @@ function getItemsForPath(fullPath) {
   if (fullPath.substring(1, 4) === '://' && fullPath.length === 4) {
     return current[fullPath]
   }
-  
+
   const drivePath = fullPath.substring(0, 4);
   current = current[drivePath];
 
@@ -91,11 +91,10 @@ function fetchDocuments() {
           icon_url = 'image/audio.svg';
         } else if (content_type === 'html') {
           icon_url = 'image/html.svg';
-        } else if (content_type === 'md') {
-          icon_url = 'image/doc.svg';
-        } else if (content_type === 'txt') {
+        } else if (['md', 'txt'].includes(content_type)) {
           icon_url = 'image/doc.svg';
         }
+
         return {
           id: file.id,
           name: file.url,
@@ -107,9 +106,9 @@ function fetchDocuments() {
           description: file.description || ""
         };
       });
+
       let fs = getFileSystemState();
       if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
-        // Convert fileItems array to an object keyed by file id.
         const fileItemsObj = {};
         fileItems.forEach(file => {
           fileItemsObj[file.id] = file;
@@ -117,17 +116,22 @@ function fetchDocuments() {
         fs.folders['C://']['Documents'].contents = fileItemsObj;
       }
       setFileSystemState(fs);
+
+      // Build list HTML without inline events
       let listHtml = '<ul class="pl-5">';
       fileItems.forEach(file => {
-        listHtml += `<li class="cursor-pointer hover:bg-gray-50 file-item" data-item-id="${file.id}" data-file-type="${file.content_type}" ondblclick="openFile('${file.id}', event); event.stopPropagation();" onmobiledbltap="openFile('${file.id}', event); event.stopPropagation();">
-          <img src="${file.icon_url}" class="inline h-4 w-4 mr-2"> ${file.name} ${file.description ? '(' + file.description + ')' : ''}
-        </li>`;
+        listHtml += `
+          <li class="cursor-pointer hover:bg-gray-50 file-item"
+              data-item-id="${file.id}"
+              data-file-type="${file.content_type}"
+              data-open-file="${file.id}">
+            <img src="${file.icon_url}" class="inline h-4 w-4 mr-2"> ${file.name} ${file.description ? '(' + file.description + ')' : ''}
+          </li>`;
       });
       listHtml += '</ul>';
+
       const container = document.getElementById('files-area');
-      if (container) {
-        container.innerHTML = listHtml;
-      }
+      if (container) container.innerHTML = listHtml;
     })
     .catch(error => {
       console.error("Error fetching media list:", error);
@@ -137,3 +141,22 @@ function fetchDocuments() {
       }
     });
 }
+
+document.addEventListener('dblclick', e => {
+  const fileItem = e.target.closest('[data-open-file]');
+  if (fileItem) {
+    e.stopPropagation();
+    const fileId = fileItem.getAttribute('data-open-file');
+    openFile(fileId, e);
+  }
+});
+
+// Optional: mobile double-tap handler if you're using one
+document.addEventListener('mobiledbltap', e => {
+  const fileItem = e.target.closest('[data-open-file]');
+  if (fileItem) {
+    e.stopPropagation();
+    const fileId = fileItem.getAttribute('data-open-file');
+    openFile(fileId, e);
+  }
+});

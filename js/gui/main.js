@@ -21,3 +21,29 @@ function toggleButtonActiveState(id, rename = null) {
     btnInner.innerHTML = rename;
   }
 }
+
+// Error!
+
+function isOwnAppError(source) {
+  if (!source) return true // sometimes source is null on same-origin scripts
+  try {
+    const srcUrl = new URL(source, location.href)
+    return srcUrl.origin === location.origin
+  } catch {
+    return false
+  }
+}
+
+function showErrorOverlay() {
+  document.getElementById('error-overlay')?.classList.remove('hidden');
+}
+
+window.onerror = function(message, source, lineno, colno, error) {
+  if (isOwnAppError(source)) showErrorOverlay()
+}
+
+window.addEventListener('unhandledrejection', function(event) {
+  // These usually have no source, so assume they're from your app
+  showErrorOverlay()
+})
+

@@ -27,20 +27,62 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
   if (initialMinimized) {
     win.style.display = 'none';
   }
-  win.innerHTML = `
-    <div class="relative w-full h-[calc(100%-1rem)]">
-      <div class="bg-handlebarBlue sticky top-0 left-0 text-white px-2 py-1 flex justify-between items-center cursor-move">
-        <span>${title}</span>
-        <div class="my-1">
-          <button onclick="minimizeWindow('${windowId}'); event.stopPropagation();" class="bg-yellow-500 h-6 w-6 text-white">_</button>
-          <button onclick="toggleFullScreen('${windowId}'); event.stopPropagation();" class="bg-green-500 h-6 w-6 text-white">⛶</button>
-          <button onclick="closeWindow('${windowId}'); event.stopPropagation();" class="bg-red-500 h-6 w-6 text-white">X</button>
-        </div>
-      </div>
-      <div class="p-2 bg-${color} h-full ${windowType === 'editor' ? 'w-full' : ''} overflow-auto" ${windowType === 'default' ? 'contenteditable="true" oninput="updateContent(\'' + windowId + '\', this.innerHTML)"' : ''}>
-        ${contentToPrint}
-      </div>
-    </div>`;
+  // Clear existing content
+win.textContent = ''
+
+const container = document.createElement('div')
+container.className = 'relative w-full h-[calc(100%-1rem)]'
+
+// --- Header Bar ---
+const header = document.createElement('div')
+header.className = 'bg-handlebarBlue sticky top-0 left-0 text-white px-2 py-1 flex justify-between items-center cursor-move'
+
+const titleSpan = document.createElement('span')
+titleSpan.textContent = title
+
+const buttonContainer = document.createElement('div')
+buttonContainer.className = 'my-1'
+
+// Minimize button
+const minimizeBtn = document.createElement('button')
+minimizeBtn.id = `minimizeWindow-${windowId}`
+minimizeBtn.className = 'bg-yellow-500 h-6 w-6 text-white'
+minimizeBtn.textContent = '_'
+minimizeBtn.addEventListener('click', (event) => { minimizeWindow(windowId); event.stopPropagation(); });
+
+// Fullscreen toggle button
+const fullscreenBtn = document.createElement('button')
+fullscreenBtn.id = `toggleFullScreen-${windowId}`
+fullscreenBtn.className = 'bg-green-500 h-6 w-6 text-white ml-1'
+fullscreenBtn.textContent = '⛶'
+fullscreenBtn.addEventListener('click', (event) => { toggleFullScreen(windowId); event.stopPropagation(); });
+
+// Close button
+const closeBtn = document.createElement('button')
+closeBtn.id = `closeWindow-${windowId}`
+closeBtn.className = 'bg-red-500 h-6 w-6 text-white ml-1'
+closeBtn.textContent = 'X'
+closeBtn.addEventListener('click', (event) => { closeWindow(windowId); event.stopPropagation();});
+
+// Append buttons
+buttonContainer.append(minimizeBtn, fullscreenBtn, closeBtn)
+header.append(titleSpan, buttonContainer)
+
+// --- Content Area ---
+const contentDiv = document.createElement('div')
+contentDiv.className = `p-2 bg-${color} h-full ${windowType === 'editor' ? 'w-full' : ''} overflow-auto`
+contentDiv.innerHTML = contentToPrint
+
+if (windowType === 'default') {
+  contentDiv.contentEditable = 'true'
+  contentDiv.addEventListener('input', () => {
+    updateContent(windowId, contentDiv.innerHTML)
+  })
+}
+
+// Assemble window
+container.append(header, contentDiv)
+win.appendChild(container)
   win.addEventListener('click', function () {
     bringToFront(win);
   });
@@ -265,7 +307,7 @@ function showDialogBox(message, dialogType) {
   const uniqueWindowId = 'dialogWindow-' + Date.now();
   const dialogElement = `
     <h2 class="text-3xl">${message}</h2>
-    <button id="${uniqueWindowId}-button" onclick="setTimeout(function(){toggleButtonActiveState('${uniqueWindowId}-button', 'OK')}, 1000);toggleButtonActiveState('${uniqueWindowId}-button', 'Cool!');" 
+    <button id="${uniqueWindowId}-button" onclick="setTimeout(function(){toggleButtonActiveState('${uniqueWindowId}-button', 'OK')}, 1000);toggleButtonActiveState('${uniqueWindowId}-button', 'Cool!');"
       class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
       <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">OK</span>
     </button>

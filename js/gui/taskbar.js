@@ -66,3 +66,37 @@ function getActiveMediaElement() {
 
 setInterval(updateClock, 1000);
 updateClock();
+
+document.getElementById('media-control').addEventListener('click', () => {
+  toggleMediaPlayback()
+});
+
+document.getElementById('min-all-btn').addEventListener('click', () => {
+  toggleStartMenu();
+  minimizeAllWindows()
+});
+
+
+document.getElementById('start-button').addEventListener('click', () => {
+  toggleStartMenu();
+});
+
+document.getElementById('mycomp').addEventListener('click', () => {
+  toggleStartMenu();
+  openExplorer('C://');
+});
+
+document.getElementById('abtcomp').addEventListener('click', () => {
+  toggleStartMenu();
+  openAboutWindow();
+});
+
+document.getElementById('sysset').addEventListener('click', () => {
+  toggleStartMenu();
+  openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
+});
+
+document.getElementById('rstrtcomp').addEventListener('click', () => {
+  toggleStartMenu();
+  restart();
+});

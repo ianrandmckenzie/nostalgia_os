@@ -1,7 +1,7 @@
 function openAboutWindow() {
   const content = `
     <div class="p-4">
-      <img src="./image/microsauce.jpeg" class="h-48 w-48 mx-auto mb-4 rounded shadow-md">
+      <img src="./image/startup.png" class="w-48 h-auto mx-auto mb-4">
       <h1 class="text-xl font-bold mb-2">About This Computer</h1>
       <p>Made by multimedia artist Ian McKenzie.</p>
       <p>More shenanigans @ relentlesscurious.com</p>

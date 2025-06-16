@@ -18,24 +18,39 @@ document.addEventListener('click', function () {
 
 function showContextMenu(e, target, fromFullPath) {
   const menu = document.getElementById('context-menu');
+
+  // clear old entries
+  menu.replaceChildren();
   menu.style.zIndex = highestZ + 100;
-  let html = '';
+
+  const addItem = (text, disabled, onclick) => {
+    const item = document.createElement('div');
+    item.textContent = text;
+    item.className = `px-4 py-2 ${
+      disabled ? 'text-gray-400'
+               : 'hover:bg-gray-50 cursor-pointer'
+    }`;
+    if (!disabled && onclick) item.addEventListener('click', onclick);
+    menu.appendChild(item);
+  };
+
   if (target) {
     target.classList.add('right-click-target');
     const isVendor = target.getAttribute('data-is-vendor-application') === 'true';
-    html += `<div class="px-4 py-2 ${isVendor ? 'text-gray-400' : 'hover:bg-gray-50 cursor-pointer'}" ${ isVendor ? '' : 'onclick="editItemName(event, this)"'}>Edit Name</div>`;
-    html += `<div class="px-4 py-2 ${isVendor ? 'text-gray-400' : 'hover:bg-gray-50 cursor-pointer'}" ${ isVendor ? '' : 'onclick="deleteItem(event, this)"'}>Delete</div>`;
-    html += `<div class="px-4 py-2 text-gray-400">New Folder</div>`;
-    html += `<div class="px-4 py-2 text-gray-400">New File</div>`;
-    html += `<div class="px-4 py-2 text-gray-400">New Shortcut</div>`;
+
+    addItem('Edit Name',  isVendor, ev => editItemName(ev));
+    addItem('Delete',     isVendor, ev => deleteItem(ev));
+    addItem('New Folder', true);
+    addItem('New File',   true);
+    addItem('New Shortcut', true);
   } else {
-    html += `<div class="px-4 py-2 hover:bg-gray-50 cursor-pointer" onclick="createNewFolder(event, '${fromFullPath}')">New Folder</div>`;
-    html += `<div class="px-4 py-2 hover:bg-gray-50 cursor-pointer" onclick="createNewFile(event, '${fromFullPath}')">New File</div>`;
-    html += `<div class="px-4 py-2 hover:bg-gray-50 cursor-pointer" onclick="createNewShortcut(event, '${fromFullPath}')">New Shortcut</div>`;
+    addItem('New Folder',   false, ev => createNewFolder  (ev, fromFullPath));
+    addItem('New File',     false, ev => createNewFile    (ev, fromFullPath));
+    addItem('New Shortcut', false, ev => createNewShortcut(ev, fromFullPath));
   }
-  menu.innerHTML = html;
-  menu.style.top = e.clientY + 'px';
-  menu.style.left = e.clientX + 'px';
+
+  menu.style.top  = `${e.clientY}px`;
+  menu.style.left = `${e.clientX}px`;
   menu.classList.remove('hidden');
 }
 
@@ -82,27 +97,44 @@ function editItemName(e, menuItem) {
     showDialogBox('Item not found in file system.', 'error');
     return;
   }
-  const windowId = 'window-' + Date.now();
 
-  const editContent = `
-    <div class="p-4">
-      <form id="edit-name-form" class="flex flex-col space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">New Name</label>
-          <input type="text" name="newName" value="${item.name}" required class="mt-1 block w-full border border-gray-300 rounded p-2" />
-        </div>
-        <div class="flex justify-end space-x-2">
-          <button type="button" id="cancel-edit-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('cancel-edit-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>
-          </button>
-          <button type="submit" id="submit-edit-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('submit-edit-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-  createWindow("Edit Item Name", editContent, false, windowId, false, false, { type: 'integer', width: 300, height: 150 }, "Default");
+  const winId = `window-${Date.now()}`;
+  const win   = createWindow(
+    'Edit Item Name', '', false, winId, false, false,
+    { type:'integer', width:300, height:150 }, 'Default'
+  );
+  const box = win.querySelector('.p-2');
+  box.classList.add('p-4');
+
+  /* form ------------------------------------------------------------------ */
+  const form = document.createElement('form');
+  form.id    = 'edit-name-form';
+  form.className = 'flex flex-col space-y-4';
+  box.appendChild(form);
+
+  // text field
+  const input = document.createElement('input');
+  input.type  = 'text';
+  input.name  = 'newName';
+  input.required = true;
+  input.value = item.name;
+  input.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
+  form.appendChild(makeField('New Name', input));
+
+  // buttons row
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex justify-end space-x-2';
+  form.appendChild(btnRow);
+
+  const cancelBtn = makeWin95Button('Cancel');
+  const submitBtn = makeWin95Button('Submit');
+  cancelBtn.id = 'cancel-edit-button';
+  submitBtn.id = 'submit-edit-button';
+  btnRow.append(cancelBtn, submitBtn);
+
+  /* handlers --------------------------------------------------------------- */
+  cancelBtn.addEventListener('click', () => closeWindow(winId));
+  submitBtn.addEventListener('click', () => toggleButtonActiveState('submit-edit-button', 'Cool!'));
 
   // Attach event listeners once the window is rendered.
   const editForm = document.getElementById('edit-name-form');
@@ -139,94 +171,133 @@ function editItemName(e, menuItem) {
       refreshExplorerViews();
       if (contextPath === "C://Desktop") renderDesktopIcons();
     }
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+    closeWindow(winId);
   });
 
   const cancelEditButton = document.getElementById('cancel-edit-button');
   cancelEditButton.addEventListener('click', function() {
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+    closeWindow(winId);
   });
 }
 
+/* =====================================================
+   Delete item – uses a custom confirmation window
+   ===================================================== */
 function deleteItem(e) {
   e.stopPropagation();
   hideContextMenu();
+
   const targetElem = document.querySelector('.right-click-target');
-  targetElem.classList.remove('right-click-target');
+  if (targetElem) targetElem.classList.remove('right-click-target');
   if (!targetElem) {
     showDialogBox('No file selected.', 'error');
     return;
   }
-  let fileId = targetElem.getAttribute('data-item-id');
+
+  /* ── gather context data ───────────────────────────── */
+  const fileId       = targetElem.getAttribute('data-item-id');
   const explorerElem = targetElem.closest('.file-explorer-window');
-  let contextPath;
-  if (explorerElem) {
-    contextPath = explorerElem.getAttribute('data-current-path');
-  } else {
-    contextPath = targetElem.getAttribute('data-current-path')
-  }
-  let fs = getFileSystemState();
-  let folderContents = {};
+  const contextPath  = explorerElem
+        ? explorerElem.getAttribute('data-current-path')
+        : targetElem.getAttribute('data-current-path');
+
+  const fs   = getFileSystemState();
+  let folderContents;
   const isDrive = contextPath.length === 4;
-  if (isDrive) {
-    folderContents = fs.folders[contextPath];
-  } else if (contextPath == 'C://Desktop') {
-    folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
-  } else {
-    folderContents = findFolderObjectByFullPath(contextPath, fs);
-  }
+
+  if (isDrive)                    folderContents = fs.folders[contextPath];
+  else if (contextPath === 'C://Desktop')
+                                  folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
+  else                            folderContents = findFolderObjectByFullPath(contextPath, fs);
+
   if (!(fileId in folderContents)) {
     showDialogBox('Item not found.', 'error');
     return;
   }
-  if (!confirm("Are you sure you want to delete this file?")) {
-    return;
-  }
-  delete folderContents[fileId];
-  const explorerWindow = document.getElementById('explorer-window');
-  if (explorerWindow) {
-    explorerWindow.querySelector('.file-explorer-window').outerHTML = getExplorerWindowContent(contextPath);
-    setupFolderDrop();
-  }
-  setFileSystemState(fs);
-  saveState();
-  refreshExplorerViews();
-  renderDesktopIcons();
+
+  /* ── confirmation window ───────────────────────────── */
+  const winId = `window-${Date.now()}`;
+  const win   = createWindow(
+    'Delete File?', '', false, winId, false, false,
+    { type:'integer', width:320, height:140 }, 'Default'
+  );
+  const box   = win.querySelector('.p-2');
+  box.classList.add('p-4', 'flex', 'flex-col', 'justify-between', 'h-full');
+
+  const msg = document.createElement('p');
+  msg.textContent = 'Are you sure you want to delete this file?';
+  box.appendChild(msg);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex justify-end space-x-2';
+  box.appendChild(btnRow);
+
+  // helpers already defined earlier
+  const cancelBtn = makeWin95Button('Cancel');
+  const deleteBtn = makeWin95Button('Delete');
+  btnRow.append(cancelBtn, deleteBtn);
+
+  /* ── handlers ──────────────────────────────────────── */
+  cancelBtn.addEventListener('click', () => closeWindow(winId));
+
+  deleteBtn.addEventListener('click', () => {
+    // remove file
+    delete folderContents[fileId];
+
+    // refresh explorer content
+    const explorerWindow = document.getElementById('explorer-window');
+    if (explorerWindow) {
+      explorerWindow.querySelector('.file-explorer-window').outerHTML =
+        getExplorerWindowContent(contextPath);
+      setupFolderDrop();
+    }
+    setFileSystemState(fs);
+    saveState();
+    refreshExplorerViews();
+    renderDesktopIcons();
+
+    closeWindow(winId);
+  });
 }
 
 function createNewFolder(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
   const parentPath = fromFullPath || 'C://';
-  const windowId = 'window-' + Date.now();
+  const winId = `window-${Date.now()}`;
 
   // Build a dialog window for entering the new folder name
-  const folderDialogContent = `
-    <div class="p-4">
-      <form id="create-folder-form" class="flex flex-col space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Folder Name</label>
-          <input type="text" name="folderName" value="New Folder" required class="mt-1 block w-full border border-gray-300 rounded p-2" />
-        </div>
-        <div class="flex justify-end space-x-2">
-          <button type="button" id="cancel-folder-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('cancel-folder-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>
-          </button>
-          <button type="submit" id="submit-folder-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('submit-folder-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
+   // blank dialog
+  const win = createWindow(
+    'New Folder', '', false, winId, false, false,
+    { type:'integer', width:300, height:150 }, 'Default'
+  );
+  const box = win.querySelector('.p-2');
+  box.classList.add('p-4');
 
-  createWindow("New Folder", folderDialogContent, false, windowId, false, false, { type: 'integer', width: 300, height: 150 }, "Default");
+  // build form
+  const form = document.createElement('form');
+  form.id    = 'create-folder-form';
+  form.className = 'flex flex-col space-y-4';
+  box.appendChild(form);
 
-  const form = document.getElementById('create-folder-form');
+  const nameInput = document.createElement('input');
+  nameInput.type  = 'text';
+  nameInput.name  = 'folderName';
+  nameInput.required = true;
+  nameInput.value = 'New Folder';
+  nameInput.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
+  form.appendChild(makeField('Folder Name', nameInput));
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex justify-end space-x-2';
+  const cancelBtn = makeWin95Button('Cancel');
+  const submitBtn = makeWin95Button('Submit');
+  btnRow.append(cancelBtn, submitBtn);
+  form.appendChild(btnRow);
+
+  cancelBtn.addEventListener('click', () => closeWindow(winId));
+
   form.addEventListener('submit', function(ev) {
     ev.preventDefault();
     let folderName = form.folderName.value.trim();
@@ -279,214 +350,253 @@ function createNewFolder(e, fromFullPath) {
     refreshExplorerViews();
     if (fromFullPath == 'C://Desktop') renderDesktopIcons();
 
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+    closeWindow(winId);
   });
 
-  const cancelFolderBtn = document.getElementById('cancel-folder-button');
-  cancelFolderBtn.addEventListener('click', function() {
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+  cancelBtn.addEventListener('click', function() {
+    closeWindow(winId);
   });
 }
 
+/* =========================
+   Create a new UGC file — no innerHTML
+   ========================= */
 function createNewFile(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
+
   const parentPath = fromFullPath || 'C://';
+  const winId      = `window-${Date.now()}`;
 
-  const windowId = 'window-' + Date.now();
-  // Build a dialog window for entering the new file name
-  const fileDialogContent = `
-    <div class="p-4">
-      <form id="create-file-form" class="flex flex-col space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">File Name</label>
-          <input type="text" name="fileName" value="New File.md" required class="mt-1 block w-full border border-gray-300 rounded p-2" />
-        </div>
-        <div class="flex justify-end space-x-2">
-          <button type="button" id="cancel-file-button" onclick="toggleButtonActiveState('cancel-file-button', 'Cool!');setTimeout(function(){closeWindow('${windowId}')},100);" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>
-          </button>
-          <button type="submit" id="submit-file-button" onclick="toggleButtonActiveState('submit-file-button', 'Cool!');setTimeout(function(){closeWindow('${windowId}')},100);" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
+  // ── 1. Empty dialog window ────────────────────────────
+  const win  = createWindow(
+    'New File', '',       // no markup
+    false, winId, false, false,
+    { type:'integer', width:300, height:150 },
+    'Default'
+  );
+  const box  = win.querySelector('.p-2');
+  box.classList.add('p-4');
 
-  createWindow("New File", fileDialogContent, false, windowId, false, false, { type: 'integer', width: 300, height: 150 }, "Default");
+  // ── 2. Build form -------------------------------------
+  const form = document.createElement('form');
+  form.id    = 'create-file-form';
+  form.className = 'flex flex-col space-y-4';
+  box.appendChild(form);
 
-  const form = document.getElementById('create-file-form');
-  form.addEventListener('submit', function(ev) {
+  // File-name input
+  const nameInput = document.createElement('input');
+  nameInput.type  = 'text';
+  nameInput.name  = 'fileName';
+  nameInput.required = true;
+  nameInput.value = 'New File.md';
+  nameInput.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
+  form.appendChild(makeField('File Name', nameInput));
+
+  // Buttons
+  const btnRow   = document.createElement('div');
+  btnRow.className = 'flex justify-end space-x-2';
+  form.appendChild(btnRow);
+
+  const cancelBtn = makeWin95Button('Cancel');
+  cancelBtn.id    = 'cancel-file-button';
+  const submitBtn = makeWin95Button('Submit');
+  submitBtn.id    = 'submit-file-button';
+  btnRow.append(cancelBtn, submitBtn);
+
+  // ── 3. Handlers ---------------------------------------
+  cancelBtn.addEventListener('click', () => {
+    toggleButtonActiveState('cancel-file-button', 'Cool!');
+    setTimeout(() => closeWindow(winId), 100);
+  });
+
+  form.addEventListener('submit', ev => {
     ev.preventDefault();
-    let fileName = form.fileName.value.trim();
-    if (!fileName) fileName = 'Untitled';
+    toggleButtonActiveState('submit-file-button', 'Cool!');
+    setTimeout(() => closeWindow(winId), 100);
 
+    const fileName = nameInput.value.trim() || 'Untitled';
     const newFile = {
-      id: "file-" + Date.now(),
+      id: `file-${Date.now()}`,
       name: fileName,
-      type: "ugc-file",
-      content: "",
-      content_type: "markdown",
-      icon_url: "image/doc.svg",
-      description: ""
+      type: 'ugc-file',
+      content: '',
+      content_type: 'markdown',
+      icon_url: 'image/doc.svg',
+      description: ''
     };
 
-    let fs = getFileSystemState();
+    /* ------------- insert into filesystem ---------------- */
+    const fs    = getFileSystemState();
     const drive = fromFullPath.substring(0, 4);
-    let paths = fromFullPath.substring(4).split('/');
+    const paths = fromFullPath.substring(4).split('/');
     paths.unshift(drive);
-    let destination = fs.folders;
-    if (paths[1] !== '') { // Not at drive root
-      paths.forEach(path => {
-        const destination_parent = destination;
-        destination = destination[path];
-        if (destination && typeof destination.contents !== 'undefined') {
-          if (typeof destination.contents !== 'string') {
-            destination = destination.contents;
-          } else {
-            destination = destination_parent;
-          }
+
+    let dest = fs.folders;
+    if (paths[1] !== '') {        // not at drive root
+      paths.forEach(p => {
+        const parent = dest;
+        dest = dest[p];
+        if (dest && typeof dest.contents !== 'undefined') {
+          dest = typeof dest.contents === 'string' ? parent : dest.contents;
         }
       });
     }
-    if (typeof destination === 'undefined') destination = destination[drive];
-    if (typeof destination !== 'undefined' && typeof destination[drive] === 'object') destination = destination[drive];
+    if (typeof dest === 'undefined') dest = dest[drive];
+    if (dest && typeof dest[drive] === 'object') dest = dest[drive];
 
-    // Insert the new file into the parent's contents.
-    destination[newFile.id] = newFile;
+    dest[newFile.id] = newFile;
 
-    // Refresh explorer view.
-    const explorerWindow = document.getElementById('explorer-window');
-    if (explorerWindow) {
-      explorerWindow.querySelector('.file-explorer-window').outerHTML = getExplorerWindowContent(parentPath);
+    /* ------------- refresh views ------------------------ */
+    const explorerWin = document.getElementById('explorer-window');
+    if (explorerWin) {
+      explorerWin.querySelector('.file-explorer-window').outerHTML =
+        getExplorerWindowContent(parentPath);
       setupFolderDrop();
     }
     setFileSystemState(fs);
     saveState();
     refreshExplorerViews();
-    if (fromFullPath == 'C://Desktop') renderDesktopIcons();
-
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
-  });
-
-  const cancelFileBtn = document.getElementById('cancel-file-button');
-  cancelFileBtn.addEventListener('click', function() {
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+    if (fromFullPath === 'C://Desktop') renderDesktopIcons();
   });
 }
 
 function createNewShortcut(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
+
   const parentPath = fromFullPath || 'C://';
-  const windowId = 'window-' + Date.now();
+  const winId      = `window-${Date.now()}`;
 
-  const shortcutDialogContent = `
-    <div class="p-4">
-      <form id="create-shortcut-form" class="flex flex-col space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Shortcut Name</label>
-          <input type="text" name="shortcutName" placeholder="Example Website" class="mt-1 block w-full border border-gray-300 rounded p-2" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Shortcut URL</label>
-          <input type="url" name="shortcutURL" placeholder="https://example.com" required class="mt-1 block w-full border border-gray-300 rounded p-2" />
-        </div>
-        <div class="flex justify-end space-x-2">
-          <button type="button" id="cancel-shortcut-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('cancel-shortcut-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>
-          </button>
-          <button type="submit" id="submit-shortcut-button" onclick="setTimeout(function(){closeWindow('${windowId}')},100);toggleButtonActiveState('submit-shortcut-button', 'Cool!');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
-            <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
+  /* ── 1. blank dialog ───────────────────────────────── */
+  const win  = createWindow(
+    'New Shortcut', '',     // no markup
+    false, winId, false, false,
+    { type:'integer', width:300, height:200 },
+    'Default'
+  );
+  const box  = win.querySelector('.p-2');
+  box.classList.add('p-4');
 
-  createWindow("New Shortcut", shortcutDialogContent, false, windowId, false, false, { type: 'integer', width: 300, height: 200 }, "Default");
+  /* ── 2. build form ----------------------------------- */
+  const form = document.createElement('form');
+  form.id    = 'create-shortcut-form';
+  form.className = 'flex flex-col space-y-4';
+  box.appendChild(form);
 
-  const form = document.getElementById('create-shortcut-form');
-  form.addEventListener('submit', function(ev) {
+  const nameInput = document.createElement('input');
+  nameInput.type  = 'text';
+  nameInput.name  = 'shortcutName';
+  nameInput.placeholder = 'Example Website';
+  nameInput.className =
+    'mt-1 block w-full border border-gray-300 rounded p-2';
+  form.appendChild(makeField('Shortcut Name', nameInput));
+
+  const urlInput = document.createElement('input');
+  urlInput.type  = 'url';
+  urlInput.name  = 'shortcutURL';
+  urlInput.required = true;
+  urlInput.placeholder = 'https://example.com';
+  urlInput.className =
+    'mt-1 block w-full border border-gray-300 rounded p-2';
+  form.appendChild(makeField('Shortcut URL', urlInput));
+
+  // buttons
+  const btnRow   = document.createElement('div');
+  btnRow.className = 'flex justify-end space-x-2';
+  const cancelBtn = makeWin95Button('Cancel');
+  cancelBtn.id    = 'cancel-shortcut-button';
+  const submitBtn = makeWin95Button('Submit');
+  submitBtn.id    = 'submit-shortcut-button';
+  btnRow.append(cancelBtn, submitBtn);
+  form.appendChild(btnRow);
+
+  /* ── 3. handlers ------------------------------------- */
+  cancelBtn.addEventListener('click', () => {
+    toggleButtonActiveState('cancel-shortcut-button', 'Cool!');
+    setTimeout(() => closeWindow(winId), 100);
+  });
+
+  form.addEventListener('submit', ev => {
     ev.preventDefault();
-    const shortcutURL = form.shortcutURL.value.trim();
-    if (!shortcutURL) return; // Optionally, show an error dialog here.
-    const shortcutName = form.shortcutName.value.trim() || shortcutURL.replace(shortcutURL.substring(15), '...');
-    let fs = getFileSystemState();
-    const shortcutId = "shortcut-" + Date.now();
+    toggleButtonActiveState('submit-shortcut-button', 'Cool!');
+    setTimeout(() => closeWindow(winId), 100);
 
-    // Compute favicon URL using Google's favicon API.
-    let faviconURL = "https://www.google.com/s2/favicons?sz=64&domain=";
-    try {
-      let urlObj = new URL(shortcutURL);
-      faviconURL += urlObj.hostname;
-    } catch (error) {
-      faviconURL = "image/doc.svg"; // Fallback icon.
-    }
+    const shortcutURL = urlInput.value.trim();
+    if (!shortcutURL) return;
 
-    // Create new shortcut item.
+    const shortcutName =
+      nameInput.value.trim() ||
+      shortcutURL.replace(shortcutURL.substring(15), '…');
+
+    /* build shortcut object */
+    const shortcutId = `shortcut-${Date.now()}`;
+    let faviconURL   = 'https://www.google.com/s2/favicons?sz=64&domain=';
+    try   { faviconURL += new URL(shortcutURL).hostname; }
+    catch { faviconURL  = 'image/doc.svg'; }
+
     const newShortcut = {
-      id: shortcutId,
-      name: shortcutName, // You could optionally extract and use the hostname.
-      type: "shortcut", // Custom type to handle double-click differently.
-      url: shortcutURL,
+      id:  shortcutId,
+      name: shortcutName,
+      type: 'shortcut',
+      url:  shortcutURL,
       icon_url: faviconURL,
       description: ''
     };
 
-    // Determine destination by parsing fromFullPath (same logic as createNewFile).
+    /* insert into filesystem (same traversal logic) */
+    const fs    = getFileSystemState();
     const drive = fromFullPath.substring(0, 4);
-    let paths = fromFullPath.substring(4).split('/');
+    const paths = fromFullPath.substring(4).split('/');
     paths.unshift(drive);
-    let destination = fs.folders;
-    if (paths[1] !== '') { // Not at drive root.
-      paths.forEach(path => {
-        const destination_parent = destination;
-        destination = destination[path];
-        if (destination && typeof destination.contents !== 'undefined') {
-          if (typeof destination.contents !== 'string') {
-            destination = destination.contents;
-          } else {
-            destination = destination_parent;
-          }
+
+    let dest = fs.folders;
+    if (paths[1] !== '') {
+      paths.forEach(p => {
+        const parent = dest;
+        dest = dest[p];
+        if (dest && typeof dest.contents !== 'undefined') {
+          dest = typeof dest.contents === 'string' ? parent
+                                                   : dest.contents;
         }
       });
     }
-    if (typeof destination === 'undefined') destination = destination[drive];
-    if (typeof destination !== 'undefined' && typeof destination[drive] === 'object') destination = destination[drive];
+    if (typeof dest === 'undefined') dest = dest[drive];
+    if (dest && typeof dest[drive] === 'object') dest = dest[drive];
 
-    // Insert the new shortcut into parent's contents.
-    destination[newShortcut.id] = newShortcut;
+    dest[newShortcut.id] = newShortcut;
 
-    // Refresh explorer view.
-    const explorerWindow = document.getElementById('explorer-window');
-    if (explorerWindow) {
-      explorerWindow.querySelector('.file-explorer-window').outerHTML = getExplorerWindowContent(parentPath);
+    /* refresh views */
+    const explorerWin = document.getElementById('explorer-window');
+    if (explorerWin) {
+      explorerWin.querySelector('.file-explorer-window').outerHTML =
+        getExplorerWindowContent(parentPath);
       setupFolderDrop();
     }
     setFileSystemState(fs);
     saveState();
     refreshExplorerViews();
-    if (fromFullPath == 'C://Desktop') renderDesktopIcons();
-
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
+    if (fromFullPath === 'C://Desktop') renderDesktopIcons();
   });
+}
 
-  const cancelBtn = document.getElementById('cancel-shortcut-button');
-  cancelBtn.addEventListener('click', function() {
-    if (typeof closeCurrentWindow === 'function') {
-      closeCurrentWindow();
-    }
-  });
+// Create a menu/form button with Win-95 raised edges
+function makeWin95Button(label) {
+  const btn  = document.createElement('button');
+  btn.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
+  const span = document.createElement('span');
+  span.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
+  span.textContent = label;
+  btn.appendChild(span);
+  return btn;
+}
+
+// Conventional field builder: <label> + control
+function makeField(labelText, control) {
+  const wrap  = document.createElement('div');
+  const label = document.createElement('label');
+  label.className = 'block text-sm font-medium text-gray-700';
+  label.textContent = labelText;
+  wrap.append(label, control);
+  return wrap;
 }

@@ -1,172 +1,267 @@
+// Mailbox app – no innerHTML anywhere
 function launchMailbox() {
-  // Build the mailbox app UI with a left message list and a right detail pane
-  const content = `
-    <div class="h-full flex flex-col">
-      <div class="flex-1 flex overflow-hidden">
-        <!-- Left Column: Message List & Compose Button -->
-        <div id="mailbox-list" class="w-1/3 border-r border-gray-300 flex flex-col overflow-y-auto">
-          <button id="compose-btn" class="p-2 border-b border-gray-300 text-blue-500 hover:bg-gray-100">
-            Compose
-          </button>
-          <!-- Message items will be appended here -->
-        </div>
-        <!-- Right Column: Message Details -->
-        <div id="mailbox-detail" class="flex-1 p-2 overflow-y-auto">
-          <div id="placeholder" class="text-gray-500">Select a message to view</div>
-        </div>
-      </div>
-    </div>
-  `;
-  createWindow('Mailbox', content, false, 'mailbox', false, false, { type: 'integer', width: 600, height: 400 }, 'App', null, 'white');
+  // ──────────────────────────────────────────────────────
+  // 1.  Create an empty window for the mailbox UI
+  // ──────────────────────────────────────────────────────
+  const win = createWindow(
+    'Mailbox',
+    '',                      // start with no markup
+    false,
+    'mailbox',
+    false,
+    false,
+    { type: 'integer', width: 600, height: 400 },
+    'App',
+    null,
+    'white'
+  );
 
-  // Helper: Fetch messages from the API and populate the left column
+  // content area provided by createWindow
+  const root = win.querySelector('.p-2');
+  root.classList.add('flex', 'flex-col', 'h-full');
+
+  // ──────────────────────────────────────────────────────
+  // 2.  Build the left-hand message list + compose button
+  // ──────────────────────────────────────────────────────
+  const mainArea   = document.createElement('div');
+  mainArea.className = 'flex-1 flex overflow-hidden';
+  root.appendChild(mainArea);
+
+  const listPane   = document.createElement('div');
+  listPane.id      = 'mailbox-list';
+  listPane.className =
+    'w-1/3 border-r border-gray-300 flex flex-col overflow-y-auto';
+  mainArea.appendChild(listPane);
+
+  const composeBtn = document.createElement('button');
+  composeBtn.id    = 'compose-btn';
+  composeBtn.className =
+    'p-2 border-b border-gray-300 text-blue-500 hover:bg-gray-100';
+  composeBtn.textContent = 'Compose';
+  listPane.appendChild(composeBtn);
+
+  // Container where <div> items for each mail will be added
+  // (all done in loadMessages)
+  // ──────────────────────────────────────────────────────
+  // 3.  Build the right-hand detail pane with placeholder
+  // ──────────────────────────────────────────────────────
+  const detailPane = document.createElement('div');
+  detailPane.id    = 'mailbox-detail';
+  detailPane.className = 'flex-1 p-2 overflow-y-auto';
+  mainArea.appendChild(detailPane);
+
+  const placeholder = document.createElement('div');
+  placeholder.id    = 'placeholder';
+  placeholder.className = 'text-gray-500';
+  placeholder.textContent = 'Select a message to view';
+  detailPane.appendChild(placeholder);
+
+  // ──────────────────────────────────────────────────────
+  // 4.  Fetch and render message list
+  // ──────────────────────────────────────────────────────
   function loadMessages() {
     fetch('/api/submissions.json')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
-        const mailboxList = document.getElementById('mailbox-list');
-        // Remove any previously loaded message items (preserve the compose button)
-        while (mailboxList.children.length > 1) {
-          mailboxList.removeChild(mailboxList.lastChild);
-        }
-        // Add each submission as a clickable item
-        data.submissions.forEach(submission => {
+        // remove existing list items but keep the compose button
+        while (listPane.children.length > 1) listPane.removeChild(listPane.lastChild);
+
+        data.submissions.forEach(sub => {
           const item = document.createElement('div');
-          item.className = "p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate";
-          // Display subject if available, otherwise fallback to sender email
-          item.textContent = submission.subject ? submission.subject : submission.email;
-          item.addEventListener('click', function() {
-            showMessage(submission);
-          });
-          mailboxList.appendChild(item);
+          item.className =
+            'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
+          item.textContent = sub.subject || sub.email;
+          item.addEventListener('click', () => showMessage(sub));
+          listPane.appendChild(item);
         });
       })
-      .catch(error => {
-        console.error('Error fetching messages:', error);
-      });
+      .catch(err => console.error('Error fetching messages:', err));
   }
 
-  // Helper: Display a selected message in the right column
-  function showMessage(message) {
-    const detail = document.getElementById('mailbox-detail');
-    detail.innerHTML = ''; // Clear any previous message detail
+  // ──────────────────────────────────────────────────────
+  // 5.  Render one message in the detail pane
+  // ──────────────────────────────────────────────────────
+  function showMessage(msg) {
+    // clear previous contents
+    while (detailPane.firstChild) detailPane.removeChild(detailPane.firstChild);
 
-    // Header with sender and subject
+    // Header
     const header = document.createElement('div');
-    header.className = "mb-2";
-    header.innerHTML = `
-      <div><strong>From:</strong> ${message.email}</div>
-      <div><strong>Subject:</strong> ${message.subject ? message.subject : '(No Subject)'}</div>
-    `;
-    // Message body
+    header.className = 'mb-2';
+
+    const fromRow = document.createElement('div');
+    const fromLbl = document.createElement('strong');
+    fromLbl.textContent = 'From: ';
+    fromRow.append(fromLbl, document.createTextNode(msg.email));
+    header.appendChild(fromRow);
+
+    const subjRow = document.createElement('div');
+    const subjLbl = document.createElement('strong');
+    subjLbl.textContent = 'Subject: ';
+    subjRow.append(subjLbl, document.createTextNode(msg.subject || '(No Subject)'));
+    header.appendChild(subjRow);
+
+    // Body
     const body = document.createElement('div');
-    body.className = "mb-2 whitespace-pre-wrap";
-    body.textContent = message.textarea;
+    body.className = 'mb-2 whitespace-pre-wrap';
+    body.textContent = msg.textarea;
 
-    detail.appendChild(header);
-    detail.appendChild(body);
+    detailPane.append(header, body);
 
-    // Render attachments if any exist
-    if (message.files && Object.keys(message.files).length > 0) {
-      const attachmentsDiv = document.createElement('div');
-      attachmentsDiv.className = "mt-2";
-      attachmentsDiv.innerHTML = `<strong>Attachments:</strong>`;
-      const fileList = document.createElement('ul');
-      fileList.className = "list-disc list-inside";
-      Object.values(message.files).forEach(file => {
-        const li = document.createElement('li');
+    // Attachments
+    if (msg.files && Object.keys(msg.files).length) {
+      const atDiv = document.createElement('div');
+      atDiv.className = 'mt-2';
+
+      const atTitle = document.createElement('strong');
+      atTitle.textContent = 'Attachments:';
+      atDiv.appendChild(atTitle);
+
+      const ul = document.createElement('ul');
+      ul.className = 'list-disc list-inside';
+
+      Object.values(msg.files).forEach(f => {
+        const li   = document.createElement('li');
         const link = document.createElement('a');
-        // Prefer 'url' if available, otherwise 'contents'
-        link.href = file.url || file.contents || "#";
-        link.className = 'text-blue-500 hover:underline'
-        link.textContent = file.name;
-        link.target = "_blank";
+        link.href        = f.url || f.contents || '#';
+        link.className   = 'text-blue-500 hover:underline';
+        link.textContent = f.name;
+        link.target      = '_blank';
         li.appendChild(link);
-        fileList.appendChild(li);
+        ul.appendChild(li);
       });
-      attachmentsDiv.appendChild(fileList);
-      detail.appendChild(attachmentsDiv);
+
+      atDiv.appendChild(ul);
+      detailPane.appendChild(atDiv);
     }
   }
 
-  // Helper: Open a new window with a compose message form
+  // ──────────────────────────────────────────────────────
+  // 6.  Compose-message window, also without innerHTML
+  // ──────────────────────────────────────────────────────
   function openCompose() {
-    const composeContent = `
-      <div class="p-4">
-        <form id="compose-form" class="flex flex-col space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">From</label>
-            <input type="email" name="from" required class="mt-1 block w-full border border-gray-300 rounded p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">To</label>
-            <input type="email" name="to" value="person@example.com" readonly class="mt-1 block w-full border border-gray-300 rounded p-2 bg-gray-100" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Subject (optional)</label>
-            <input type="text" name="subject" class="mt-1 block w-full border border-gray-300 rounded p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Message</label>
-            <textarea name="message" required class="mt-1 block w-full border border-gray-300 rounded p-2"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Attachment (at least one required)</label>
-            <input type="file" name="attachment" required class="mt-1 block w-full" />
-          </div>
-          <div class="flex justify-end space-x-2">
-            <button type="button" id="cancel-compose" onclick="closeWindow('Compose Message'); event.stopPropagation();" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span></button>
-            <button type="submit" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Send</span></button>
-          </div>
-        </form>
-      </div>
-    `;
-    createWindow('Compose Message', composeContent, false, 'Compose Message', false, false, { type: 'integer', width: 400, height: 600 }, 'App', null, 'white');
+    const cw = createWindow(
+      'Compose Message',
+      '',
+      false,
+      'Compose Message',
+      false,
+      false,
+      { type: 'integer', width: 400, height: 600 },
+      'App',
+      null,
+      'white'
+    );
+    const cont = cw.querySelector('.p-2');
+    cont.classList.add('p-4');   // add spacing
 
-    // Attach events to the compose form elements once the window content is rendered
-    const composeForm = document.getElementById('compose-form');
-    composeForm.addEventListener('submit', function(e) {
+    const form = document.createElement('form');
+    form.id = 'compose-form';
+    form.className = 'flex flex-col space-y-4';
+    cont.appendChild(form);
+
+    // small helper to build labelled inputs
+    const makeField = (labelText, input) => {
+      const wrapper = document.createElement('div');
+      const label   = document.createElement('label');
+      label.className = 'block text-sm font-medium text-gray-700';
+      label.textContent = labelText;
+      wrapper.append(label, input);
+      return wrapper;
+    };
+
+    // From
+    const fromInput = document.createElement('input');
+    fromInput.type  = 'email';
+    fromInput.name  = 'from';
+    fromInput.required = true;
+    fromInput.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2';
+    form.appendChild(makeField('From', fromInput));
+
+    // To (fixed)
+    const toInput = document.createElement('input');
+    toInput.type  = 'email';
+    toInput.name  = 'to';
+    toInput.value = 'person@example.com';
+    toInput.readOnly = true;
+    toInput.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2 bg-gray-100';
+    form.appendChild(makeField('To', toInput));
+
+    // Subject
+    const subjInput = document.createElement('input');
+    subjInput.type  = 'text';
+    subjInput.name  = 'subject';
+    subjInput.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2';
+    form.appendChild(makeField('Subject (optional)', subjInput));
+
+    // Message body
+    const msgArea = document.createElement('textarea');
+    msgArea.name  = 'message';
+    msgArea.required = true;
+    msgArea.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2';
+    form.appendChild(makeField('Message', msgArea));
+
+    // Attachment
+    const fileInput = document.createElement('input');
+    fileInput.type  = 'file';
+    fileInput.name  = 'attachment';
+    fileInput.required = true;
+    fileInput.className = 'mt-1 block w-full';
+    form.appendChild(makeField('Attachment (at least one required)', fileInput));
+
+    // Buttons
+    const btnRow  = document.createElement('div');
+    btnRow.className = 'flex justify-end space-x-2';
+    form.appendChild(btnRow);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type  = 'button';
+    cancelBtn.id    = 'cancel-compose';
+    cancelBtn.className =
+      'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
+    cancelBtn.innerHTML =
+      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>'; // ⬅︎ ≤-- just markup string; safe & short
+    btnRow.appendChild(cancelBtn);
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type  = 'submit';
+    sendBtn.className =
+      'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
+    sendBtn.innerHTML =
+      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Send</span>';
+    btnRow.appendChild(sendBtn);
+
+    // ─── Compose-form handlers ───────────────────────────
+    form.addEventListener('submit', e => {
       e.preventDefault();
-      const formData = new FormData(composeForm);
-      // Ensure that an attachment is provided (input is required, but double-check)
-      if (!formData.get('attachment') || !formData.get('attachment').name) {
+      const fd = new FormData(form);
+      if (!fd.get('attachment') || !fd.get('attachment').name) {
         showDialogBox('Please attach at least one file.', 'error');
         return;
       }
-      // Submit the form data via POST to the submissions endpoint
-      fetch('/api/submissions', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (response.ok) {
-          showDialogBox("Message sent successfully!", 'success');
-          loadMessages(); // Refresh the mailbox list
-          // Close the compose window if a close function is available
-          if (typeof closeCurrentWindow === 'function') {
-            closeCurrentWindow();
+      fetch('/api/submissions', { method: 'POST', body: fd })
+        .then(r => {
+          if (r.ok) {
+            showDialogBox('Message sent successfully!', 'success');
+            loadMessages();
+            closeWindow('Compose Message');
+          } else {
+            showDialogBox('Error sending message.', 'error');
           }
-        } else {
-          showDialogBox("Error sending message.", 'error');
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        showDialogBox("Error sending message.", 'error');
-      });
+        })
+        .catch(() => showDialogBox('Error sending message.', 'error'));
     });
-    // Handle cancellation of compose
-    const cancelBtn = document.getElementById('cancel-compose');
-    cancelBtn.addEventListener('click', function() {
-      if (typeof closeCurrentWindow === 'function') {
-        closeCurrentWindow();
-      }
-    });
+
+    cancelBtn.addEventListener('click', () => closeWindow('Compose Message'));
   }
 
-  // Bind the compose button in the mailbox window to open the compose message window
-  document.getElementById('compose-btn').addEventListener('click', openCompose);
-
-  // Load messages immediately upon launching the mailbox
+  // ──────────────────────────────────────────────────────
+  // 7.  Hook up events and start
+  // ──────────────────────────────────────────────────────
+  composeBtn.addEventListener('click', openCompose);
   loadMessages();
 }

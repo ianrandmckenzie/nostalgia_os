@@ -59,24 +59,206 @@ function launchMailbox() {
   // ──────────────────────────────────────────────────────
   // 4.  Fetch and render message list
   // ──────────────────────────────────────────────────────
-  function loadMessages() {
-    fetch('/api/submissions.json')
-      .then(r => r.json())
-      .then(data => {
-        // remove existing list items but keep the compose button
-        while (listPane.children.length > 1) listPane.removeChild(listPane.lastChild);
+  const messageData = {
+    "submissions": [
+      {
+        "id": "13c7d1b4-20d6-4ad9-8e9a-fd1b9efb947c",
+        "email": "user1@aol.com",
+        "textarea": "Hey, you have to see this new site I found on the World Wide Web — it's got dancing baby GIFs and everything!",
+        "subject": "You've Got Mail!",
+        "public": false,
+        "files": {
+          "file-111": {
+            "id": "file-111",
+            "name": "dancing_baby",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "url": "./dancing_baby.jpeg"
+          },
+          "file-222": {
+            "id": "file-222",
+            "name": "trip_photo",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "contents": "./trip_photo.jpeg"
+          }
+        }
+      },
+      {
+        "id": "9dcf2790-4a88-46e2-8f25-b1219872c3d0",
+        "email": "user2@aol.com",
+        "textarea": "Forward this email to 10 friends or you'll have bad luck for 7 years. I'm not kidding, it happened to my cousin!",
+        "subject": "Check Out This New Website",
+        "public": false,
+        "files": {
+          "file-333": {
+            "id": "file-333",
+            "name": "y2k_notes",
+            "type": "ugc-file",
+            "content_type": "txt",
+            "contents": "./y2k_notes.txt"
+          }
+        }
+      },
+      {
+        "id": "c4aab6ea-cd12-42ef-8800-296cf85c84ec",
+        "email": "user3@aol.com",
+        "textarea": "I'm using Internet Explorer 5 now, and it's kinda slow... should I go back to Netscape Navigator?",
+        "subject": "Funny Chain Email 😂",
+        "public": false,
+        "files": {
+          "file-111": {
+            "id": "file-111",
+            "name": "dancing_baby",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "url": "./dancing_baby.jpeg"
+          }
+        }
+      },
+      {
+        "id": "287d4d2a-b8a4-4f2a-82e9-d802d6f3c487",
+        "email": "user4@aol.com",
+        "textarea": "Attached are some photos from the party. Scanned them with my HP scanner, took forever!",
+        "subject": "AOL Keyword: Cool",
+        "public": false,
+        "files": {
+          "file-222": {
+            "id": "file-222",
+            "name": "trip_photo",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "contents": "./trip_photo.jpeg"
+          }
+        }
+      },
+      {
+        "id": "19e34e2d-d257-4e9a-b589-50f70114c010",
+        "email": "user5@aol.com",
+        "textarea": "Can you help me center this animated GIF on my homepage? The <marquee> tag keeps messing it up.",
+        "subject": "Netscape 4.5 Update",
+        "public": false,
+        "files": {
+          "file-333": {
+            "id": "file-333",
+            "name": "y2k_notes",
+            "type": "ugc-file",
+            "content_type": "txt",
+            "contents": "./y2k_notes.txt"
+          }
+        }
+      },
+      {
+        "id": "1f839e50-8c86-4b68-b9e1-87a93d567689",
+        "email": "user6@aol.com",
+        "textarea": "Winamp really *does* whip the llama's ass. Try the new skin I made!",
+        "subject": "Winamp Skin Attached",
+        "public": false,
+        "files": {
+          "file-111": {
+            "id": "file-111",
+            "name": "dancing_baby",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "url": "./dancing_baby.jpeg"
+          },
+          "file-333": {
+            "id": "file-333",
+            "name": "y2k_notes",
+            "type": "ugc-file",
+            "content_type": "txt",
+            "contents": "./y2k_notes.txt"
+          }
+        }
+      },
+      {
+        "id": "80f8f0e7-fb30-44fc-bd7d-6d35cd1c2edc",
+        "email": "user7@aol.com",
+        "textarea": "Here's my new ICQ number. Add me: 127385439!",
+        "subject": "Need Help With My Angelfire Page",
+        "public": false,
+        "files": {
+          "file-222": {
+            "id": "file-222",
+            "name": "trip_photo",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "contents": "./trip_photo.jpeg"
+          }
+        }
+      },
+      {
+        "id": "8cd56ac4-31f5-4497-b768-91eacc315769",
+        "email": "user8@aol.com",
+        "textarea": "This Y2K thing is getting serious. My uncle's stocking up on water and canned goods.",
+        "subject": "Pics From Our Trip!",
+        "public": false,
+        "files": {
+          "file-333": {
+            "id": "file-333",
+            "name": "y2k_notes",
+            "type": "ugc-file",
+            "content_type": "txt",
+            "contents": "./y2k_notes.txt"
+          }
+        }
+      },
+      {
+        "id": "e91a4743-89cc-44df-a99e-96c81283f146",
+        "email": "user9@aol.com",
+        "textarea": "AOL's charging for every minute now?! Thinking of switching to Earthlink.",
+        "subject": "Re: Y2K Concerns",
+        "public": false,
+        "files": {
+          "file-222": {
+            "id": "file-222",
+            "name": "trip_photo",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "contents": "./trip_photo.jpeg"
+          }
+        }
+      },
+      {
+        "id": "6643c74d-00c8-4291-a1b3-d080e8c03cb6",
+        "email": "user10@aol.com",
+        "textarea": "My Geocities site now has a MIDI file playing automatically. Let me know if it's too loud.",
+        "subject": "Geocities Link Inside",
+        "public": false,
+        "files": {
+          "file-111": {
+            "id": "file-111",
+            "name": "dancing_baby",
+            "type": "ugc-file",
+            "content_type": "jpg",
+            "url": "./dancing_baby.jpeg"
+          }
+        }
+      }
 
-        data.submissions.forEach(sub => {
-          const item = document.createElement('div');
-          item.className =
-            'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
-          item.textContent = sub.subject || sub.email;
-          item.addEventListener('click', () => showMessage(sub));
-          listPane.appendChild(item);
-        });
-      })
-      .catch(err => console.error('Error fetching messages:', err));
+    ]
+  };
+
+  function loadMessages() {
+    try {
+      // Remove existing list items but keep the compose button
+      while (listPane.children.length > 1) {
+        listPane.removeChild(listPane.lastChild);
+      }
+
+      messageData.submissions.forEach(sub => {
+        const item = document.createElement('div');
+        item.className =
+          'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
+        item.textContent = sub.subject || sub.email;
+        item.addEventListener('click', () => showMessage(sub));
+        listPane.appendChild(item);
+      });
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    }
   }
+
 
   // ──────────────────────────────────────────────────────
   // 5.  Render one message in the detail pane

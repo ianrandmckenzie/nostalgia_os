@@ -27,6 +27,7 @@ function setFileSystemState(newFS) {
 function getItemsForPath(fullPath) {
   fullPath = normalizePath(fullPath);
   const fs = getFileSystemState();
+  if (fs.initialized !== true) fetchDocuments();
 
   let current = fs.folders;
   if (fullPath.substring(1, 4) === '://' && fullPath.length === 4) {
@@ -63,10 +64,6 @@ function getItemsForPath(fullPath) {
     }
 
     if (typeof current.contents !== 'undefined') {
-      if ((drivePath + part === 'C://Documents') && Object.keys(current.contents).length === 0) {
-        fetchDocuments();
-      }
-
       current = current.contents; // Move deeper into contents
       return current;
     } else { return current }
@@ -75,71 +72,95 @@ function getItemsForPath(fullPath) {
 }
 
 // System files preloaded by vendor
+const myDocuments = {
+  "files": [
+    {
+      "id": "abc",
+      "description": "A (possibly doctored) image of a really cool website",
+      "file_type": "jpg",
+      "url": "inspo.jpg"
+    },
+    {
+      "id": "xyz",
+      "description": "",
+      "file_type": "mp3",
+      "url": "mail.mp3"
+    },
+    {
+      "id": "123",
+      "description": "",
+      "file_type": "html",
+      "url": "test.html"
+    },
+    {
+      "id": "133323",
+      "description": "",
+      "file_type": "html",
+      "url": "editor.html"
+    },
+    {
+      "id": "789",
+      "description": "",
+      "file_type": "md",
+      "url": "FAQ.md"
+    },
+    {
+      "id": "01101011110011001",
+      "description": "",
+      "file_type": "txt",
+      "url": "contact.txt"
+    }
+  ]
+};
+
 function fetchDocuments() {
-  fetch('./api/media.json')
-    .then(response => response.json())
-    .then(data => {
-      const files = data.files;
-      const fileItems = files.map(file => {
-        let content_type = file.file_type.toLowerCase();
-        let icon_url = 'image/file.png';
-        if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
-          icon_url = 'image/image.png';
-        } else if (['mp4', 'webm'].includes(content_type)) {
-          icon_url = 'image/video.png';
-        } else if (['mp3', 'wav'].includes(content_type)) {
-          icon_url = 'image/audio.png';
-        } else if (content_type === 'html') {
-          icon_url = 'image/html.png';
-        } else if (['md', 'txt'].includes(content_type)) {
-          icon_url = 'image/doc.png';
-        }
-
-        return {
-          id: file.id,
-          name: file.url,
-          type: "file",
-          content: "",
-          fullPath: `C://Documents/${file.id}`,
-          content_type: content_type,
-          icon_url: icon_url,
-          description: file.description || ""
-        };
-      });
-
-      let fs = getFileSystemState();
-      if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
-        const fileItemsObj = {};
-        fileItems.forEach(file => {
-          fileItemsObj[file.id] = file;
-        });
-        fs.folders['C://']['Documents'].contents = fileItemsObj;
+  try {
+    const data = myDocuments;
+    const files = data.files;
+    const fileItems = files.map(file => {
+      let content_type = file.file_type.toLowerCase();
+      let icon_url = 'image/file.png';
+      if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
+        icon_url = 'image/image.png';
+      } else if (['mp4', 'webm'].includes(content_type)) {
+        icon_url = 'image/video.png';
+      } else if (['mp3', 'wav'].includes(content_type)) {
+        icon_url = 'image/audio.png';
+      } else if (content_type === 'html') {
+        icon_url = 'image/html.png';
+      } else if (['md', 'txt'].includes(content_type)) {
+        icon_url = 'image/doc.png';
       }
-      setFileSystemState(fs);
 
-      // Build list HTML without inline events
-      let listHtml = '<ul class="pl-5">';
-      fileItems.forEach(file => {
-        listHtml += `
-          <li class="cursor-pointer hover:bg-gray-50 file-item"
-              data-item-id="${file.id}"
-              data-file-type="${file.content_type}"
-              data-open-file="${file.id}">
-            <img src="${file.icon_url}" class="inline h-4 w-4 mr-2"> ${file.name} ${file.description ? '(' + file.description + ')' : ''}
-          </li>`;
-      });
-      listHtml += '</ul>';
-
-      const container = document.getElementById('files-area');
-      if (container) container.innerHTML = listHtml;
-    })
-    .catch(error => {
-      console.error("Error fetching media list:", error);
-      const container = document.getElementById('files-area');
-      if (container) {
-        container.innerHTML = '<p>Error loading files.</p>';
-      }
+      return {
+        id: file.id,
+        name: file.url,
+        type: "file",
+        content: "",
+        fullPath: `C://Documents/${file.id}`,
+        content_type: content_type,
+        icon_url: icon_url,
+        description: file.description || ""
+      };
     });
+
+    let fs = getFileSystemState();
+    if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
+      const fileItemsObj = {};
+      fileItems.forEach(file => {
+        fileItemsObj[file.id] = file;
+      });
+      fs.folders['C://']['Documents'].contents = fileItemsObj;
+    }
+    fs.initialized = true;
+    setFileSystemState(fs);
+  } catch (error) {
+    console.error("Error loading documents:", error);
+    const container = document.getElementById('files-area');
+    if (container) {
+      container.innerHTML = '<p>Error loading files.</p>';
+    }
+  }
 }
 
 document.addEventListener('dblclick', e => {

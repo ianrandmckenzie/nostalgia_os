@@ -422,7 +422,7 @@ function createNewFile(e, fromFullPath) {
       type: 'ugc-file',
       content: '',
       content_type: 'markdown',
-      icon_url: 'image/doc.svg',
+      icon_url: 'image/doc.png',
       description: ''
     };
 
@@ -533,7 +533,7 @@ function createNewShortcut(e, fromFullPath) {
     const shortcutId = `shortcut-${Date.now()}`;
     let faviconURL   = 'https://www.google.com/s2/favicons?sz=64&domain=';
     try   { faviconURL += new URL(shortcutURL).hostname; }
-    catch { faviconURL  = 'image/doc.svg'; }
+    catch { faviconURL  = 'image/doc.png'; }
 
     const newShortcut = {
       id:  shortcutId,

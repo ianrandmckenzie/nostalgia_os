@@ -84,15 +84,15 @@ function fetchDocuments() {
         let content_type = file.file_type.toLowerCase();
         let icon_url = 'image/file.png';
         if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
-          icon_url = 'image/image.svg';
+          icon_url = 'image/image.png';
         } else if (['mp4', 'webm'].includes(content_type)) {
-          icon_url = 'image/video.svg';
+          icon_url = 'image/video.png';
         } else if (['mp3', 'wav'].includes(content_type)) {
-          icon_url = 'image/audio.svg';
+          icon_url = 'image/audio.png';
         } else if (content_type === 'html') {
-          icon_url = 'image/html.svg';
+          icon_url = 'image/html.png';
         } else if (['md', 'txt'].includes(content_type)) {
-          icon_url = 'image/doc.svg';
+          icon_url = 'image/doc.png';
         }
 
         return {

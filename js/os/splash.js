@@ -28,6 +28,7 @@ function showSplash() {
   document.getElementById("splash-form").addEventListener("submit", function (e) {
     splashAudio.play();
     e.preventDefault();
+    document.getElementById('splash-image').src = './image/loading.gif';
     splashAudio.currentTime = 0;
     setTimeout(function () {
       splashDiv.remove();
@@ -37,6 +38,7 @@ function showSplash() {
 
   document.getElementById("splash-login").addEventListener("click", function () {
     splashAudio.play();
+    document.getElementById('splash-image').src = './image/loading.gif';
     splashAudio.currentTime = 0;
     setTimeout(function () {
       splashDiv.remove();

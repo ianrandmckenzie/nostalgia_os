@@ -259,6 +259,25 @@ function launchMailbox() {
     }
   }
 
+  // function loadMessages() {
+  //   fetch('/api/submissions.json')
+  //     .then(r => r.json())
+  //     .then(data => {
+  //       // remove existing list items but keep the compose button
+  //       while (listPane.children.length > 1) listPane.removeChild(listPane.lastChild);
+
+  //       data.submissions.forEach(sub => {
+  //         const item = document.createElement('div');
+  //         item.className =
+  //           'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
+  //         item.textContent = sub.subject || sub.email;
+  //         item.addEventListener('click', () => showMessage(sub));
+  //         listPane.appendChild(item);
+  //       });
+  //     })
+  //     .catch(err => console.error('Error fetching messages:', err));
+  // }
+
 
   // ──────────────────────────────────────────────────────
   // 5.  Render one message in the detail pane

@@ -20,7 +20,7 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
   }
   const win = document.createElement('div');
   win.id = windowId;
-  win.className = `absolute border border-gray-500 shadow-lg overflow-auto`;
+  win.className = `absolute border border-gray-500 shadow-lg overflow-auto z-20`;
   win.style.cssText = styleDimensions;
   win.style.minWidth = "350px";
   win.style.minHeight = "240px";

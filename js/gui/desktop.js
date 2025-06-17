@@ -36,7 +36,7 @@ function updateDesktopSettings() {
 }
 
 function renderDesktopIcons() {
-  const desktopIconsContainer = document.getElementById('desktop-icons');
+  const desktopIconsContainer = document.getElementById('windows-container');
   desktopIconsContainer.innerHTML = "";
   let fs = getFileSystemState();
   const desktopFolder = fs.folders['C://']?.['Desktop'];
@@ -45,7 +45,7 @@ function renderDesktopIcons() {
   Object.values(desktopFolder.contents).forEach(item => {
     const iconElem = document.createElement('div');
     iconElem.id = "icon-" + item.id;
-    iconElem.className = 'flex flex-col items-center cursor-pointer m-2 draggable-icon desktop-folder-icon';
+    iconElem.className = 'flex flex-col items-center cursor-pointer m-2 draggable-icon desktop-folder-icon z-10 h-32 truncate-ellipsis w-24 text-wrap';
 
     let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
 

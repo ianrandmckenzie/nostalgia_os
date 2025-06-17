@@ -28,17 +28,24 @@
       opacity: 0.2;
       z-index: -1;
     } */
+    #desktop * {
+      image-rendering: pixelated;
+      transform: scale(1.01); /* Slight scale triggers re-rendering artifacts */
+      filter: contrast(95%) saturate(90%) blur(0.2px);
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none;  /* IE 10+ */
+    }
   </style>
 </head>
 <body id="desktop" class="containerbox bg-defaultBackground h-screen w-screen relative overflow-hidden font-mono">
   <audio id="splash-audio" src="./audio/startup.mp3"></audio>
   <audio id="error-popup-audio" src="./audio/error-pop-up.mp3"></audio>
 
-  <!-- Desktop Icons (rendered dynamically by JS) -->
-  <div id="desktop-icons" class="absolute top-4 left-4 z-30"></div>
-
   <!-- Container for Windows (modals) -->
-  <div id="windows-container" class="absolute w-full h-[calc(100vh-40px)] overflow-auto"></div>
+  <div id="windows-container" class="relative w-full h-[calc(100vh-40px)] overflow-auto"></div>
+
+  <!-- Desktop Icons (rendered dynamically by JS) -->
+  <div id="desktop-icons" class="absolute top-4 left-4 z-10"></div>
 
   <!-- Context Menu (for right-click) -->
   <div id="context-menu" class="absolute bg-white border border-gray-500 shadow-lg hidden z-50"></div>

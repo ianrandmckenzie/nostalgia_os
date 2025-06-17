@@ -25,7 +25,7 @@ function showSplash() {
   document.body.appendChild(splashDiv);
 
   const splashAudio = document.getElementById("splash-audio");
-  document.getElementById("splash-form").addEventListener("submit", function (e) {
+  document.getElementById("splash-login").addEventListener("click", function (e) {
     splashAudio.play();
     e.preventDefault();
     document.getElementById('splash-image').src = './image/loading.gif';

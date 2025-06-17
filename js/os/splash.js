@@ -18,7 +18,7 @@ function showSplash() {
         <label class="block text-sm">Password</label>
         <input type="password" id="splash-password" value="••••••" class="border px-1 py-1 w-full" readonly>
       </div>
-      <button id="splash-login" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Login</span></button>
+      <button id="splash-login" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full max-h-10 w-full py-1.5 px-3">Login</span></button>
     </form>
   </div>
 `;

@@ -85,7 +85,7 @@ function getExplorerWindowContent(currentPath = 'C://') {
 
   Object.values(itemsObj).forEach(item => {
     const isFolder  = item.type === 'folder';
-    let   icon      = isFolder ? 'image/folder.svg' : 'image/file.svg';
+    let   icon      = isFolder ? 'image/folder.png' : 'image/file.png';
     if (item.icon_url) icon = item.icon_url;
 
     const classes   = 'cursor-pointer hover:bg-gray-50 file-item' +
@@ -121,7 +121,7 @@ function getExplorerWindowContent(currentPath = 'C://') {
   const drivesHtml = ['C://','A://','D://'].map(d =>
     `<li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" ` +
     `data-open-drive="${d}">` +
-    `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0] === 'a' ? 'floppy' : 'cd'}.svg" ` +
+    `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0].toLowerCase() === 'a' ? 'floppy' : 'cd'}.png" ` +
     `class="inline h-4 w-4 mr-2"> ${d}</li>`
   ).join('');
 

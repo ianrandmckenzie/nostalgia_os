@@ -47,7 +47,7 @@ function renderDesktopIcons() {
     iconElem.id = "icon-" + item.id;
     iconElem.className = 'flex flex-col items-center cursor-pointer m-2 draggable-icon desktop-folder-icon';
 
-    let iconSrc = (item.type === 'folder') ? 'image/folder.svg' : 'image/file.svg';
+    let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
 
     // Common metadata
     iconElem.setAttribute('data-item-id', item.id);

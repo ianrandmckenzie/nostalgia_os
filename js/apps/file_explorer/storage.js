@@ -82,7 +82,7 @@ function fetchDocuments() {
       const files = data.files;
       const fileItems = files.map(file => {
         let content_type = file.file_type.toLowerCase();
-        let icon_url = 'image/file.svg';
+        let icon_url = 'image/file.png';
         if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
           icon_url = 'image/image.svg';
         } else if (['mp4', 'webm'].includes(content_type)) {

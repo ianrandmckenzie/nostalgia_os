@@ -1,5 +1,37 @@
 // Mailbox app – no innerHTML anywhere
 function launchMailbox() {
+  // Check if running in Reddit context and prevent launch
+  if (window.parent !== window || window.location.href.includes('reddit.com') || window.location.href.includes('localhost')) {
+    // Check if error dialog is already open to prevent duplicates
+    if (document.getElementById('mailbox-error')) {
+      return;
+    }
+
+    // Create a simple error dialog without using showDialogBox
+    const errorWindow = createWindow(
+      '⚠️ Error',
+      '<div class="text-center p-4"><p class="mb-4">Mail app is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
+      false,
+      'mailbox-error',
+      false,
+      false,
+      { type: 'integer', width: 300, height: 150 },
+      'Default'
+    );
+    // Add click handler for OK button with proper delegation
+    setTimeout(() => {
+      const errorBtn = document.getElementById('error-ok-btn');
+      if (errorBtn) {
+        errorBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeWindow('mailbox-error');
+        });
+      }
+    }, 100);
+    return;
+  }
+
   // ──────────────────────────────────────────────────────
   // 1.  Create an empty window for the mailbox UI
   // ──────────────────────────────────────────────────────
@@ -258,25 +290,6 @@ function launchMailbox() {
       console.error('Error loading messages:', err);
     }
   }
-
-  // function loadMessages() {
-  //   fetch('/api/submissions.json')
-  //     .then(r => r.json())
-  //     .then(data => {
-  //       // remove existing list items but keep the compose button
-  //       while (listPane.children.length > 1) listPane.removeChild(listPane.lastChild);
-
-  //       data.submissions.forEach(sub => {
-  //         const item = document.createElement('div');
-  //         item.className =
-  //           'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
-  //         item.textContent = sub.subject || sub.email;
-  //         item.addEventListener('click', () => showMessage(sub));
-  //         listPane.appendChild(item);
-  //       });
-  //     })
-  //     .catch(err => console.error('Error fetching messages:', err));
-  // }
 
 
   // ──────────────────────────────────────────────────────

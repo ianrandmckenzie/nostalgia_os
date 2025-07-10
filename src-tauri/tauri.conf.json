@@ -1,0 +1,52 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Nostalgia OS",
+  "version": "1.0.0",
+  "identifier": "com.nostalgia.os",
+  "build": {
+    "frontendDist": ".",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Nostalgia OS",
+        "width": 1024,
+        "height": 768,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "center": true,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Entertainment",
+    "shortDescription": "A nostalgic operating system experience",
+    "longDescription": "Nostalgia OS brings back the classic computing experience with a modern twist. Experience the charm of retro desktop environments.",
+    "copyright": "Copyright © 2025 Nostalgia OS"
+  }
+}

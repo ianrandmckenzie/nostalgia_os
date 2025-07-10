@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nostalgia OS
+Comment=A nostalgic operating system experience
+Exec=nostalgia-os
+Icon=nostalgia-os
+Terminal=false
+Categories=Game;Entertainment;
+StartupWMClass=nostalgia-os
+MimeType=x-scheme-handler/nostalgia-os;

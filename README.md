@@ -1,6 +1,50 @@
 # Nostalgia OS
 A website in the style of old-school operating systems.
 
+## Desktop Application
+
+This project can be built as a standalone desktop application using Tauri, allowing users to download and run Nostalgia OS on macOS, Windows, and Linux.
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (for Tauri)
+- [Node.js](https://nodejs.org/) (for package management)
+- Python 3 (for development server)
+
+### Development
+
+To run the desktop app in development mode:
+
+```bash
+npm run tauri:dev
+```
+
+This will start the development server and open the Tauri application window.
+
+### Building for Production
+
+To build the desktop application for distribution:
+
+```bash
+npm run tauri:build
+```
+
+This will create platform-specific installers in the `src-tauri/target/release/bundle/` directory:
+
+- **macOS**: `.dmg` and `.app` files
+- **Windows**: `.exe` installer and `.msi` files
+- **Linux**: `.deb`, `.AppImage`, and `.rpm` files
+
+### Web Version
+
+The original web version can still be served using:
+
+```bash
+npm run dev
+```
+
+Then open `http://localhost:3000` in your browser.
+
 ## Adding new desktop icons
 WARNING: This section is out of date.
 1. Search in the document for `<!-- Desktop Icons -->`

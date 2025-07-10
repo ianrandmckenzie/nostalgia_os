@@ -6,6 +6,10 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# Tauri build artifacts
+/src-tauri/target
+/src-tauri/WixTools
+
 # Build outputs
 dist/
 build/

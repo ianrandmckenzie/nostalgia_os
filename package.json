@@ -1,0 +1,29 @@
+{
+  "name": "nostalgia_os",
+  "version": "1.0.0",
+  "description": "A website in the style of old-school operating systems.",
+  "main": "cache.tailwind.js",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "build": "echo 'No build step needed for static HTML'",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ianrandmckenzie/nostalgia_os.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ianrandmckenzie/nostalgia_os/issues"
+  },
+  "homepage": "https://github.com/ianrandmckenzie/nostalgia_os#readme",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.6.2"
+  }
+}

@@ -72,7 +72,7 @@ function launchSolitaire() {
   scoreDisplay.className = 'text-sm font-mono ml-auto flex space-x-4';
   scoreDisplay.innerHTML = '<span>Score: <span id="score">0</span></span><span>Time: <span id="time">0:00</span></span>';
 
-  menuBar.appendChild(gameMenu);
+  // menuBar.appendChild(gameMenu); // doesn't do anything right now
   menuBar.appendChild(newGameBtn);
   menuBar.appendChild(scoreDisplay);
 

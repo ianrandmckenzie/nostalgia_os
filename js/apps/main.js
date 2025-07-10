@@ -13,4 +13,5 @@ function openApp(id) {
   if (id === 'watercolour') launchWatercolour();
   if (id === 'calculator') launchCalculator();
   if (id === 'solitaire') launchSolitaire();
+  if (id === 'bombbroomer') launchBombbroomer();
 }

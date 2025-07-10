@@ -7,6 +7,7 @@ let fileSystemState = {
           "mailbox": { id: 'mailbox', name: 'Inpeek Mail.exe', type: 'app', fullPath: 'C://Desktop/mailbox', content_type: 'html', contents: '', icon: './image/mail.png' },
           "calculator": { id: 'calculator', name: 'Calculator.exe', type: 'app', fullPath: 'C://Desktop/calculator', content_type: 'html', contents: '', icon: './image/calculator.svg' },
           "solitaire": { id: 'solitaire', name: 'Solitaire.exe', type: 'app', fullPath: 'C://Desktop/solitaire', content_type: 'html', contents: '', icon: './image/solitaire.svg' },
+          "bombbroomer": { id: 'bombbroomer', name: 'Bombbroomer.exe', type: 'app', fullPath: 'C://Desktop/bombbroomer', content_type: 'html', contents: '', icon: './image/bombbroomer.svg' },
           "FAQs": { id: 'FAQs', name: 'Frequently asked questions.rtf', type: 'ugc-file', fullPath: 'C://Desktop/FAQs', content_type: 'md', contents: '' },
           "Watercolour": { id: 'watercolour', name: 'Watercolour.exe', type: 'app', fullPath: 'C://Desktop/Watercolour', content_type: 'html', contents: '', icon: './image/watercolour.png' }
         }

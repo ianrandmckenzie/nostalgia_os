@@ -305,26 +305,16 @@ function openWindow(id, content = '', dimensions = { type: 'default' }, windowTy
 
 function showDialogBox(message, dialogType) {
   const uniqueWindowId = 'dialogWindow-' + Date.now();
-  const dialogElement = document.createElement('div');
-  const dialogTitle = document.createElement('h2');
-  dialogTitle.className = 'text-3xl';
-  dialogTitle.textContent = message;
-  dialogElement.appendChild(dialogTitle);
 
-  const dialogButton = document.createElement('button');
-  dialogButton.id = `${uniqueWindowId}-button`;
-  dialogButton.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
-  dialogElement.appendChild(dialogButton);
-
-  const dialogButtonInner = document.createElement('span');
-  dialogButtonInner.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
-  dialogButtonInner.textContent = 'OK';
-  dialogButton.appendChild(dialogButtonInner);
-
-  dialogButton.addEventListener('click', () => {
-    setTimeout(function(){toggleButtonActiveState('${uniqueWindowId}-button', 'OK')}, 1000);
-    toggleButtonActiveState('${uniqueWindowId}-button', 'Cool!');
-  });
+  // Create the HTML content as a string instead of DOM elements
+  const dialogContent = `
+    <div class="text-center p-4">
+      <h2 class="text-lg mb-4">${message}</h2>
+      <button id="${uniqueWindowId}-button" class="bg-gray-200 border-2 border-gray-400 px-4 py-2 hover:bg-gray-300" style="border-style: outset;">
+        OK
+      </button>
+    </div>
+  `;
 
   let title = '⚠️ Information';
   if (dialogType === 'confirmation') {
@@ -332,10 +322,23 @@ function showDialogBox(message, dialogType) {
   }
   if (dialogType === 'error') {
     title = '⚠️ Error';
-    document.getElementById('error-popup-audio').play();
+    const errorAudio = document.getElementById('error-popup-audio');
+    if (errorAudio) errorAudio.play();
   }
-  createWindow(title, dialogElement, false, null, false, false, { type: 'integer', width: 300, height: 100 }, "Default");
-  return;
+
+  const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 300, height: 150 }, "default");
+
+  // Add event listener after the window is created
+  setTimeout(() => {
+    const button = document.getElementById(`${uniqueWindowId}-button`);
+    if (button) {
+      button.addEventListener('click', () => {
+        closeWindow(uniqueWindowId);
+      });
+    }
+  }, 100);
+
+  return dialogWindow;
 }
 
 document.addEventListener('click', e => {

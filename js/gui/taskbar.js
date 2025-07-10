@@ -106,6 +106,11 @@ document.getElementById('solapp').addEventListener('click', () => {
   openApp('solitaire');
 });
 
+document.getElementById('bombapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('bombbroomer');
+});
+
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();
   restart();

@@ -36,16 +36,39 @@ function updateDesktopSettings() {
 }
 
 function renderDesktopIcons() {
-  const desktopIconsContainer = document.getElementById('windows-container');
+  const desktopIconsContainer = document.getElementById('desktop-icons');
   desktopIconsContainer.innerHTML = "";
+  
+  // Clean up any desktop icons that might have been incorrectly placed in windows-container
+  const windowsContainer = document.getElementById('windows-container');
+  const existingDesktopIcons = windowsContainer.querySelectorAll('.desktop-folder-icon');
+  existingDesktopIcons.forEach(icon => {
+    if (icon.parentElement && icon.parentElement.classList.contains('draggable-icon')) {
+      icon.parentElement.remove();
+    }
+  });
+  
   let fs = getFileSystemState();
   const desktopFolder = fs.folders['C://']?.['Desktop'];
   if (!desktopFolder) return;
 
+  // Constants for grid layout
+  const ICON_WIDTH = 96; // w-24 = 96px
+  const ICON_HEIGHT = 128; // h-32 = 128px
+  const PADDING = 16; // m-2 = 8px margin each side = 16px total
+  const START_X = 16;
+  const START_Y = 16;
+  
+  // Calculate how many icons can fit per column
+  const availableHeight = window.innerHeight - 80; // account for taskbar
+  const iconsPerColumn = Math.floor((availableHeight - START_Y) / (ICON_HEIGHT + PADDING));
+  
+  let iconIndex = 0;
+  
   Object.values(desktopFolder.contents).forEach(item => {
     const iconElem = document.createElement('div');
     iconElem.id = "icon-" + item.id;
-    iconElem.className = 'flex flex-col items-center cursor-pointer m-2 draggable-icon desktop-folder-icon z-10 h-32 truncate-ellipsis w-24 text-wrap';
+    iconElem.className = 'flex flex-col items-center cursor-pointer draggable-icon desktop-folder-icon z-10 h-32 truncate-ellipsis w-24 text-wrap absolute';
 
     let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
 
@@ -82,9 +105,23 @@ function renderDesktopIcons() {
       <span class="text-xs text-black max-w-20 text-center desktop-folder-icon">${item.name}</span>
     `;
 
+    // Position icon in grid only if not previously positioned by user
+    if (!desktopIconsState[iconElem.id]) {
+      const column = Math.floor(iconIndex / iconsPerColumn);
+      const row = iconIndex % iconsPerColumn;
+      
+      const x = START_X + (column * (ICON_WIDTH + PADDING));
+      const y = START_Y + (row * (ICON_HEIGHT + PADDING));
+      
+      iconElem.style.left = x + 'px';
+      iconElem.style.top = y + 'px';
+    }
+
     desktopIconsContainer.appendChild(iconElem);
     makeIconDraggable(iconElem);
     detectDoubleTap(iconElem); // ensures mobile dbltap support
+    
+    iconIndex++;
   });
 }
 
@@ -123,8 +160,6 @@ function getSettingsContent() {
     </div>
   `;
 }
-
-renderDesktopIcons();
 
 // Function to detect double tap on mobile
 function detectDoubleTap(element) {

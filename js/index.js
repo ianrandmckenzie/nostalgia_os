@@ -48,7 +48,8 @@ window.addEventListener('load', function () {
   }
   initializeAppState();
   restoreWindows();
-  restoreDesktopIcons();
+  renderDesktopIcons(); // Render icons first
+  restoreDesktopIcons(); // Then restore their positions
   restoreDesktopSettings();
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });

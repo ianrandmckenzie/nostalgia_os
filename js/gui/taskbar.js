@@ -96,6 +96,11 @@ document.getElementById('sysset').addEventListener('click', () => {
   openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
 });
 
+document.getElementById('calcapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('calculator');
+});
+
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();
   restart();

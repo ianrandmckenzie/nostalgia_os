@@ -12,4 +12,5 @@ function openApp(id) {
   if (id === 'tubestream') launchTubeStream();
   if (id === 'watercolour') launchWatercolour();
   if (id === 'calculator') launchCalculator();
+  if (id === 'solitaire') launchSolitaire();
 }

@@ -101,6 +101,11 @@ document.getElementById('calcapp').addEventListener('click', () => {
   openApp('calculator');
 });
 
+document.getElementById('solapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('solitaire');
+});
+
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();
   restart();

@@ -178,7 +178,6 @@ function launchSolitaire() {
     }
 
     // Add drag functionality
-    console.log('Adding event listeners to card:', suit, value);
     card.addEventListener('mousedown', startDrag);
     card.addEventListener('dblclick', handleDoubleClick);
 
@@ -314,7 +313,6 @@ function launchSolitaire() {
 
   // Handle card dragging
   function startDrag(e) {
-    console.log('startDrag called', e.target);
 
     // Find the card element (could be the target itself or a parent)
     let card = e.target;
@@ -326,23 +324,18 @@ function launchSolitaire() {
     }
 
     if (!card || !card.classList.contains('card')) {
-      console.log('No card found, returning');
       return;
     }
 
-    console.log('Found card:', card);
 
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to window drag handlers
 
-    console.log('Card face up:', card.dataset.faceUp);
     // Only allow dragging face-up cards
     if (card.dataset.faceUp !== 'true') {
-      console.log('Card not face up, returning');
       return;
     }
 
-    console.log('Starting drag for card:', card.dataset.suit, card.dataset.value);
     gameState.selectedCard = card;
     gameState.dragElement = card.cloneNode(true);
     gameState.dragElement.style.position = 'fixed';
@@ -366,7 +359,6 @@ function launchSolitaire() {
     }
 
     function mouseUpHandler(e) {
-      console.log('Mouse up, ending drag');
       document.removeEventListener('mousemove', mouseMoveHandler);
       document.removeEventListener('mouseup', mouseUpHandler);
 
@@ -380,7 +372,6 @@ function launchSolitaire() {
 
         // Find drop target
         const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-        console.log('Drop target:', dropTarget);
         handleCardDrop(dropTarget);
 
         gameState.selectedCard = null;

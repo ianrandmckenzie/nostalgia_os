@@ -80,9 +80,7 @@ function launchMediaPlayer() {
   playlistArea.innerHTML = `
     <div class="flex justify-between items-center mb-2">
       <div class="text-xs font-bold">Playlist:</div>
-
       <button id="add-song-btn" onclick="setTimeout(function(){toggleButtonActiveState('add-song-btn', 'Add Song')}, 1000);toggleButtonActiveState('add-song-btn', 'Adding song...');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Add Song</span></button>
-
       <input type="file" id="song-file-input" class="hidden" accept="audio/*">
     </div>
     <div id="playlist-container" class="space-y-1">
@@ -177,7 +175,7 @@ function launchMediaPlayer() {
       trackEl.dataset.index = index;
       trackEl.addEventListener('click', () => {
         loadTrack(index);
-        audio.play();
+        safePlay(); // Use safePlay to prevent errors
       });
       container.appendChild(trackEl);
     });
@@ -210,9 +208,27 @@ function launchMediaPlayer() {
     });
   }
 
+  // SNIPPET START: This function prevents the AbortError
+  function safePlay() {
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        if (error.name === 'AbortError') {
+          // This error is expected if a new load request interrupts the play request.
+          // We can safely ignore it.
+          // console.log('Play request was aborted by a new load. Safe to ignore.');
+        } else {
+          // Log other errors.
+          console.error("Playback failed:", error);
+        }
+      });
+    }
+  }
+  // SNIPPET END
+
   function togglePlay() {
     if (audio.paused) {
-      audio.play();
+      safePlay(); // Use safePlay to prevent errors
     } else {
       audio.pause();
     }
@@ -226,13 +242,13 @@ function launchMediaPlayer() {
   function nextTrack() {
     const newIndex = (currentTrackIndex + 1) % playlist.length;
     loadTrack(newIndex);
-    audio.play();
+    safePlay(); // Use safePlay to prevent errors
   }
 
   function prevTrack() {
     const newIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
     loadTrack(newIndex);
-    audio.play();
+    safePlay(); // Use safePlay to prevent errors
   }
 
   function updateVolume() {

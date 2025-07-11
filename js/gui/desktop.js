@@ -1,26 +1,104 @@
 function makeIconDraggable(icon) {
+  let isDragging = false;
+  let startX, startY;
+
+  // Make the icon draggable for HTML5 drag and drop as well
+  icon.setAttribute('draggable', true);
+
+  // HTML5 drag and drop events
+  icon.addEventListener('dragstart', function(e) {
+    const itemId = icon.getAttribute('data-item-id');
+    e.dataTransfer.setData("text/plain", itemId);
+    e.dataTransfer.effectAllowed = "move";
+    icon.classList.add('dragging');
+  });
+
+  icon.addEventListener('dragend', function(e) {
+    icon.classList.remove('dragging');
+    // Remove visual feedback
+    document.querySelectorAll('.drag-hover-target').forEach(target => {
+      target.classList.remove('drag-hover-target');
+    });
+  });
+
   icon.addEventListener('mousedown', function (e) {
-    e.preventDefault();
+    // Prevent default to allow drag and drop to work
+    if (e.button !== 0) return; // Only handle left mouse button
+
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+
     const rect = icon.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
+
     function mouseMoveHandler(e) {
-      icon.style.left = (e.clientX - offsetX) + 'px';
-      icon.style.top = (e.clientY - offsetY) + 'px';
-      icon.style.position = 'absolute';
+      // Check if we've moved enough to consider this a drag
+      const moveDistance = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
+      if (moveDistance > 5) {
+        isDragging = true;
+        icon.style.left = (e.clientX - offsetX) + 'px';
+        icon.style.top = (e.clientY - offsetY) + 'px';
+        icon.style.position = 'absolute';
+        icon.style.zIndex = '1000'; // Bring to front while dragging
+
+        // Add visual feedback for potential drop targets
+        document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
+          const targetItem = getItemFromFileSystem(target.getAttribute('data-item-id'));
+          if (targetItem && targetItem.type === 'folder' && target !== icon) {
+            target.classList.add('drag-hover-target');
+          }
+        });
+      }
     }
-    function mouseUpHandler() {
+
+    function mouseUpHandler(e) {
       document.removeEventListener('mousemove', mouseMoveHandler);
       document.removeEventListener('mouseup', mouseUpHandler);
-      desktopIconsState[icon.id] = { left: icon.style.left, top: icon.style.top };
-      saveState();
+
+      if (isDragging) {
+        icon.style.zIndex = ''; // Reset z-index
+
+        // Check if dropped on a folder
+        const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+        const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
+
+        if (targetFolder && targetFolder !== icon) {
+          const targetId = targetFolder.getAttribute('data-item-id');
+          const targetItem = getItemFromFileSystem(targetId);
+          const sourceId = icon.getAttribute('data-item-id');
+
+          if (targetItem && targetItem.type === 'folder' && sourceId !== targetId) {
+            // Move the item into the folder
+            moveItemToFolder(sourceId, targetId);
+            return; // Don't save position if moved to folder
+          }
+        }
+
+        // Save new position if just repositioned
+        desktopIconsState[icon.id] = { left: icon.style.left, top: icon.style.top };
+        saveState();
+      }
+
+      // Remove visual feedback
+      document.querySelectorAll('.drag-hover-target').forEach(target => {
+        target.classList.remove('drag-hover-target');
+      });
+
+      isDragging = false;
     }
+
     document.addEventListener('mousemove', mouseMoveHandler);
     document.addEventListener('mouseup', mouseUpHandler);
   });
-  icon.addEventListener('click', function () {
-    document.querySelectorAll('.draggable-icon').forEach(i => i.classList.remove('bg-gray-50'));
-    icon.classList.add('bg-gray-50');
+
+  icon.addEventListener('click', function (e) {
+    // Only handle click if it wasn't a drag
+    if (!isDragging) {
+      document.querySelectorAll('.draggable-icon').forEach(i => i.classList.remove('bg-gray-50'));
+      icon.classList.add('bg-gray-50');
+    }
   });
 }
 
@@ -38,7 +116,7 @@ function updateDesktopSettings() {
 function renderDesktopIcons() {
   const desktopIconsContainer = document.getElementById('desktop-icons');
   desktopIconsContainer.innerHTML = "";
-  
+
   // Clean up any desktop icons that might have been incorrectly placed in windows-container
   const windowsContainer = document.getElementById('windows-container');
   const existingDesktopIcons = windowsContainer.querySelectorAll('.desktop-folder-icon');
@@ -47,7 +125,7 @@ function renderDesktopIcons() {
       icon.parentElement.remove();
     }
   });
-  
+
   let fs = getFileSystemState();
   const desktopFolder = fs.folders['C://']?.['Desktop'];
   if (!desktopFolder) return;
@@ -58,13 +136,13 @@ function renderDesktopIcons() {
   const PADDING = 16; // m-2 = 8px margin each side = 16px total
   const START_X = 16;
   const START_Y = 16;
-  
+
   // Calculate how many icons can fit per column
   const availableHeight = window.innerHeight - 80; // account for taskbar
   const iconsPerColumn = Math.floor((availableHeight - START_Y) / (ICON_HEIGHT + PADDING));
-  
+
   let iconIndex = 0;
-  
+
   Object.values(desktopFolder.contents).forEach(item => {
     const iconElem = document.createElement('div');
     iconElem.id = "icon-" + item.id;
@@ -109,10 +187,10 @@ function renderDesktopIcons() {
     if (!desktopIconsState[iconElem.id]) {
       const column = Math.floor(iconIndex / iconsPerColumn);
       const row = iconIndex % iconsPerColumn;
-      
+
       const x = START_X + (column * (ICON_WIDTH + PADDING));
       const y = START_Y + (row * (ICON_HEIGHT + PADDING));
-      
+
       iconElem.style.left = x + 'px';
       iconElem.style.top = y + 'px';
     }
@@ -120,9 +198,14 @@ function renderDesktopIcons() {
     desktopIconsContainer.appendChild(iconElem);
     makeIconDraggable(iconElem);
     detectDoubleTap(iconElem); // ensures mobile dbltap support
-    
+
     iconIndex++;
   });
+
+  // Setup drag and drop functionality for desktop folder icons
+  if (typeof setupFolderDrop === 'function') {
+    setupFolderDrop();
+  }
 }
 
 function applyDesktopSettings() {
@@ -159,6 +242,31 @@ function getSettingsContent() {
       </button>
     </div>
   `;
+}
+
+// Helper function to get an item from the file system by its ID
+function getItemFromFileSystem(itemId) {
+  function searchInContents(contents) {
+    for (const key in contents) {
+      if (key === itemId) {
+        return contents[key];
+      }
+      if (contents[key].type === 'folder' && contents[key].contents) {
+        const found = searchInContents(contents[key].contents);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  const fs = getFileSystemState();
+  for (const drive in fs.folders) {
+    if (/^[A-Z]:\/\/$/.test(drive)) {
+      const found = searchInContents(fs.folders[drive]);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 // Function to detect double tap on mobile

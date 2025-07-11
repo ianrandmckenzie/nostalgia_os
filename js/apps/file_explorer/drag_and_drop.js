@@ -8,6 +8,18 @@ function setupFolderDrop() {
     item.addEventListener('drop', handleDrop);
     item.addEventListener('dragend', handleDragEnd);
   });
+
+  // Also setup desktop folder icons as drop targets
+  const desktopFolders = document.querySelectorAll('.desktop-folder-icon[data-item-id]');
+  desktopFolders.forEach(folder => {
+    const itemId = folder.getAttribute('data-item-id');
+    const item = getItemFromFileSystem(itemId);
+    if (item && item.type === 'folder') {
+      folder.addEventListener('dragover', handleDesktopFolderDragOver);
+      folder.addEventListener('dragleave', handleDesktopFolderDragLeave);
+      folder.addEventListener('drop', handleDesktopFolderDrop);
+    }
+  });
 }
 
 function handleDragStart(e) {
@@ -34,7 +46,7 @@ function handleDrop(e) {
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const targetId = this.getAttribute('data-item-id');
-  
+
   if (sourceId === targetId) return; // No action if dropped on itself.
 
   const sourceElem = document.querySelector(`[data-item-id="${sourceId}"]`);
@@ -55,7 +67,7 @@ function handleDrop(e) {
     }
     updateOrderForCurrentPath();
   }
-  
+
   // Clean up dragged style.
   if(sourceElem) {
     sourceElem.classList.remove('dragging');
@@ -68,14 +80,14 @@ function handleDragEnd(e) {
   document.querySelectorAll('.file-item').forEach(item => item.classList.remove('dragover'));
 }
 
-/* 
+/*
   Moves an item (file or folder) into a target folder.
   It removes the item from its current parent's contents and adds it
   to the target folder's contents, updating fullPath as needed.
 */
 function moveItemToFolder(itemId, folderId) {
   let fs = getFileSystemState();
-  
+
   // Find the dragged item and its parent.
   const result = findItemAndParentById(itemId, fs);
   if (!result) {
@@ -96,13 +108,18 @@ function moveItemToFolder(itemId, folderId) {
   // Ensure target folder has a 'contents' object.
   if (!targetFolder.contents) targetFolder.contents = {};
   targetFolder.contents[itemId] = item;
-  
+
   // Update the moved item's fullPath.
   item.fullPath = targetFullPath + "/" + item.id;
-  
+
   setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
+
+  // If moving from or to desktop, refresh desktop icons
+  if (targetFullPath.includes('Desktop') || findItemCurrentPath(itemId).includes('Desktop')) {
+    renderDesktopIcons();
+  }
 }
 
 /*
@@ -117,7 +134,7 @@ function updateOrderForCurrentPath() {
   let fs = getFileSystemState();
   let folderObj = findFolderObjectByFullPath(currentPath, fs);
   if (!folderObj || !folderObj.contents) return;
-  
+
   // Rebuild folder.contents in the order of <li> elements.
   let newContents = {};
   listItems.forEach(li => {
@@ -155,6 +172,82 @@ function findItemAndParentById(itemId, fs) {
     }
   }
   return null;
+}
+
+// Helper function to get an item from the file system by its ID
+function getItemFromFileSystem(itemId) {
+  function searchInContents(contents) {
+    for (const key in contents) {
+      if (key === itemId) {
+        return contents[key];
+      }
+      if (contents[key].type === 'folder' && contents[key].contents) {
+        const found = searchInContents(contents[key].contents);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  const fs = getFileSystemState();
+  for (const drive in fs.folders) {
+    if (/^[A-Z]:\/\/$/.test(drive)) {
+      const found = searchInContents(fs.folders[drive]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// Helper function to find the current path of an item
+function findItemCurrentPath(itemId) {
+  function searchPath(contents, currentPath) {
+    for (const key in contents) {
+      if (key === itemId) {
+        return currentPath;
+      }
+      if (contents[key].type === 'folder' && contents[key].contents) {
+        const found = searchPath(contents[key].contents, contents[key].fullPath || currentPath + '/' + key);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  const fs = getFileSystemState();
+  for (const drive in fs.folders) {
+    if (/^[A-Z]:\/\/$/.test(drive)) {
+      const found = searchPath(fs.folders[drive], drive);
+      if (found) return found;
+    }
+  }
+  return '';
+}
+
+// Handle drag over desktop folder icons
+function handleDesktopFolderDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  this.classList.add('dragover');
+}
+
+// Handle drag leave from desktop folder icons
+function handleDesktopFolderDragLeave(e) {
+  this.classList.remove('dragover');
+}
+
+// Handle drop on desktop folder icons
+function handleDesktopFolderDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.remove('dragover');
+
+  const sourceId = e.dataTransfer.getData("text/plain");
+  const targetId = this.getAttribute('data-item-id');
+
+  if (sourceId && targetId && sourceId !== targetId) {
+    moveItemToFolder(sourceId, targetId);
+  }
 }
 
 setupFolderDrop();

@@ -3,12 +3,45 @@
    (They now accept an optional fromFullPath parameter to determine the parent folder.)
 ====================== */
 document.addEventListener('contextmenu', function (e) {
-  e.preventDefault();
+  // Check if right-click is in a valid context for file explorer menu
   let target = e.target.closest('.draggable-icon, .file-item');
+  let explorerElem = e.target.closest('.file-explorer-window');
+
+  // Also check if we're within the explorer window content area
+  let explorerWindow = e.target.closest('#explorer-window');
+  let isInExplorerWindow = explorerElem || explorerWindow;
+
+  // Check if we're truly on the desktop (not in any app window)
+  let isInAppWindow = e.target.closest('#windows-container > div');
+  let isInDesktopIconsArea = e.target.closest('#desktop-icons');
+  let isOnWindowsContainer = e.target.id === 'windows-container';
+  let isDesktop = (isOnWindowsContainer || isInDesktopIconsArea) && !isInAppWindow;
+
+  // Only show file explorer context menu if:
+  // 1. Right-clicking on a file/folder item, OR
+  // 2. Right-clicking within a file explorer window (including its content area), OR
+  // 3. Right-clicking on empty desktop area (but NOT inside other app windows)
+  if (!target && !isInExplorerWindow && !isDesktop) {
+    return; // Let other context menus handle this (or show no menu)
+  }
+
+  e.preventDefault();
+
   // For right-click on blank space, determine current folder from the explorer.
-  let explorerElem = document.querySelector('.file-explorer-window');
-  let fromFullPath = explorerElem ? explorerElem.getAttribute('data-current-path') : 'C://';
-  if (e.target.id == 'windows-container') fromFullPath = 'C://Desktop'; // Switch path to Desktop if Desktop is r-clicked
+  let fromFullPath;
+  if (explorerElem) {
+    fromFullPath = explorerElem.getAttribute('data-current-path');
+  } else if (explorerWindow) {
+    // If we're in the explorer window but not directly on .file-explorer-window,
+    // find the .file-explorer-window within this window
+    const fileExplorerContent = explorerWindow.querySelector('.file-explorer-window');
+    fromFullPath = fileExplorerContent?.getAttribute('data-current-path') || 'C://';
+  } else if (isDesktop) {
+    fromFullPath = 'C://Desktop';
+  } else {
+    fromFullPath = 'C://';
+  }
+
   showContextMenu(e, target, fromFullPath);
 });
 
@@ -316,25 +349,20 @@ function createNewFolder(e, fromFullPath) {
     };
 
     // Determine destination by parsing fromFullPath
-    const drive = fromFullPath.substring(0, 4);
-    let paths = fromFullPath.substring(4).split('/');
-    paths.unshift(drive);
-    let destination = fs.folders;
-    if (paths[1] !== '') { // Not at drive root
-      paths.forEach(path => {
-        const destination_parent = destination;
-        destination = destination[path];
-        if (destination && typeof destination.contents !== 'undefined') {
-          if (typeof destination.contents !== 'string') {
-            destination = destination.contents;
-          } else {
-            destination = destination_parent;
-          }
-        }
-      });
+    let destination;
+
+    // For root directories, insert directly into the drive
+    if (driveRootRegex.test(fromFullPath)) {
+      destination = fs.folders[fromFullPath];
+    } else {
+      // For subdirectories, find the parent folder object
+      const parentFolder = findFolderObjectByFullPath(fromFullPath, fs);
+      if (parentFolder && parentFolder.contents) {
+        destination = parentFolder.contents;
+      } else {
+        destination = fs.folders[fromFullPath.substring(0, 4)] || {};
+      }
     }
-    if (typeof destination === 'undefined') destination = destination[drive];
-    if (typeof destination !== 'undefined' && typeof destination[drive] === 'object') destination = destination[drive];
 
     // Insert the new folder into the parent's contents.
     destination[folderId] = newFolderItem;

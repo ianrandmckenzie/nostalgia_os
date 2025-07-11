@@ -14,4 +14,5 @@ function openApp(id) {
   if (id === 'calculator') launchCalculator();
   if (id === 'solitaire') launchSolitaire();
   if (id === 'bombbroomer') launchBombbroomer();
+  if (id === 'mediaplayer') launchMediaPlayer();
 }

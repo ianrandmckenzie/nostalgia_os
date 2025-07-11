@@ -111,6 +111,10 @@ document.getElementById('bombapp').addEventListener('click', () => {
   openApp('bombbroomer');
 });
 
+document.getElementById('mediaapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('mediaplayer');});
+
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();
   restart();

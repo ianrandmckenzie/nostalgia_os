@@ -187,9 +187,12 @@ function openFile(incoming_file, e) {
     return;
   }
   let file;
+  const launchedFromTaskbar = (e.target === document.body);
   const explorerElem = e.target.closest('.file-explorer-window');
   let currentPath;
-  if (explorerElem) {
+  if (launchedFromTaskbar) {
+    currentPath = 'C://Documents';
+  } else if (explorerElem) {
     currentPath = explorerElem.getAttribute('data-current-path');
   } else if (e.srcElement.classList.contains('desktop-folder-icon')) {
     currentPath = 'C://Desktop';

@@ -54,57 +54,75 @@
   <div class="fixed bottom-0 left-0 right-0 bg-gray-300 border-t border-gray-500 h-12 flex items-center px-2" style="z-index:1000;">
     <div class="relative">
       <button id="start-button" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2 text-right">
-        <img src="./image/door-icon.png" class="border-b-2 -mt-[0.05rem] border-black h-8 w-8 inline py-1.5 pl-3">
+        <img src="./image/door-icon.png" class="border-b-2 -mt-[0.05rem] border-black h-8 w-8 inline py-1.5 pl-3" alt="Start Menu Icon">
         <span class="border-b-2 border-r-2 border-black inline h-full w-full py-1.5 pl-2 pr-3 -ml-3">Start</span>
       </button>
-      <!-- Start Menu -->
       <div id="start-menu" class="absolute bottom-[2.5rem] -left-2 bg-gray-100 border-r border-t border-gray-500 w-72 hidden">
         <ul>
-          <!-- Documents -->
-          <li id="mycomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+          <li id="mycomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
             <img src="image/computer.png" class="h-6 w-6 inline mr-2" alt="My Computer">
             My Computer
           </li>
-          <!-- About this computer -->
-          <li id="abtcomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+          <li id="abtcomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
             <img src="image/info.png" class="h-6 w-6 inline mr-2" alt="About">
             About This Computer
           </li>
-          <!-- System Settings -->
-          <li id="sysset" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <img src="image/gears.png" class="h-6 w-6 inline mr-2" alt="Settings">
-            System Settings
-          </li>
-          <!-- Calculator -->
-          <li id="calcapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <img src="image/calculator.png" class="h-6 w-6 inline mr-2" alt="Calculator">
-            Calculator
-          </li>
-          <!-- Solitaire -->
-          <li id="solapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <img src="image/solitaire.png" class="h-6 w-6 inline mr-2" alt="Solitaire">
-            Solitaire
-          </li>
-          <!-- Media Player -->
-          <li id="mediaapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+          <li id="mediaapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
             <img src="image/video.png" class="h-6 w-6 inline mr-2" alt="Media Player">
             Media Player
           </li>
-          <!-- Bombbroomer -->
-          <li id="bombapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <img src="image/bombbroomer.png" class="h-6 w-6 inline mr-2" alt="Bombbroomer">
-            Bombbroomer
+
+          <li class="group relative">
+            <a href="#" data-submenu-trigger class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+              <div class="flex items-center">
+                Utilities
+              </div>
+              <span class="lg:rotate-0 text-xs">&#9654;</span>
+            </a>
+            <ul class="hidden lg:group-hover:block pl-4 bg-gray-100 lg:pl-0 lg:absolute lg:left-full lg:top-0 lg:w-48 lg:border-r lg:border-t lg:border-b lg:border-gray-500">
+              <li id="sysset" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
+                <img src="image/gears.png" class="h-6 w-6 inline mr-2" alt="Settings">
+                System Settings
+              </li>
+              <li id="calcapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
+                <img src="image/calculator.png" class="h-6 w-6 inline mr-2" alt="Calculator">
+                Calculator
+              </li>
+              <li id="letterpad" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
+                <img src="image/file.png" class="h-6 w-6 inline mr-2" alt="Text Editor">
+                LetterPad
+              </li>
+            </ul>
           </li>
-          <li id="rstrtcomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+
+
+          <li class="group relative">
+            <a href="#" data-submenu-trigger class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+              <div class="flex items-center">
+                Games
+              </div>
+              <span class="lg:rotate-0 text-xs">&#9654;</span>
+            </a>
+            <ul class="hidden lg:group-hover:block pl-4 bg-gray-100 lg:pl-0 lg:absolute lg:left-full lg:top-0 lg:w-48 lg:border-r lg:border-t lg:border-b lg:border-gray-500">
+              <li id="solapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
+                <img src="image/solitaire.png" class="h-6 w-6 inline mr-2" alt="Solitaire">
+                Solitaire
+              </li>
+              <li id="bombapp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
+                <img src="image/bombbroomer.png" class="h-6 w-6 inline mr-2" alt="Bombbroomer">
+                Bombbroomer
+              </li>
+            </ul>
+          </li>
+
+          <li id="rstrtcomp" class="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center">
             <img src="image/power.png" class="h-6 w-6 inline mr-2" alt="Restart">
             Restart
           </li>
         </ul>
       </div>
     </div>
-    <!-- Taskbar Tabs -->
     <div id="window-tabs" class="flex-1 flex space-x-2 overflow-x-auto whitespace-nowrap"></div>
-    <!-- Media Control & Clock -->
     <div class="flex items-center mx-auto space-x-2 bg-gray-200 border-b-1 my-1 border-r-1 border-gray-400">
       <div class="h-full w-full border-t border-l border-gray-700 p-1">
         <div id="media-control" class="cursor-pointer inline-block ml-2"></div>
@@ -113,6 +131,7 @@
       </div>
     </div>
   </div>
+
   <div id="error-overlay" class="hidden fixed inset-0 bg-black z-50">
     <img src="./image/error.png" alt="Application Error" class="w-full h-full object-cover">
   </div>

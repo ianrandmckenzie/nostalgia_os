@@ -67,6 +67,38 @@ function getActiveMediaElement() {
 setInterval(updateClock, 1000);
 updateClock();
 
+document.addEventListener('DOMContentLoaded', () => {
+  // Find all the links that are meant to trigger a submenu
+  const submenuTriggers = document.querySelectorAll('[data-submenu-trigger]');
+
+  // Check if the screen is "mobile" size (matches Tailwind's 'lg' breakpoint)
+  const isMobile = window.innerWidth < 1024;
+
+  if (isMobile) {
+    submenuTriggers.forEach(trigger => {
+      const submenu = trigger.nextElementSibling; // The <ul> is right after the <a>
+      const arrow = trigger.querySelector('span');
+
+      // When a trigger is clicked...
+      trigger.addEventListener('click', (event) => {
+        // Prevent the link from trying to navigate
+        event.preventDefault();
+
+        // Toggle the 'block' and 'hidden' classes on the submenu
+        if (submenu.classList.contains('hidden')) {
+          submenu.classList.remove('hidden');
+          submenu.classList.add('block');
+          arrow.classList.add('rotate-90');
+        } else {
+          submenu.classList.remove('block');
+          submenu.classList.add('hidden');
+          arrow.classList.remove('rotate-90');
+        }
+      });
+    });
+  }
+});
+
 document.getElementById('media-control').addEventListener('click', () => {
   toggleMediaPlayback()
 });
@@ -94,6 +126,13 @@ document.getElementById('abtcomp').addEventListener('click', () => {
 document.getElementById('sysset').addEventListener('click', () => {
   toggleStartMenu();
   openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
+});
+
+document.getElementById('letterpad').addEventListener('click', () => {
+  toggleStartMenu();
+  createNewFile(null, 'C://Documents', (newFileId) => {
+    openFile(newFileId, { target: document.body });
+  });
 });
 
 document.getElementById('calcapp').addEventListener('click', () => {

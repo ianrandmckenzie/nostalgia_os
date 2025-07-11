@@ -389,8 +389,8 @@ function createNewFolder(e, fromFullPath) {
 /* =========================
    Create a new UGC file — no innerHTML
    ========================= */
-function createNewFile(e, fromFullPath) {
-  e.stopPropagation();
+function createNewFile(e, fromFullPath, onCreated = null) {
+  if (e) e.stopPropagation();
   hideContextMenu();
 
   const parentPath = fromFullPath || 'C://';
@@ -417,7 +417,7 @@ function createNewFile(e, fromFullPath) {
   nameInput.type  = 'text';
   nameInput.name  = 'fileName';
   nameInput.required = true;
-  nameInput.value = 'New File.md';
+  nameInput.value = 'New File.rtf';
   nameInput.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
   form.appendChild(makeField('File Name', nameInput));
 
@@ -457,8 +457,8 @@ function createNewFile(e, fromFullPath) {
 
     /* ------------- insert into filesystem ---------------- */
     const fs    = getFileSystemState();
-    const drive = fromFullPath.substring(0, 4);
-    const paths = fromFullPath.substring(4).split('/');
+    const drive = parentPath.substring(0, 4);
+    const paths = parentPath.substring(4).split('/');
     paths.unshift(drive);
 
     let dest = fs.folders;
@@ -485,6 +485,7 @@ function createNewFile(e, fromFullPath) {
     }
     setFileSystemState(fs);
     saveState();
+    if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
     refreshExplorerViews();
     if (fromFullPath === 'C://Desktop') renderDesktopIcons();
   });

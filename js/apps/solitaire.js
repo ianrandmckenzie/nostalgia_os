@@ -78,17 +78,16 @@ function launchSolitaire() {
 
   // Game area
   const gameArea = document.createElement('div');
-  gameArea.className = 'flex-1 p-4 relative';
+  gameArea.className = 'flex-1 p-4 relative overflow-scroll';
   gameArea.id = 'solitaire-game-area';
 
   // Top row - deck, waste, and foundations
   const topRow = document.createElement('div');
-  topRow.className = 'flex justify-between mb-6';
+  topRow.className = 'lg:flex justify-between mb-6';
 
   // Deck and waste area
   const deckArea = document.createElement('div');
-  deckArea.className = 'flex space-x-4';
-
+  deckArea.className = 'flex space-x-4 mb-4 lg:mb-0';
   const deckSlot = document.createElement('div');
   deckSlot.className = 'w-16 h-24 border-2 border-gray-400 rounded bg-blue-800 flex items-center justify-center cursor-pointer';
   deckSlot.style.borderStyle = 'outset';
@@ -177,8 +176,9 @@ function launchSolitaire() {
       `;
     }
 
-    // Add drag functionality
+    // Add drag functionality for both mouse and touch
     card.addEventListener('mousedown', startDrag);
+    card.addEventListener('touchstart', startDrag, { passive: false });
     card.addEventListener('dblclick', handleDoubleClick);
 
     return card;
@@ -311,9 +311,8 @@ function launchSolitaire() {
     renderGame();
   }
 
-  // Handle card dragging
+  // Handle card dragging (for both mouse and touch)
   function startDrag(e) {
-
     // Find the card element (could be the target itself or a parent)
     let card = e.target;
     while (card && card !== document.body) {
@@ -323,18 +322,13 @@ function launchSolitaire() {
       card = card.parentElement;
     }
 
-    if (!card || !card.classList.contains('card')) {
+    if (!card || !card.classList.contains('card') || card.dataset.faceUp !== 'true') {
       return;
     }
 
-
+    // Prevent default browser action (scrolling, text selection)
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to window drag handlers
-
-    // Only allow dragging face-up cards
-    if (card.dataset.faceUp !== 'true') {
-      return;
-    }
 
     gameState.selectedCard = card;
     gameState.dragElement = card.cloneNode(true);
@@ -343,24 +337,29 @@ function launchSolitaire() {
     gameState.dragElement.style.zIndex = '1000';
     gameState.dragElement.style.transform = 'rotate(5deg)';
 
+    // Get initial coordinates from either mouse or touch event
+    const initialPoint = e.type === 'touchstart' ? e.touches[0] : e;
+
     // Set initial position to prevent jumping
-    gameState.dragElement.style.left = (e.clientX - 32) + 'px';
-    gameState.dragElement.style.top = (e.clientY - 48) + 'px';
+    gameState.dragElement.style.left = (initialPoint.clientX - 32) + 'px';
+    gameState.dragElement.style.top = (initialPoint.clientY - 48) + 'px';
 
     document.body.appendChild(gameState.dragElement);
-
     card.style.opacity = '0.5';
 
-    function mouseMoveHandler(e) {
+    function dragMove(moveEvent) {
       if (gameState.dragElement) {
-        gameState.dragElement.style.left = (e.clientX - 32) + 'px';
-        gameState.dragElement.style.top = (e.clientY - 48) + 'px';
+        const movePoint = moveEvent.type === 'touchmove' ? moveEvent.touches[0] : moveEvent;
+        gameState.dragElement.style.left = (movePoint.clientX - 32) + 'px';
+        gameState.dragElement.style.top = (movePoint.clientY - 48) + 'px';
       }
     }
 
-    function mouseUpHandler(e) {
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
+    function dragEnd(endEvent) {
+      document.removeEventListener('mousemove', dragMove);
+      document.removeEventListener('mouseup', dragEnd);
+      document.removeEventListener('touchmove', dragMove);
+      document.removeEventListener('touchend', dragEnd);
 
       if (gameState.dragElement) {
         document.body.removeChild(gameState.dragElement);
@@ -370,16 +369,23 @@ function launchSolitaire() {
       if (gameState.selectedCard) {
         gameState.selectedCard.style.opacity = '1';
 
-        // Find drop target
-        const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+        // For touchend, the touch point is in changedTouches
+        const endPoint = endEvent.type === 'touchend' ? endEvent.changedTouches[0] : endEvent;
+
+        // Find drop target. The clone is gone, so elementFromPoint will find what's underneath.
+        const dropTarget = document.elementFromPoint(endPoint.clientX, endPoint.clientY);
         handleCardDrop(dropTarget);
 
         gameState.selectedCard = null;
       }
     }
 
-    document.addEventListener('mousemove', mouseMoveHandler);
-    document.addEventListener('mouseup', mouseUpHandler);
+    // Add listeners for both mouse and touch
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+    // Use { passive: false } for touchmove to allow preventDefault within the handler if needed in the future
+    document.addEventListener('touchmove', dragMove, { passive: false });
+    document.addEventListener('touchend', dragEnd);
   }
 
   // Handle card drop
@@ -430,14 +436,18 @@ function launchSolitaire() {
 
   // Double click to auto-move to foundation
   function handleDoubleClick(e) {
-    const card = e.target;
-    if (!card.classList.contains('card') || card.dataset.faceUp !== 'true') return;
+    let card = e.target;
+    // Ensure we're acting on the card element itself
+    while (card && !card.classList.contains('card')) {
+        card = card.parentElement;
+    }
+    if (!card || card.dataset.faceUp !== 'true') return;
 
     // Try to move to appropriate foundation
     for (let i = 0; i < 4; i++) {
       if (canMoveToFoundation(card, i)) {
         moveCardToFoundation(card, i);
-        break;
+        return; // Exit after successful move
       }
     }
   }
@@ -447,15 +457,24 @@ function launchSolitaire() {
     const suit = cardElement.dataset.suit;
     const value = cardElement.dataset.value;
     const foundation = gameState.foundations[foundationIndex];
+    const foundationSuit = suits[foundationIndex];
+
+    // Check if the suit matches the foundation's designated suit
+    if (suit !== foundationSuit) {
+        // Find the correct foundation for this suit
+        const correctFoundationIndex = suits.indexOf(suit);
+        if (correctFoundationIndex !== -1 && gameState.foundations[correctFoundationIndex].length === 0) {
+            // Allow moving an Ace to its correct empty foundation, even if the wrong one was clicked
+            return value === 'A';
+        }
+        return false;
+    }
 
     // Check if it's the next value in sequence
     if (foundation.length === 0) {
-      return value === 'A'; // Any Ace can start a foundation
+      return value === 'A'; // Only the correct Ace can start its foundation
     } else {
       const topCard = foundation[foundation.length - 1];
-      // Check if it's the same suit and next value in sequence
-      if (topCard.suit !== suit) return false;
-
       const currentValueIndex = values.indexOf(topCard.value);
       const newValueIndex = values.indexOf(value);
       return newValueIndex === currentValueIndex + 1;
@@ -484,16 +503,22 @@ function launchSolitaire() {
   }
 
   function moveCardToFoundation(cardElement, foundationIndex) {
+    // Determine the correct foundation based on the card's suit
+    const suit = cardElement.dataset.suit;
+    const correctFoundationIndex = suits.indexOf(suit);
+
+    if (correctFoundationIndex === -1) return; // Should not happen
+
     // Remove card from current location
     removeCardFromCurrentLocation(cardElement);
 
-    // Add to foundation
+    // Add to the correct foundation
     const card = {
-      suit: cardElement.dataset.suit,
+      suit: suit,
       value: cardElement.dataset.value,
       faceUp: true
     };
-    gameState.foundations[foundationIndex].push(card);
+    gameState.foundations[correctFoundationIndex].push(card);
 
     gameState.moves++;
     gameState.score += 10;
@@ -503,47 +528,46 @@ function launchSolitaire() {
 
   function moveCardToTableau(cardElement, tableauIndex) {
     // Remove card from current location
-    removeCardFromCurrentLocation(cardElement);
+    const cardsToMove = removeCardFromCurrentLocation(cardElement, true);
 
-    // Add to tableau
-    const card = {
-      suit: cardElement.dataset.suit,
-      value: cardElement.dataset.value,
-      faceUp: true
-    };
-    gameState.tableaus[tableauIndex].push(card);
+    // Add card(s) to tableau
+    gameState.tableaus[tableauIndex].push(...cardsToMove);
 
     gameState.moves++;
     renderGame();
   }
 
-  function removeCardFromCurrentLocation(cardElement) {
+  function removeCardFromCurrentLocation(cardElement, moveStack = false) {
+    const cardSuit = cardElement.dataset.suit;
+    const cardValue = cardElement.dataset.value;
+
     // Check waste pile
     if (gameState.waste.length > 0 &&
-        gameState.waste[gameState.waste.length - 1].suit === cardElement.dataset.suit &&
-        gameState.waste[gameState.waste.length - 1].value === cardElement.dataset.value) {
-      gameState.waste.pop();
-      return;
+        gameState.waste[gameState.waste.length - 1].suit === cardSuit &&
+        gameState.waste[gameState.waste.length - 1].value === cardValue) {
+      return [gameState.waste.pop()];
     }
 
     // Check tableaus
     for (let col = 0; col < 7; col++) {
       const tableau = gameState.tableaus[col];
-      for (let i = tableau.length - 1; i >= 0; i--) {
-        if (tableau[i].suit === cardElement.dataset.suit &&
-            tableau[i].value === cardElement.dataset.value) {
-          tableau.splice(i, 1);
+      const cardIndex = tableau.findIndex(c => c.suit === cardSuit && c.value === cardValue);
+
+      if (cardIndex !== -1) {
+          const cardsToRemove = moveStack ? tableau.length - cardIndex : 1;
+          const movedCards = tableau.splice(cardIndex, cardsToRemove);
 
           // Flip the new top card if it exists and is face down
           if (tableau.length > 0 && !tableau[tableau.length - 1].faceUp) {
             tableau[tableau.length - 1].faceUp = true;
             gameState.score += 5;
           }
-          return;
-        }
+          return movedCards;
       }
     }
+    return []; // Should not happen if logic is correct
   }
+
 
   // Click handlers
   function handleFoundationClick(e, foundationIndex) {

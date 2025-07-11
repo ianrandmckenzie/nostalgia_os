@@ -9,7 +9,7 @@ let fileSystemState = {
           "solitaire": { id: 'solitaire', name: 'Solitaire.exe', type: 'app', fullPath: 'C://Desktop/solitaire', content_type: 'html', contents: '', icon: './image/solitaire.png' },
           "bombbroomer": { id: 'bombbroomer', name: 'Bombbroomer.exe', type: 'app', fullPath: 'C://Desktop/bombbroomer', content_type: 'html', contents: '', icon: './image/bombbroomer.png' },
           "mediaplayer": { id: 'mediaplayer', name: 'Media Player.exe', type: 'app', fullPath: 'C://Desktop/mediaplayer', content_type: 'html', contents: '', icon: './image/video.png' },
-          "FAQs": { id: 'FAQs', name: 'Frequently asked questions.rtf', type: 'ugc-file', fullPath: 'C://Desktop/FAQs', content_type: 'md', contents: '' },
+          // "FAQs": { id: 'FAQs', name: 'Frequently asked questions.rtf', type: 'ugc-file', fullPath: 'C://Desktop/FAQs', content_type: 'md', contents: '' },
           "Watercolour": { id: 'watercolour', name: 'Watercolour.exe', type: 'app', fullPath: 'C://Desktop/Watercolour', content_type: 'html', contents: '', icon: './image/watercolour.png' }
         }
       }

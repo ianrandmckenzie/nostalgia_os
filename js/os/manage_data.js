@@ -3,7 +3,7 @@ let fileSystemState = {
     "C://": {
       "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
       "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {
-          "tubestream": { id: 'tubestream', name: 'Example Stream.exe', type: 'app', fullPath: 'C://Desktop/tubestream', content_type: 'html', contents: '', icon: './image/video.png' },
+          // "tubestream": { id: 'tubestream', name: 'Example Stream.exe', type: 'app', fullPath: 'C://Desktop/tubestream', content_type: 'html', contents: '', icon: './image/video.png' },
           "mailbox": { id: 'mailbox', name: 'Inpeek Mail.exe', type: 'app', fullPath: 'C://Desktop/mailbox', content_type: 'html', contents: '', icon: './image/mail.png' },
           "calculator": { id: 'calculator', name: 'Calculator.exe', type: 'app', fullPath: 'C://Desktop/calculator', content_type: 'html', contents: '', icon: './image/calculator.png' },
           "solitaire": { id: 'solitaire', name: 'Solitaire.exe', type: 'app', fullPath: 'C://Desktop/solitaire', content_type: 'html', contents: '', icon: './image/solitaire.png' },

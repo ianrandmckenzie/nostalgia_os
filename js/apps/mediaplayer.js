@@ -29,11 +29,15 @@ function launchMediaPlayer() {
   content.className = 'p-2 bg-gray-200 h-full flex flex-col';
 
   // --- UI Elements ---
-  // Controls container
+  const mediaContainer = document.createElement('div');
+  mediaContainer.id = 'media-container';
+  mediaContainer.className = 'w-full h-24 bg-black mb-2 flex items-center justify-center';
+  mediaContainer.innerHTML = '<audio id="audio-player" class="w-full"></audio>';
+  content.appendChild(mediaContainer);
+
   const controls = document.createElement('div');
   controls.className = 'bg-gray-300 border-2 border-gray-400 p-3 mb-2';
 
-  // Track info
   const trackInfo = document.createElement('div');
   trackInfo.className = 'text-center mb-2';
   trackInfo.innerHTML = `
@@ -41,16 +45,14 @@ function launchMediaPlayer() {
     <div id="current-time" class="text-xs text-gray-600">Ready to play</div>
   `;
 
-  // Progress bar
   const progressContainer = document.createElement('div');
   progressContainer.className = 'mb-3';
   progressContainer.innerHTML = `
-    <div id="progress-container" class="w-full h-2 bg-gray-400 border border-gray-500">
+    <div id="progress-container" class="w-full h-2 bg-gray-400 border border-gray-500 cursor-pointer">
       <div id="progress-bar" class="h-full bg-blue-500" style="width: 0%"></div>
     </div>
   `;
 
-  // Control buttons
   const buttonRow = document.createElement('div');
   buttonRow.className = 'flex justify-center space-x-2 mb-2';
   buttonRow.innerHTML = `
@@ -60,12 +62,11 @@ function launchMediaPlayer() {
     <button id="next-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs">⏭</button>
   `;
 
-  // Volume control
   const volumeRow = document.createElement('div');
   volumeRow.className = 'flex items-center justify-center space-x-2';
   volumeRow.innerHTML = `
     <span class="text-xs">🔊</span>
-    <input type="range" id="volume-control" min="0" max="100" value="50" class="w-20">
+    <input type="range" id="volume-control" min="0" max="1" step="0.01" value="0.5" class="w-20">
     <span class="text-xs" id="volume-display">50%</span>
   `;
 
@@ -74,20 +75,219 @@ function launchMediaPlayer() {
   controls.appendChild(buttonRow);
   controls.appendChild(volumeRow);
 
-  // Playlist area
   const playlistArea = document.createElement('div');
   playlistArea.className = 'flex-1 bg-white border-2 border-gray-400 p-2 overflow-y-auto';
   playlistArea.innerHTML = `
-    <div class="text-xs font-bold mb-2">Playlist:</div>
+    <div class="flex justify-between items-center mb-2">
+      <div class="text-xs font-bold">Playlist:</div>
+
+      <button id="add-song-btn" onclick="setTimeout(function(){toggleButtonActiveState('add-song-btn', 'Add Song')}, 1000);toggleButtonActiveState('add-song-btn', 'Adding song...');" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Add Song</span></button>
+
+      <input type="file" id="song-file-input" class="hidden" accept="audio/*">
+    </div>
     <div id="playlist-container" class="space-y-1">
-      <div class="text-xs text-gray-500">Media Player is ready!</div>
+      <div class="text-xs text-gray-500">Loading playlist...</div>
     </div>
   `;
 
-  // Assemble UI
   content.appendChild(controls);
   content.appendChild(playlistArea);
 
-  // --- Event listeners and state setup would go here ---
-  // (Add IndexedDB, audio logic, playlist management, etc. as next step)
+  // --- Media Player Logic ---
+  const audio = content.querySelector('#audio-player');
+  let currentTrackIndex = -1;
+  let playlist = [];
+
+  const playBtn = content.querySelector('#play-btn');
+  const nextBtn = content.querySelector('#next-btn');
+  const prevBtn = content.querySelector('#prev-btn');
+  const stopBtn = content.querySelector('#stop-btn');
+  const volumeControl = content.querySelector('#volume-control');
+  const progressBar = content.querySelector('#progress-bar');
+  const progress = content.querySelector('#progress-container');
+  const addSongBtn = content.querySelector('#add-song-btn');
+  const songFileInput = content.querySelector('#song-file-input');
+
+  // --- IndexedDB Logic ---
+  let db;
+  const dbName = "media_player_db";
+  const storeName = "songs";
+
+  function initDB() {
+    const request = indexedDB.open(dbName, 1);
+
+    request.onerror = (event) => {
+      console.error("Database error: ", event.target.errorCode);
+    };
+
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+      const objectStore = db.createObjectStore(storeName, { keyPath: "id", autoIncrement: true });
+      objectStore.createIndex("name", "name", { unique: false });
+    };
+
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      loadPlaylist();
+    };
+  }
+
+  function addSongToDB(songFile) {
+    const transaction = db.transaction([storeName], "readwrite");
+    const objectStore = transaction.objectStore(storeName);
+    const song = { name: songFile.name, file: songFile };
+    const request = objectStore.add(song);
+
+    request.onsuccess = () => {
+      loadPlaylist();
+    };
+
+    request.onerror = (event) => {
+      console.error("Error adding song: ", event.target.error);
+    };
+  }
+
+  function loadPlaylist() {
+    const transaction = db.transaction([storeName], "readonly");
+    const objectStore = transaction.objectStore(storeName);
+    const request = objectStore.getAll();
+
+    request.onsuccess = () => {
+      const dbSongs = request.result;
+      // Start with the default track
+      playlist = [{ name: "Too Many Screws", path: "media/too_many_screws_final.mp3", isDefault: true }];
+      // Add songs from IndexedDB
+      dbSongs.forEach(song => {
+        playlist.push({ name: song.name, file: song.file, id: song.id });
+      });
+      renderPlaylist();
+      if (playlist.length > 0) {
+        loadTrack(0);
+      }
+    };
+  }
+
+  function renderPlaylist() {
+    const container = content.querySelector('#playlist-container');
+    container.innerHTML = '';
+    playlist.forEach((track, index) => {
+      const trackEl = document.createElement('div');
+      trackEl.className = 'text-xs cursor-pointer hover:bg-gray-100 p-1 rounded';
+      trackEl.textContent = track.name;
+      trackEl.dataset.index = index;
+      trackEl.addEventListener('click', () => {
+        loadTrack(index);
+        audio.play();
+      });
+      container.appendChild(trackEl);
+    });
+  }
+
+  function loadTrack(index) {
+    if (index < 0 || index >= playlist.length) return;
+
+    currentTrackIndex = index;
+    const track = playlist[index];
+
+    if (track.isDefault) {
+      audio.src = track.path;
+    } else {
+      audio.src = URL.createObjectURL(track.file);
+    }
+
+    content.querySelector('#current-track-name').textContent = track.name;
+    updatePlaylistUI();
+  }
+
+  function updatePlaylistUI() {
+    const tracks = content.querySelectorAll('#playlist-container > div');
+    tracks.forEach((trackEl, index) => {
+      if (index === currentTrackIndex) {
+        trackEl.classList.add('bg-blue-200');
+      } else {
+        trackEl.classList.remove('bg-blue-200');
+      }
+    });
+  }
+
+  function togglePlay() {
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  }
+
+  function stopTrack() {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+
+  function nextTrack() {
+    const newIndex = (currentTrackIndex + 1) % playlist.length;
+    loadTrack(newIndex);
+    audio.play();
+  }
+
+  function prevTrack() {
+    const newIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+    loadTrack(newIndex);
+    audio.play();
+  }
+
+  function updateVolume() {
+    audio.volume = volumeControl.value;
+    content.querySelector('#volume-display').textContent = `${Math.round(volumeControl.value * 100)}%`;
+  }
+
+  function updateProgress() {
+    if (audio.duration) {
+      const progressPercent = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      const formatTime = (time) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+        return `${minutes}:${seconds}`;
+      };
+
+      content.querySelector('#current-time').textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+    }
+  }
+
+  function seek(e) {
+    if (!audio.duration) return;
+    const clickPosition = e.offsetX;
+    const containerWidth = progress.offsetWidth;
+    audio.currentTime = (clickPosition / containerWidth) * audio.duration;
+  }
+
+  // --- Event Listeners ---
+  playBtn.addEventListener('click', togglePlay);
+  audio.addEventListener('play', () => playBtn.textContent = '⏸');
+  audio.addEventListener('pause', () => playBtn.textContent = '▶');
+  audio.addEventListener('ended', nextTrack);
+  audio.addEventListener('timeupdate', updateProgress);
+  audio.addEventListener('volumechange', () => {
+    volumeControl.value = audio.volume;
+    updateVolume();
+  });
+
+  stopBtn.addEventListener('click', stopTrack);
+  nextBtn.addEventListener('click', nextTrack);
+  prevBtn.addEventListener('click', prevTrack);
+  volumeControl.addEventListener('input', updateVolume);
+  progress.addEventListener('click', seek);
+
+  addSongBtn.addEventListener('click', () => songFileInput.click());
+  songFileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      addSongToDB(file);
+    }
+  });
+
+  // --- Initial Load ---
+  initDB();
+  updateVolume();
 }

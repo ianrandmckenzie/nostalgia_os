@@ -167,7 +167,7 @@ function editItemName(e, menuItem) {
 
   /* handlers --------------------------------------------------------------- */
   cancelBtn.addEventListener('click', () => closeWindow(winId));
-  submitBtn.addEventListener('click', () => toggleButtonActiveState('submit-edit-button', 'Cool!'));
+  submitBtn.addEventListener('click', () => toggleButtonActiveState('submit-edit-button', 'Editing...'));
 
   // Attach event listeners once the window is rendered.
   const editForm = document.getElementById('edit-name-form');
@@ -433,14 +433,15 @@ function createNewFile(e, fromFullPath) {
   btnRow.append(cancelBtn, submitBtn);
 
   // ── 3. Handlers ---------------------------------------
-  cancelBtn.addEventListener('click', () => {
-    toggleButtonActiveState('cancel-file-button', 'Cool!');
+  cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleButtonActiveState('cancel-file-button', 'Cancelling...');
     setTimeout(() => closeWindow(winId), 100);
   });
 
   form.addEventListener('submit', ev => {
     ev.preventDefault();
-    toggleButtonActiveState('submit-file-button', 'Cool!');
+    toggleButtonActiveState('submit-file-button', 'Submitting...');
     setTimeout(() => closeWindow(winId), 100);
 
     const fileName = nameInput.value.trim() || 'Untitled';
@@ -541,13 +542,14 @@ function createNewShortcut(e, fromFullPath) {
 
   /* ── 3. handlers ------------------------------------- */
   cancelBtn.addEventListener('click', () => {
-    toggleButtonActiveState('cancel-shortcut-button', 'Cool!');
+    e.preventDefault();
+    toggleButtonActiveState('cancel-shortcut-button', 'Cancelling...');
     setTimeout(() => closeWindow(winId), 100);
   });
 
   form.addEventListener('submit', ev => {
     ev.preventDefault();
-    toggleButtonActiveState('submit-shortcut-button', 'Cool!');
+    toggleButtonActiveState('submit-shortcut-button', 'Submitting...');
     setTimeout(() => closeWindow(winId), 100);
 
     const shortcutURL = urlInput.value.trim();

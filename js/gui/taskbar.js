@@ -152,7 +152,8 @@ document.getElementById('bombapp').addEventListener('click', () => {
 
 document.getElementById('mediaapp').addEventListener('click', () => {
   toggleStartMenu();
-  openApp('mediaplayer');});
+  openApp('mediaplayer');
+});
 
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();

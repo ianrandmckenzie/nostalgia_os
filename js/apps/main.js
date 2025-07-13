@@ -15,4 +15,5 @@ function openApp(id) {
   if (id === 'solitaire') launchSolitaire();
   if (id === 'bombbroomer') launchBombbroomer();
   if (id === 'mediaplayer') launchMediaPlayer();
+  if (id === 'compostbin') launchCompostBin();
 }

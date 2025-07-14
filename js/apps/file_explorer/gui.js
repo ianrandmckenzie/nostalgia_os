@@ -37,6 +37,8 @@ function refreshExplorerViews() {
     const explorerWindowParent = explorer.parentElement;
     explorerWindowParent.innerHTML = newElementTxt;
   });
+  // Re-setup drag and drop for all refreshed explorer windows
+  setupFolderDrop();
 }
 
 /*

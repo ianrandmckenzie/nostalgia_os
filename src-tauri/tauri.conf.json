@@ -5,7 +5,7 @@
   "identifier": "com.nostalgia.os",
   "build": {
     "frontendDist": ".",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:8888",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },

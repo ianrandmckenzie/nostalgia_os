@@ -4,7 +4,7 @@
   "description": "A website in the style of old-school operating systems.",
   "main": "cache.tailwind.js",
   "scripts": {
-    "dev": "python3 -m http.server 3000",
+    "dev": "python3 -m http.server 8888",
     "build": "echo 'No build step needed for static HTML'",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",

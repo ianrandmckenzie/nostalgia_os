@@ -1,26 +1,43 @@
 function setupFolderDrop() {
-  const fileItems = document.querySelectorAll('.file-item');
-  fileItems.forEach(item => {
-    item.setAttribute('draggable', true);
-    item.addEventListener('dragstart', handleDragStart);
-    item.addEventListener('dragover', handleDragOver);
-    item.addEventListener('dragleave', handleDragLeave);
-    item.addEventListener('drop', handleDrop);
-    item.addEventListener('dragend', handleDragEnd);
-  });
+  // Use requestAnimationFrame to ensure DOM is ready
+  requestAnimationFrame(() => {
+    // Setup file items in explorer windows
+    const fileItems = document.querySelectorAll('.file-item');
+    fileItems.forEach(item => {
+      // Remove existing listeners first to prevent duplicates
+      item.removeEventListener('dragstart', handleDragStart);
+      item.removeEventListener('dragover', handleDragOver);
+      item.removeEventListener('dragleave', handleDragLeave);
+      item.removeEventListener('drop', handleDrop);
+      item.removeEventListener('dragend', handleDragEnd);
 
-  // Also setup desktop folder icons as drop targets for HTML5 drag and drop
-  const desktopFolders = document.querySelectorAll('.desktop-folder-icon[data-item-id]');
-  desktopFolders.forEach(folder => {
-    const itemId = folder.getAttribute('data-item-id');
-    const item = getItemFromFileSystem(itemId);
-    // Set up drop handlers for folders and the compost bin
-    if ((item && item.type === 'folder') || itemId === 'compostbin') {
-      // HTML5 drag and drop handlers (for file explorer items)
-      folder.addEventListener('dragover', handleDesktopFolderDragOver);
-      folder.addEventListener('dragleave', handleDesktopFolderDragLeave);
-      folder.addEventListener('drop', handleDesktopFolderDrop);
-    }
+      // Set up fresh listeners
+      item.setAttribute('draggable', true);
+      item.addEventListener('dragstart', handleDragStart);
+      item.addEventListener('dragover', handleDragOver);
+      item.addEventListener('dragleave', handleDragLeave);
+      item.addEventListener('drop', handleDrop);
+      item.addEventListener('dragend', handleDragEnd);
+    });
+
+    // Also setup desktop folder icons as drop targets for HTML5 drag and drop
+    const desktopFolders = document.querySelectorAll('.desktop-folder-icon[data-item-id]');
+    desktopFolders.forEach(folder => {
+      const itemId = folder.getAttribute('data-item-id');
+      const item = getItemFromFileSystem(itemId);
+      // Set up drop handlers for folders and the compost bin
+      if ((item && item.type === 'folder') || itemId === 'compostbin') {
+        // Remove existing listeners first to prevent duplicates
+        folder.removeEventListener('dragover', handleDesktopFolderDragOver);
+        folder.removeEventListener('dragleave', handleDesktopFolderDragLeave);
+        folder.removeEventListener('drop', handleDesktopFolderDrop);
+
+        // HTML5 drag and drop handlers (for file explorer items)
+        folder.addEventListener('dragover', handleDesktopFolderDragOver);
+        folder.addEventListener('dragleave', handleDesktopFolderDragLeave);
+        folder.addEventListener('drop', handleDesktopFolderDrop);
+      }
+    });
   });
 }
 

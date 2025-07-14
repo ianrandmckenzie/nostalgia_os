@@ -80,6 +80,15 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
     })
   }
 
+  // Setup drag and drop for Explorer windows
+  if (windowType === 'Explorer') {
+    setTimeout(() => {
+      if (typeof setupFolderDrop === 'function') {
+        setupFolderDrop();
+      }
+    }, 50);
+  }
+
   // Assemble window
   container.append(header, contentDiv)
   win.appendChild(container)

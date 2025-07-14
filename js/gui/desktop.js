@@ -1,64 +1,74 @@
 function makeIconDraggable(icon) {
   let isDragging = false;
   let startX, startY;
+  let dragThreshold = 5; // Minimum distance to consider as drag
+  let dragStartTime = 0; // Track when drag started to prevent conflicts with double-click
 
-  // Make the icon draggable for HTML5 drag and drop as well
-  icon.setAttribute('draggable', true);
+  // Use a unified pointer event system for both mouse and touch
+  icon.addEventListener('pointerdown', function (e) {
+    // Only handle primary pointer (left mouse button or first touch)
+    if (!e.isPrimary) return;
 
-  // HTML5 drag and drop events
-  icon.addEventListener('dragstart', function(e) {
-    const itemId = icon.getAttribute('data-item-id');
-    e.dataTransfer.setData("text/plain", itemId);
-    e.dataTransfer.effectAllowed = "move";
-    icon.classList.add('dragging');
-  });
-
-  icon.addEventListener('dragend', function(e) {
-    icon.classList.remove('dragging');
-    // Remove visual feedback
-    document.querySelectorAll('.drag-hover-target').forEach(target => {
-      target.classList.remove('drag-hover-target');
-    });
-  });
-
-  icon.addEventListener('mousedown', function (e) {
-    // Prevent default to allow drag and drop to work
-    if (e.button !== 0) return; // Only handle left mouse button
+    // Prevent text selection and other default behaviors
+    e.preventDefault();
 
     isDragging = false;
     startX = e.clientX;
     startY = e.clientY;
+    dragStartTime = Date.now();
 
     const rect = icon.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    function mouseMoveHandler(e) {
-      // Check if we've moved enough to consider this a drag
+    function pointerMoveHandler(e) {
+      if (!e.isPrimary) return;
+
       const moveDistance = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
-      if (moveDistance > 5) {
+
+      if (!isDragging && moveDistance > dragThreshold) {
+        // Start dragging
         isDragging = true;
-        icon.style.left = (e.clientX - offsetX) + 'px';
-        icon.style.top = (e.clientY - offsetY) + 'px';
-        icon.style.position = 'absolute';
+        icon.classList.add('dragging');
         icon.style.zIndex = '1000'; // Bring to front while dragging
 
         // Add visual feedback for potential drop targets
         document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
           const targetItem = getItemFromFileSystem(target.getAttribute('data-item-id'));
-          if (targetItem && targetItem.type === 'folder' && target !== icon) {
+          const targetId = target.getAttribute('data-item-id');
+          if (((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') && target !== icon) {
             target.classList.add('drag-hover-target');
           }
         });
+
+        // Disable scrolling on the desktop during drag
+        document.body.style.overflow = 'hidden';
+      }
+
+      if (isDragging) {
+        // Update icon position to follow cursor
+        icon.style.left = (e.clientX - offsetX) + 'px';
+        icon.style.top = (e.clientY - offsetY) + 'px';
+        icon.style.position = 'absolute';
+
+        // Constrain icon position within desktop bounds
+        constrainIconPosition(icon);
+
+        // Update visual feedback for drop targets
+        updateDropTargetFeedback(e.clientX, e.clientY, icon);
       }
     }
 
-    function mouseUpHandler(e) {
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
+    function pointerUpHandler(e) {
+      if (!e.isPrimary) return;
+
+      document.removeEventListener('pointermove', pointerMoveHandler);
+      document.removeEventListener('pointerup', pointerUpHandler);
+      document.removeEventListener('pointercancel', pointerUpHandler);
 
       if (isDragging) {
         icon.style.zIndex = ''; // Reset z-index
+        icon.classList.remove('dragging');
 
         // Check if dropped on a folder
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
@@ -69,14 +79,21 @@ function makeIconDraggable(icon) {
           const targetItem = getItemFromFileSystem(targetId);
           const sourceId = icon.getAttribute('data-item-id');
 
-          if (targetItem && targetItem.type === 'folder' && sourceId !== targetId) {
-            // Move the item into the folder
-            moveItemToFolder(sourceId, targetId);
-            return; // Don't save position if moved to folder
+          if (sourceId !== targetId) {
+            // Special case for compost bin
+            if (targetId === 'compostbin') {
+              moveItemToCompostBin(sourceId, 'C://Desktop');
+              return; // Don't save position if moved to compost bin
+            } else if (targetItem && targetItem.type === 'folder') {
+              // Move the item into the folder
+              moveItemToFolder(sourceId, targetId);
+              return; // Don't save position if moved to folder
+            }
           }
         }
 
         // Save new position if just repositioned
+        constrainIconPosition(icon); // Ensure final position is within bounds
         desktopIconsState[icon.id] = { left: icon.style.left, top: icon.style.top };
         saveState();
       }
@@ -85,17 +102,26 @@ function makeIconDraggable(icon) {
       document.querySelectorAll('.drag-hover-target').forEach(target => {
         target.classList.remove('drag-hover-target');
       });
+      document.querySelectorAll('.desktop-folder-icon').forEach(target => {
+        target.classList.remove('dragover');
+      });
+
+      // Re-enable scrolling
+      document.body.style.overflow = '';
 
       isDragging = false;
     }
 
-    document.addEventListener('mousemove', mouseMoveHandler);
-    document.addEventListener('mouseup', mouseUpHandler);
+    // Attach event listeners to document for global pointer tracking
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+    document.addEventListener('pointercancel', pointerUpHandler); // Handle cancel events (e.g., when dragging outside viewport)
   });
 
   icon.addEventListener('click', function (e) {
-    // Only handle click if it wasn't a drag
-    if (!isDragging) {
+    // Only handle click if it wasn't a drag and sufficient time has passed since drag start
+    const timeSinceDragStart = Date.now() - dragStartTime;
+    if (!isDragging && timeSinceDragStart > 100) {
       document.querySelectorAll('.draggable-icon').forEach(i => i.classList.remove('bg-gray-50'));
       icon.classList.add('bg-gray-50');
     }
@@ -244,6 +270,23 @@ function getSettingsContent() {
   `;
 }
 
+// Ensure icon stays within desktop bounds during drag
+function constrainIconPosition(icon) {
+  const desktop = document.getElementById('desktop');
+  const desktopRect = desktop.getBoundingClientRect();
+  const iconRect = icon.getBoundingClientRect();
+
+  let left = parseInt(icon.style.left) || 0;
+  let top = parseInt(icon.style.top) || 0;
+
+  // Keep icon within desktop bounds
+  left = Math.max(0, Math.min(left, desktopRect.width - iconRect.width));
+  top = Math.max(0, Math.min(top, desktopRect.height - iconRect.height - 40)); // Account for taskbar
+
+  icon.style.left = left + 'px';
+  icon.style.top = top + 'px';
+}
+
 // Helper function to get an item from the file system by its ID
 function getItemFromFileSystem(itemId) {
   function searchInContents(contents) {
@@ -303,3 +346,31 @@ document.querySelectorAll("[onmobiledbltap]").forEach(element => {
       }
   });
 });
+
+// Function to update visual feedback for drop targets during dragging
+function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
+  // Remove all existing dragover classes
+  document.querySelectorAll('.desktop-folder-icon').forEach(target => {
+    target.classList.remove('dragover');
+  });
+
+  // Get element at cursor position (temporarily make dragging icon invisible to pointer events)
+  const originalPointerEvents = draggingIcon.style.pointerEvents;
+  draggingIcon.style.pointerEvents = 'none';
+
+  const elementBelow = document.elementFromPoint(clientX, clientY);
+  const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
+
+  // Restore pointer events
+  draggingIcon.style.pointerEvents = originalPointerEvents;
+
+  if (targetFolder && targetFolder !== draggingIcon) {
+    const targetId = targetFolder.getAttribute('data-item-id');
+    const targetItem = getItemFromFileSystem(targetId);
+
+    // Add dragover visual feedback if it's a valid drop target
+    if ((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') {
+      targetFolder.classList.add('dragover');
+    }
+  }
+}

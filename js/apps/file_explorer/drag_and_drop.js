@@ -9,12 +9,14 @@ function setupFolderDrop() {
     item.addEventListener('dragend', handleDragEnd);
   });
 
-  // Also setup desktop folder icons as drop targets
+  // Also setup desktop folder icons as drop targets for HTML5 drag and drop
   const desktopFolders = document.querySelectorAll('.desktop-folder-icon[data-item-id]');
   desktopFolders.forEach(folder => {
     const itemId = folder.getAttribute('data-item-id');
     const item = getItemFromFileSystem(itemId);
-    if (item && item.type === 'folder') {
+    // Set up drop handlers for folders and the compost bin
+    if ((item && item.type === 'folder') || itemId === 'compostbin') {
+      // HTML5 drag and drop handlers (for file explorer items)
       folder.addEventListener('dragover', handleDesktopFolderDragOver);
       folder.addEventListener('dragleave', handleDesktopFolderDragLeave);
       folder.addEventListener('drop', handleDesktopFolderDrop);
@@ -30,10 +32,13 @@ function handleDragStart(e) {
 }
 
 function handleDragOver(e) {
-  // Allow drop.
-  e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
-  this.classList.add('dragover');
+  // Allow drop for regular items and compost bin items.
+  const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
+  if (isCompostItem || e.dataTransfer.types.includes('text/plain')) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    this.classList.add('dragover');
+  }
 }
 
 function handleDragLeave(e) {
@@ -46,11 +51,24 @@ function handleDrop(e) {
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const targetId = this.getAttribute('data-item-id');
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
 
   if (sourceId === targetId) return; // No action if dropped on itself.
 
   const sourceElem = document.querySelector(`[data-item-id="${sourceId}"]`);
   const targetElem = this;
+
+  // Handle compost bin item restoration
+  if (isCompostItem) {
+    if (targetElem.classList.contains('folder-item')) {
+      // Get the folder's path
+      const explorer = targetElem.closest('.file-explorer-window');
+      const currentPath = explorer ? explorer.getAttribute('data-current-path') : 'C://';
+      const targetPath = currentPath === 'C://' ? currentPath + targetId : currentPath + '/' + targetId;
+      restoreItemFromCompostBin(sourceId, targetPath);
+    }
+    return;
+  }
 
   // Check if the target is a folder (has 'folder-item') to move into it.
   if (targetElem.classList.contains('folder-item')) {
@@ -226,9 +244,12 @@ function findItemCurrentPath(itemId) {
 
 // Handle drag over desktop folder icons
 function handleDesktopFolderDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
-  this.classList.add('dragover');
+  const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
+  if (isCompostItem || e.dataTransfer.types.includes('text/plain')) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    this.classList.add('dragover');
+  }
 }
 
 // Handle drag leave from desktop folder icons
@@ -244,10 +265,107 @@ function handleDesktopFolderDrop(e) {
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const targetId = this.getAttribute('data-item-id');
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
 
   if (sourceId && targetId && sourceId !== targetId) {
-    moveItemToFolder(sourceId, targetId);
+    if (isCompostItem) {
+      // Restore item to folder
+      const targetItem = getItemFromFileSystem(targetId);
+      if (targetItem && targetItem.type === 'folder') {
+        restoreItemFromCompostBin(sourceId, targetItem.fullPath);
+      }
+    } else {
+      // Special case for compost bin
+      if (targetId === 'compostbin') {
+        const sourcePath = findItemCurrentPath(sourceId);
+        moveItemToCompostBin(sourceId, sourcePath);
+      } else {
+        moveItemToFolder(sourceId, targetId);
+      }
+    }
   }
 }
 
 setupFolderDrop();
+
+// Function to restore an item from compost bin to a target location
+function restoreItemFromCompostBin(itemId, targetPath) {
+  const fs = getFileSystemState();
+  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
+
+  if (!compostBin.contents || !compostBin.contents[itemId]) {
+    console.error('Item not found in compost bin:', itemId);
+    return;
+  }
+
+  const item = compostBin.contents[itemId];
+
+  // Remove from compost bin
+  delete compostBin.contents[itemId];
+
+  // Find target container
+  let targetContainer;
+  if (targetPath === 'C://Desktop') {
+    targetContainer = fs.folders['C://'].Desktop.contents;
+  } else {
+    const targetFolder = findFolderObjectByFullPath(targetPath, fs);
+    if (!targetFolder) {
+      console.error('Target folder not found:', targetPath);
+      return;
+    }
+    if (!targetFolder.contents) targetFolder.contents = {};
+    targetContainer = targetFolder.contents;
+  }
+
+  // Update item's fullPath
+  item.fullPath = targetPath === 'C://Desktop' ? targetPath + '/' + item.id : targetPath + '/' + item.id;
+
+  // Add to target location
+  targetContainer[itemId] = item;
+
+  // Save and refresh
+  setFileSystemState(fs);
+  saveState();
+  refreshExplorerViews();
+  renderDesktopIcons();
+
+  // Refresh compost bin if open
+  const compostBinWindow = document.getElementById('compost-bin');
+  if (compostBinWindow) {
+    const contentArea = compostBinWindow.querySelector('#compost-bin-content');
+    if (contentArea) {
+      loadCompostBinContents(contentArea);
+      updateCompostBinHeader(compostBinWindow);
+    }
+  }
+
+  showDialogBox(`"${item.name}" restored from Compost Bin`, 'info');
+}
+
+// Setup desktop as a drop target for compost bin items
+function setupDesktopDrop() {
+  const desktop = document.getElementById('desktop');
+  if (desktop) {
+    desktop.addEventListener('dragover', (e) => {
+      const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
+      if (isCompostItem) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }
+    });
+
+    desktop.addEventListener('drop', (e) => {
+      const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
+      if (isCompostItem) {
+        e.preventDefault();
+        const itemId = e.dataTransfer.getData('text/plain');
+        if (itemId) {
+          restoreItemFromCompostBin(itemId, 'C://Desktop');
+        }
+      }
+    });
+  }
+}
+
+// Call setupDesktopDrop when the script loads
+setupDesktopDrop();

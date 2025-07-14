@@ -37,22 +37,22 @@ function launchCompostBin() {
   // Header with bin info
   const header = document.createElement('div');
   header.className = 'bg-gray-200 border-b border-gray-400 p-2 flex justify-between items-center';
-  
+
   const binInfo = document.createElement('div');
   binInfo.className = 'text-sm';
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compost-bin'];
+  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
   const itemCount = Object.keys(compostBin.contents || {}).length;
   binInfo.textContent = `Compost Bin - ${itemCount} item(s)`;
 
   const binActions = document.createElement('div');
   binActions.className = 'flex space-x-2';
-  
+
   const emptyBinBtn = document.createElement('button');
   emptyBinBtn.className = 'px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs';
   emptyBinBtn.textContent = 'Empty Bin';
   emptyBinBtn.addEventListener('click', emptyCompostBin);
-  
+
   binActions.appendChild(emptyBinBtn);
   header.appendChild(binInfo);
   header.appendChild(binActions);
@@ -61,7 +61,7 @@ function launchCompostBin() {
   const contentArea = document.createElement('div');
   contentArea.className = 'flex-1 bg-white border border-gray-400 p-2 overflow-auto';
   contentArea.id = 'compost-bin-content';
-  
+
   // Load compost bin contents
   loadCompostBinContents(contentArea);
 
@@ -72,11 +72,11 @@ function launchCompostBin() {
 
 function loadCompostBinContents(container) {
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compost-bin'];
+  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
   const contents = compostBin.contents || {};
-  
+
   container.innerHTML = '';
-  
+
   if (Object.keys(contents).length === 0) {
     const emptyMsg = document.createElement('div');
     emptyMsg.className = 'text-center text-gray-500 mt-8';
@@ -88,12 +88,12 @@ function loadCompostBinContents(container) {
   // Create grid layout for items
   const itemsGrid = document.createElement('div');
   itemsGrid.className = 'grid grid-cols-6 gap-4 p-2';
-  
+
   Object.values(contents).forEach(item => {
     const itemElement = createCompostBinItem(item);
     itemsGrid.appendChild(itemElement);
   });
-  
+
   container.appendChild(itemsGrid);
 }
 
@@ -102,51 +102,51 @@ function createCompostBinItem(item) {
   itemDiv.className = 'flex flex-col items-center p-2 hover:bg-blue-100 cursor-pointer';
   itemDiv.draggable = true;
   itemDiv.setAttribute('data-item-id', item.id);
-  
+
   // Icon
   const icon = document.createElement('img');
   icon.className = 'w-8 h-8 mb-1';
   icon.src = item.icon || getDefaultIcon(item.type);
   icon.alt = item.name;
-  
+
   // Name
   const name = document.createElement('div');
   name.className = 'text-xs text-center text-gray-700 break-words max-w-16';
   name.textContent = item.name;
-  
+
   itemDiv.appendChild(icon);
   itemDiv.appendChild(name);
-  
+
   // Set up drag events for restoring items
   itemDiv.addEventListener('dragstart', (e) => {
     e.dataTransfer.setData('text/plain', item.id);
     e.dataTransfer.setData('application/x-compost-item', 'true');
     e.dataTransfer.effectAllowed = 'move';
   });
-  
+
   return itemDiv;
 }
 
 function moveItemToCompostBin(itemId, fromPath) {
   const fs = getFileSystemState();
-  
+
   // Don't allow moving the compost bin itself
-  if (itemId === 'compost-bin') {
+  if (itemId === 'compostbin') {
     showDialogBox('Cannot move the Compost Bin to itself!', 'error');
     return;
   }
-  
+
   // Find the item in its current location
   let sourceItem = null;
   let sourceContainer = null;
-  
+
   if (fromPath === 'C://Desktop') {
     sourceContainer = fs.folders['C://'].Desktop.contents;
   } else {
     // Navigate to the source container
     const pathParts = fromPath.split('/').filter(part => part);
     let current = fs.folders;
-    
+
     for (const part of pathParts) {
       if (current[part]) {
         current = current[part];
@@ -157,29 +157,29 @@ function moveItemToCompostBin(itemId, fromPath) {
     }
     sourceContainer = current;
   }
-  
+
   if (sourceContainer && sourceContainer[itemId]) {
     sourceItem = sourceContainer[itemId];
-    
+
     // Move item to compost bin
-    const compostBin = fs.folders['C://'].Desktop.contents['compost-bin'];
+    const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
     if (!compostBin.contents) {
       compostBin.contents = {};
     }
-    
+
     // Store original path for potential restoration
     sourceItem.originalPath = fromPath;
     compostBin.contents[itemId] = sourceItem;
-    
+
     // Remove from original location
     delete sourceContainer[itemId];
-    
+
     // Save state and refresh
     setFileSystemState(fs);
     saveState();
     refreshExplorerViews();
     renderDesktopIcons();
-    
+
     // Refresh compost bin if open
     const compostBinWindow = document.getElementById('compost-bin');
     if (compostBinWindow) {
@@ -189,21 +189,21 @@ function moveItemToCompostBin(itemId, fromPath) {
         updateCompostBinHeader(compostBinWindow);
       }
     }
-    
+
     showDialogBox(`"${sourceItem.name}" moved to Compost Bin`, 'info');
   }
 }
 
 function emptyCompostBin() {
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compost-bin'];
+  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
   const itemCount = Object.keys(compostBin.contents || {}).length;
-  
+
   if (itemCount === 0) {
     showDialogBox('The Compost Bin is already empty.', 'info');
     return;
   }
-  
+
   // Show confirmation dialog
   const winId = `window-${Date.now()}`;
   const win = createWindow(
@@ -216,38 +216,38 @@ function emptyCompostBin() {
     { type: 'integer', width: 320, height: 140 },
     'Default'
   );
-  
+
   const box = win.querySelector('.p-2');
   box.classList.add('p-4', 'flex', 'flex-col', 'justify-between', 'h-full');
-  
+
   const msg = document.createElement('p');
   msg.textContent = `Are you sure you want to permanently delete all ${itemCount} item(s) in the Compost Bin?`;
   box.appendChild(msg);
-  
+
   const btnRow = document.createElement('div');
   btnRow.className = 'flex justify-end space-x-2';
   box.appendChild(btnRow);
-  
+
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'px-4 py-2 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200';
   cancelBtn.textContent = 'Cancel';
-  
+
   const emptyBtn = document.createElement('button');
   emptyBtn.className = 'px-4 py-2 bg-red-500 border-2 border-red-600 hover:bg-red-400 text-white';
   emptyBtn.textContent = 'Empty Bin';
-  
+
   btnRow.append(cancelBtn, emptyBtn);
-  
+
   cancelBtn.addEventListener('click', () => closeWindow(winId));
-  
+
   emptyBtn.addEventListener('click', () => {
     // Empty the compost bin
     compostBin.contents = {};
-    
+
     // Save state and refresh
     setFileSystemState(fs);
     saveState();
-    
+
     // Refresh compost bin if open
     const compostBinWindow = document.getElementById('compost-bin');
     if (compostBinWindow) {
@@ -257,7 +257,7 @@ function emptyCompostBin() {
         updateCompostBinHeader(compostBinWindow);
       }
     }
-    
+
     closeWindow(winId);
     showDialogBox(`${itemCount} item(s) permanently deleted from Compost Bin`, 'info');
   });
@@ -269,7 +269,7 @@ function updateCompostBinHeader(compostBinWindow) {
     const binInfo = header.querySelector('.text-sm');
     if (binInfo) {
       const fs = getFileSystemState();
-      const compostBin = fs.folders['C://'].Desktop.contents['compost-bin'];
+      const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
       const itemCount = Object.keys(compostBin.contents || {}).length;
       binInfo.textContent = `Compost Bin - ${itemCount} item(s)`;
     }

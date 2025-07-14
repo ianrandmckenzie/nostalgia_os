@@ -35,6 +35,19 @@
     .dragging {
       opacity: 0.7 !important;
     }
+
+    /* Improve touch/pointer interaction for draggable icons */
+    .draggable-icon {
+      touch-action: none; /* Disable default touch actions like scrolling */
+      user-select: none; /* Prevent text selection during drag */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    .draggable-icon.dragging {
+      z-index: 1000 !important;
+    }
   </style>
 </head>
 <body id="desktop" class="containerbox bg-defaultBackground h-screen w-screen relative overflow-hidden font-mono">

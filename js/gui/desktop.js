@@ -70,9 +70,10 @@ function makeIconDraggable(icon) {
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
 
-        // Check if dropped on a folder
+        // Check if dropped on a folder or file explorer window
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
         const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
+        const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
 
         if (targetFolder && targetFolder !== icon) {
           const targetId = targetFolder.getAttribute('data-item-id');
@@ -90,19 +91,28 @@ function makeIconDraggable(icon) {
               return; // Don't save position if moved to folder
             }
           }
+        } else if (targetExplorer) {
+          // Dropped on file explorer window
+          const sourceId = icon.getAttribute('data-item-id');
+          const explorerPath = targetExplorer.getAttribute('data-current-path');
+          if (explorerPath && sourceId) {
+            moveItemToExplorerPath(sourceId, explorerPath);
+            return; // Don't save position if moved to explorer
+          }
         }
 
         // Save new position if just repositioned
         constrainIconPosition(icon); // Ensure final position is within bounds
         desktopIconsState[icon.id] = { left: icon.style.left, top: icon.style.top };
         saveState();
-      }
-
-      // Remove visual feedback
+      }      // Remove visual feedback
       document.querySelectorAll('.drag-hover-target').forEach(target => {
         target.classList.remove('drag-hover-target');
       });
       document.querySelectorAll('.desktop-folder-icon').forEach(target => {
+        target.classList.remove('dragover');
+      });
+      document.querySelectorAll('.file-explorer-window').forEach(target => {
         target.classList.remove('dragover');
       });
 
@@ -353,6 +363,9 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   document.querySelectorAll('.desktop-folder-icon').forEach(target => {
     target.classList.remove('dragover');
   });
+  document.querySelectorAll('.file-explorer-window').forEach(target => {
+    target.classList.remove('dragover');
+  });
 
   // Get element at cursor position (temporarily make dragging icon invisible to pointer events)
   const originalPointerEvents = draggingIcon.style.pointerEvents;
@@ -360,6 +373,7 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
 
   const elementBelow = document.elementFromPoint(clientX, clientY);
   const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
+  const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
 
   // Restore pointer events
   draggingIcon.style.pointerEvents = originalPointerEvents;
@@ -372,5 +386,8 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
     if ((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') {
       targetFolder.classList.add('dragover');
     }
+  } else if (targetExplorer) {
+    // Add visual feedback for file explorer windows
+    targetExplorer.classList.add('dragover');
   }
 }

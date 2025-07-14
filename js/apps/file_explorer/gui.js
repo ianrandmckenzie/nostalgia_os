@@ -138,7 +138,7 @@ function getExplorerWindowContent(currentPath = 'C://') {
         </div>
 
         <!-- Main Content -->
-        <div id="file-main" class="w-3/4 p-2">
+        <div id="file-main" class="w-3/4 p-2 min-h-96">
           <div id="breadcrumbs" class="mb-2">Path: ${breadcrumbHtml}</div>
           <div id="files-area">
             ${list.join('')}

@@ -20,6 +20,20 @@ function setupFolderDrop() {
       item.addEventListener('dragend', handleDragEnd);
     });
 
+    // Setup file explorer windows as drop targets
+    const explorerWindows = document.querySelectorAll('.file-explorer-window');
+    explorerWindows.forEach(explorer => {
+      // Remove existing listeners to prevent duplicates
+      explorer.removeEventListener('dragover', handleExplorerDragOver);
+      explorer.removeEventListener('dragleave', handleExplorerDragLeave);
+      explorer.removeEventListener('drop', handleExplorerDrop);
+
+      // Add new listeners
+      explorer.addEventListener('dragover', handleExplorerDragOver);
+      explorer.addEventListener('dragleave', handleExplorerDragLeave);
+      explorer.addEventListener('drop', handleExplorerDrop);
+    });
+
     // Also setup desktop folder icons as drop targets for HTML5 drag and drop
     const desktopFolders = document.querySelectorAll('.desktop-folder-icon[data-item-id]');
     desktopFolders.forEach(folder => {
@@ -303,6 +317,54 @@ function handleDesktopFolderDrop(e) {
   }
 }
 
+// Handle drag over explorer windows
+function handleExplorerDragOver(e) {
+  if (e.dataTransfer.types.includes('text/plain')) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    this.classList.add('dragover');
+  }
+}
+
+// Handle drag leave from explorer windows
+function handleExplorerDragLeave(e) {
+  // Only remove highlight if truly leaving the explorer window
+  if (!this.contains(e.relatedTarget)) {
+    this.classList.remove('dragover');
+  }
+}
+
+// Handle drop on explorer windows
+function handleExplorerDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.remove('dragover');
+
+  const sourceId = e.dataTransfer.getData("text/plain");
+  const explorerPath = this.getAttribute('data-current-path');
+
+  if (sourceId && explorerPath) {
+    // Check if item is from desktop or another explorer
+    const sourceItem = getItemFromFileSystem(sourceId);
+    if (sourceItem) {
+      const currentPath = sourceItem.fullPath;
+
+      // Don't move if already in this path
+      if (currentPath && currentPath.startsWith(explorerPath)) {
+        return;
+      }
+
+      // Move from desktop to explorer
+      if (currentPath && currentPath.includes('C://Desktop')) {
+        moveItemToExplorerPath(sourceId, explorerPath);
+      } else {
+        // Move between explorer locations
+        moveItemToExplorerPath(sourceId, explorerPath);
+      }
+    }
+  }
+}
+
 setupFolderDrop();
 
 // Function to restore an item from compost bin to a target location
@@ -359,25 +421,43 @@ function restoreItemFromCompostBin(itemId, targetPath) {
   showDialogBox(`"${item.name}" restored from Compost Bin`, 'info');
 }
 
-// Setup desktop as a drop target for compost bin items
+// Setup desktop as a drop target for both compost bin items and regular file explorer items
 function setupDesktopDrop() {
   const desktop = document.getElementById('desktop');
   if (desktop) {
     desktop.addEventListener('dragover', (e) => {
       const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
-      if (isCompostItem) {
+      const isRegularItem = e.dataTransfer.types.includes('text/plain');
+
+      if (isCompostItem || isRegularItem) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        // Add visual feedback for desktop drop
+        desktop.classList.add('drag-hover-target');
+      }
+    });
+
+    desktop.addEventListener('dragleave', (e) => {
+      // Only remove highlight if leaving the desktop completely
+      if (!desktop.contains(e.relatedTarget)) {
+        desktop.classList.remove('drag-hover-target');
       }
     });
 
     desktop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      desktop.classList.remove('drag-hover-target');
+
       const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
-      if (isCompostItem) {
-        e.preventDefault();
-        const itemId = e.dataTransfer.getData('text/plain');
-        if (itemId) {
+      const itemId = e.dataTransfer.getData('text/plain');
+
+      if (itemId) {
+        if (isCompostItem) {
+          // Restore from compost bin to desktop
           restoreItemFromCompostBin(itemId, 'C://Desktop');
+        } else {
+          // Move regular file/folder from explorer to desktop
+          moveItemToDesktop(itemId);
         }
       }
     });
@@ -386,3 +466,94 @@ function setupDesktopDrop() {
 
 // Call setupDesktopDrop when the script loads
 setupDesktopDrop();
+
+// Function to move an item from file explorer to desktop
+function moveItemToDesktop(itemId) {
+  const fs = getFileSystemState();
+
+  // Find the item and its current parent
+  const result = findItemAndParentById(itemId, fs);
+  if (!result) {
+    console.error("Item not found:", itemId);
+    return;
+  }
+
+  const { item, parent } = result;
+
+  // Don't move if already on desktop
+  if (item.fullPath && item.fullPath.includes('C://Desktop')) {
+    return;
+  }
+
+  // Remove item from current location
+  delete parent[itemId];
+
+  // Ensure desktop contents exist
+  if (!fs.folders['C://'].Desktop.contents) {
+    fs.folders['C://'].Desktop.contents = {};
+  }
+
+  // Move item to desktop
+  fs.folders['C://'].Desktop.contents[itemId] = item;
+
+  // Update item's fullPath
+  item.fullPath = 'C://Desktop/' + item.id;
+
+  // Save changes
+  setFileSystemState(fs);
+  saveState();
+  refreshExplorerViews();
+  renderDesktopIcons();
+
+  showDialogBox(`"${item.name}" moved to Desktop`, 'info');
+}
+
+// Function to move an item from any location to a specific explorer path
+function moveItemToExplorerPath(itemId, targetPath) {
+  const fs = getFileSystemState();
+
+  // Find the item and its current parent
+  const result = findItemAndParentById(itemId, fs);
+  if (!result) {
+    console.error("Item not found:", itemId);
+    return;
+  }
+
+  const { item, parent } = result;
+
+  // Don't move if already in target path
+  if (item.fullPath && item.fullPath.startsWith(targetPath)) {
+    return;
+  }
+
+  // Remove from current location
+  delete parent[itemId];
+
+  // Find target container
+  let targetContainer;
+  if (targetPath === 'C://') {
+    targetContainer = fs.folders['C://'];
+  } else {
+    const targetFolder = findFolderObjectByFullPath(targetPath, fs);
+    if (!targetFolder) {
+      console.error('Target path not found:', targetPath);
+      return;
+    }
+    if (!targetFolder.contents) targetFolder.contents = {};
+    targetContainer = targetFolder.contents;
+  }
+
+  // Move item to target location
+  targetContainer[itemId] = item;
+
+  // Update item's fullPath
+  item.fullPath = targetPath === 'C://' ? targetPath + item.id : targetPath + '/' + item.id;
+
+  // Save changes
+  setFileSystemState(fs);
+  saveState();
+  refreshExplorerViews();
+  renderDesktopIcons();
+
+  showDialogBox(`"${item.name}" moved to ${targetPath}`, 'info');
+}

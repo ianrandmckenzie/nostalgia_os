@@ -31,7 +31,7 @@ function launchMediaPlayer() {
   // --- UI Elements ---
   const mediaContainer = document.createElement('div');
   mediaContainer.id = 'media-container';
-  mediaContainer.className = 'w-full h-24 bg-black mb-2 flex items-center justify-center';
+  mediaContainer.className = 'w-full h-0 bg-black mb-2 flex items-center justify-center';
   mediaContainer.innerHTML = '<audio id="audio-player" class="w-full"></audio>';
   content.appendChild(mediaContainer);
 

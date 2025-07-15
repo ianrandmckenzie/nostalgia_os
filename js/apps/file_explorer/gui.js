@@ -238,10 +238,20 @@ function openFile(incoming_file, e) {
             Your browser does not support the video tag.
           </video>`;
     } else if (['audio', 'mp3', 'ogg', 'wav'].includes(file.content_type)) {
-      content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
-            <source src="./media/${file.name}" type="audio/mpeg">
-            Your browser does not support the audio element.
-          </audio>`;
+      if (file.file) {
+        // Handle uploaded audio files with file objects
+        const audioURL = URL.createObjectURL(file.file);
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="${audioURL}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
+      } else {
+        // Handle audio files from the media folder
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="./media/${file.name}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
+      }
     } else if (file.content_type === 'html') {
       content = file.contents ? file.contents : `<p style="padding:10px;">Loading HTML file...</p>`;
       if (!file.contents) {

@@ -35,7 +35,15 @@ function isOwnAppError(source) {
 }
 
 function showErrorOverlay() {
-  document.getElementById('error-overlay')?.classList.remove('hidden');
+  document.getElementById('error-overlay').classList.remove('hidden');
+  document.getElementById('error-overlay').style.zIndex = '9999';
+
+  // Add keydown event listener to reload page on any key press
+  function handleKeyPress(event) {
+    location.reload();
+  }
+
+  document.addEventListener('keydown', handleKeyPress, { once: true });
 }
 
 window.onerror = function(message, source, lineno, colno, error) {
@@ -46,4 +54,3 @@ window.addEventListener('unhandledrejection', function(event) {
   // These usually have no source, so assume they're from your app
   showErrorOverlay()
 })
-

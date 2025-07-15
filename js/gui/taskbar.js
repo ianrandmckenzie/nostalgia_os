@@ -155,6 +155,11 @@ document.getElementById('mediaapp').addEventListener('click', () => {
   openApp('mediaplayer');
 });
 
+document.getElementById('mailapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('mailbox');
+});
+
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();
   restart();

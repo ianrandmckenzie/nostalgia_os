@@ -137,6 +137,9 @@ function launchMediaPlayer() {
     const request = objectStore.add(song);
 
     request.onsuccess = () => {
+      // Also add the song to the file system Music folder
+      const fileExtension = songFile.name.split('.').pop().toLowerCase();
+      addFileToFileSystem(songFile.name, '', 'C://Music', fileExtension, songFile);
       loadPlaylist();
     };
 
@@ -153,11 +156,39 @@ function launchMediaPlayer() {
     request.onsuccess = () => {
       const dbSongs = request.result;
       // Start with the default track
-      playlist = [{ name: "Too Many Screws", path: "media/too_many_screws_final.mp3", isDefault: true }];
+      playlist = [];
+
       // Add songs from IndexedDB
       dbSongs.forEach(song => {
         playlist.push({ name: song.name, file: song.file, id: song.id });
       });
+
+      // Also load songs from the Music folder in the file system
+      try {
+        const fs = getFileSystemState();
+        const musicFolder = fs.folders['C://'].Music;
+        if (musicFolder && musicFolder.contents) {
+          Object.values(musicFolder.contents).forEach(file => {
+            if (file.content_type && ['mp3', 'wav', 'audio'].includes(file.content_type)) {
+              // Check if this song is already in the playlist (avoid duplicates)
+              const existsInPlaylist = playlist.some(track => track.name === file.name);
+              if (!existsInPlaylist) {
+                // For file system songs, we need to handle them differently
+                playlist.push({
+                  name: file.name,
+                  file: file.file,
+                  id: file.id,
+                  isFileSystem: true,
+                  path: file.file ? null : `media/${file.name}` // fallback for default songs
+                });
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.log('Could not load songs from file system:', error);
+      }
+
       renderPlaylist();
       if (playlist.length > 0) {
         loadTrack(0);
@@ -189,8 +220,15 @@ function launchMediaPlayer() {
 
     if (track.isDefault) {
       audio.src = track.path;
-    } else {
+    } else if (track.isFileSystem && track.path) {
+      // For file system songs that reference media folder
+      audio.src = track.path;
+    } else if (track.file) {
+      // For uploaded files (both IndexedDB and file system with file objects)
       audio.src = URL.createObjectURL(track.file);
+    } else {
+      console.error('Unable to load track:', track);
+      return;
     }
 
     content.querySelector('#current-track-name').textContent = track.name;

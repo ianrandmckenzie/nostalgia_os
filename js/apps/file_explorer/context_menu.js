@@ -56,15 +56,80 @@ function showContextMenu(e, target, fromFullPath) {
   menu.replaceChildren();
   menu.style.zIndex = highestZ + 100;
 
-  const addItem = (text, disabled, onclick) => {
+  const addItem = (text, disabled, onclick, hasSubmenu = false) => {
     const item = document.createElement('div');
-    item.textContent = text;
-    item.className = `px-4 py-2 ${
+    item.className = `px-4 py-2 relative ${
       disabled ? 'text-gray-400'
                : 'hover:bg-gray-50 cursor-pointer'
     }`;
+
+    if (hasSubmenu) {
+      item.innerHTML = `${text} <span class="float-right">▶</span>`;
+    } else {
+      item.textContent = text;
+    }
+
     if (!disabled && onclick) item.addEventListener('click', onclick);
     menu.appendChild(item);
+    return item;
+  };
+
+  const addSubmenu = (parentItem, submenuItems) => {
+    const submenu = document.createElement('div');
+    submenu.className = 'absolute left-full top-0 bg-white border border-gray-500 shadow-lg hidden min-w-32';
+    submenu.style.zIndex = highestZ + 101;
+
+    submenuItems.forEach(({ text, disabled, onclick }) => {
+      const subItem = document.createElement('div');
+      subItem.textContent = text;
+      subItem.className = `px-4 py-2 ${
+        disabled ? 'text-gray-400'
+                 : 'hover:bg-gray-50 cursor-pointer'
+      }`;
+      if (!disabled && onclick) {
+        subItem.addEventListener('click', (ev) => {
+          hideContextMenu();
+          onclick(ev);
+        });
+      }
+      submenu.appendChild(subItem);
+    });
+
+    parentItem.appendChild(submenu);
+
+    // Show/hide submenu on hover/touch
+    let hideTimeout;
+
+    parentItem.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimeout);
+      submenu.classList.remove('hidden');
+    });
+
+    parentItem.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        submenu.classList.add('hidden');
+      }, 200);
+    });
+
+    // Touch support for mobile
+    parentItem.addEventListener('touchstart', (ev) => {
+      ev.preventDefault();
+      if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+      } else {
+        submenu.classList.add('hidden');
+      }
+    });
+
+    submenu.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimeout);
+    });
+
+    submenu.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        submenu.classList.add('hidden');
+      }, 200);
+    });
   };
 
   if (target) {
@@ -78,7 +143,13 @@ function showContextMenu(e, target, fromFullPath) {
     addItem('New Shortcut', true);
   } else {
     addItem('New Folder',   false, ev => createNewFolder  (ev, fromFullPath));
-    addItem('New File',     false, ev => createNewFile    (ev, fromFullPath));
+
+    const newFileItem = addItem('New File', false, null, true);
+    addSubmenu(newFileItem, [
+      { text: 'Letterpad', disabled: false, onclick: ev => createNewLetterpad(ev, fromFullPath) },
+      { text: 'Image', disabled: false, onclick: ev => createNewImage(ev, fromFullPath) }
+    ]);
+
     addItem('New Shortcut', false, ev => createNewShortcut(ev, fromFullPath));
   }
 
@@ -609,6 +680,111 @@ function createNewShortcut(e, fromFullPath) {
     refreshExplorerViews();
     if (fromFullPath === 'C://Desktop') renderDesktopIcons();
   });
+}
+
+/* =========================
+   Create a new Letterpad file
+   ========================= */
+function createNewLetterpad(e, fromFullPath, onCreated = null) {
+  if (e) e.stopPropagation();
+  hideContextMenu();
+
+  const parentPath = fromFullPath || 'C://';
+  const winId = `window-${Date.now()}`;
+
+  // Create letterpad file immediately with default content
+  const fileName = 'New Letterpad.txt';
+  const defaultContent = 'Dear friend,\n\nWrite your letter here...\n\nSincerely,\nYour name';
+
+  const newFile = {
+    id: `file-${Date.now()}`,
+    name: fileName,
+    type: 'ugc-file',
+    content: defaultContent,
+    content_type: 'text',
+    icon_url: 'image/doc.png',
+    description: 'Letterpad document'
+  };
+
+  // Insert into filesystem using existing method
+  const fs = getFileSystemState();
+  const drive = parentPath.substring(0, 4);
+  const paths = parentPath.substring(4).split('/');
+  paths.unshift(drive);
+
+  let dest = fs.folders;
+  if (paths[1] !== '') {
+    paths.forEach(p => {
+      const parent = dest;
+      dest = dest[p];
+      if (dest && typeof dest.contents !== 'undefined') {
+        dest = typeof dest.contents === 'string' ? parent : dest.contents;
+      }
+    });
+  }
+  if (typeof dest === 'undefined') dest = dest[drive];
+  if (dest && typeof dest[drive] === 'object') dest = dest[drive];
+
+  dest[newFile.id] = newFile;
+
+  // Refresh views
+  const explorerWin = document.getElementById('explorer-window');
+  if (explorerWin) {
+    explorerWin.querySelector('.file-explorer-window').outerHTML =
+      getExplorerWindowContent(parentPath);
+    setupFolderDrop();
+  }
+  setFileSystemState(fs);
+  saveState();
+  if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
+  refreshExplorerViews();
+  if (fromFullPath === 'C://Desktop') renderDesktopIcons();
+}
+
+/* =========================
+   Create a new Image file (upload from computer)
+   ========================= */
+function createNewImage(e, fromFullPath, onCreated = null) {
+  if (e) e.stopPropagation();
+  hideContextMenu();
+
+  const parentPath = fromFullPath || 'C://';
+
+  // Create hidden file input for image selection
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Get file extension for content type
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+
+      // Use the addFileToFileSystem function
+      const newFile = addFileToFileSystem(file.name, '', parentPath, fileExtension, file);
+
+      if (newFile && typeof onCreated === 'function') {
+        onCreated(newFile.id, newFile);
+      }
+
+      // Refresh views
+      if (typeof refreshExplorerViews === 'function') {
+        refreshExplorerViews();
+      }
+      if (fromFullPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
+        renderDesktopIcons();
+      }
+    }
+
+    // Clean up
+    document.body.removeChild(fileInput);
+  });
+
+  // Add to document and trigger click
+  document.body.appendChild(fileInput);
+  fileInput.click();
 }
 
 // Create a menu/form button with Win-95 raised edges

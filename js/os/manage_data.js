@@ -39,6 +39,14 @@ function saveState() {
   localStorage.setItem('appState', JSON.stringify(appState));
 }
 
+function getFileSystemState() {
+  return fileSystemState;
+}
+
+function setFileSystemState(newState) {
+  fileSystemState = newState;
+}
+
 function updateContent(windowId, newContent) {
   if (windowStates[windowId]) {
     windowStates[windowId].content = newContent;
@@ -49,24 +57,25 @@ function updateContent(windowId, newContent) {
 // Utility function to add a file to the file system
 function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
   const fs = getFileSystemState();
-  console.log(targetFolderPath)
-  // Find the target folder
-  let targetFolder;
-  if (targetFolderPath === 'C://') {
-    targetFolder = fs.folders['C://'];
-  } else {
-    // For manage_data.js context, we need to find folder differently since findFolderObjectByFullPath might not be available
-    // Let's use a simple path-based approach for now
-    if (targetFolderPath === 'C://Music') {
-      targetFolder = fs.folders['C://'].Music;
-      if (!targetFolder.contents) {
-        targetFolder.contents = {};
-      }
-      targetFolder = targetFolder.contents;
-    } else {
-      console.error('Target folder not found:', targetFolderPath);
-      return null;
-    }
+  console.log('Adding file to path:', targetFolderPath);
+
+  // Ensure file system is initialized
+  if (!fs || !fs.folders) {
+    console.error('File system not initialized');
+    return null;
+  }
+
+  // Find the target folder by traversing the path
+  let targetFolder = findFolderByPath(fs, targetFolderPath);
+
+  if (!targetFolder) {
+    console.error('Target folder not found:', targetFolderPath);
+    return null;
+  }
+
+  // Ensure the target folder has a contents object
+  if (!targetFolder.contents) {
+    targetFolder.contents = {};
   }
 
   // Determine appropriate icon based on content type
@@ -96,8 +105,8 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
     file: fileObj || null // Store the actual file object if provided
   };
 
-  // Add to target folder
-  targetFolder[fileId] = newFile;
+  // Add to target folder contents
+  targetFolder.contents[fileId] = newFile;
 
   // Save changes
   setFileSystemState(fs);
@@ -200,6 +209,60 @@ function restoreDesktopSettings() {
     desktopSettings = JSON.parse(saved);
     applyDesktopSettings();
   }
+}
+
+// Helper function to find a folder by its full path
+function findFolderByPath(fs, targetPath) {
+  // Handle root drives (C://, D://, A://)
+  if (targetPath.endsWith('://')) {
+    return fs.folders[targetPath];
+  }
+
+  // Split the path into components
+  const pathParts = targetPath.split('/').filter(part => part !== '');
+
+  // First part should be the drive (C:, D:, A:) - handle the colon properly
+  const driveLetter = pathParts[0].replace(':', '');
+  const drive = driveLetter + '://';
+  let currentFolder = fs.folders[drive];
+
+  if (!currentFolder) {
+    console.error('Drive not found:', drive);
+    return null;
+  }
+
+  // Traverse through the remaining path parts
+  for (let i = 1; i < pathParts.length; i++) {
+    const folderName = pathParts[i];
+
+    // Look for the folder by name in the current level
+    let found = false;
+    if (currentFolder.contents) {
+      for (const [key, item] of Object.entries(currentFolder.contents)) {
+        if (item.type === 'folder' && item.name === folderName) {
+          currentFolder = item;
+          found = true;
+          break;
+        }
+      }
+    } else {
+      // Check direct properties for root level folders
+      for (const [key, item] of Object.entries(currentFolder)) {
+        if (item && item.type === 'folder' && item.name === folderName) {
+          currentFolder = item;
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      console.error(`Folder '${folderName}' not found in path:`, targetPath);
+      return null;
+    }
+  }
+
+  return currentFolder;
 }
 
 restoreFileSystemState();

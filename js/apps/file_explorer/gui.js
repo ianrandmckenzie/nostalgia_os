@@ -218,6 +218,19 @@ function openFile(incoming_file, e) {
         <div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;">${file.content || "Empty file"}</div>
       </div>`;
       windowType = 'editor';
+
+      // Set up the editor after window creation
+      setTimeout(() => {
+        const textEditor = document.getElementById('text-editor');
+        if (textEditor) {
+          textEditor.addEventListener('input', function () {
+            updateContent(file.id, this.innerHTML);
+            // Update the file content
+            file.content = this.innerHTML;
+            saveState();
+          });
+        }
+      }, 100);
     } else if (file.content_type === 'markdown' || file.content_type === 'md') {
       content = `<div id="file-content" style="padding:10px;">
         <div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${file.id}"></div>
@@ -231,7 +244,14 @@ function openFile(incoming_file, e) {
   } else {
     // Non-UGC file: fetch from the media folder.
     if (['image', 'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'].includes(file.content_type)) {
-      content = `<img src="./media/${file.name}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      if (file.file) {
+        // Handle uploaded image files with file objects
+        const imageURL = URL.createObjectURL(file.file);
+        content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      } else {
+        // Handle image files from the media folder
+        content = `<img src="./media/${file.name}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      }
     } else if (['video', 'mov', 'mp4', 'webm', 'avi'].includes(file.content_type)) {
       content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
             <source src="./media/${file.name}" type="video/mp4">

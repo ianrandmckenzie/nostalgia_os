@@ -186,6 +186,13 @@ function renderDesktopIcons() {
 
     let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
 
+    // Use specific icon if available
+    if (item.icon) {
+      iconSrc = item.icon;
+    } else if (item.icon_url) {
+      iconSrc = item.icon_url;
+    }
+
     // Common metadata
     iconElem.setAttribute('data-item-id', item.id);
     iconElem.setAttribute('data-current-path', 'C://Desktop');

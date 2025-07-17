@@ -56,16 +56,29 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
     return null;
   }
 
-  // Find the target folder by traversing the path
-  let targetFolder = findFolderByPath(fs, targetFolderPath);
+  // Navigate to target folder
+  const pathParts = targetFolderPath.replace(/^[A-Z]:\/\//, '').split('/').filter(p => p);
+  let targetFolder = fs.folders['C://'];
 
-  if (!targetFolder) {
-    console.error('Target folder not found:', targetFolderPath);
-    return null;
+  console.log('Adding file to path:', targetFolderPath);
+  console.log('Path parts:', pathParts);
+  console.log('Initial target folder:', targetFolder);
+
+  for (const part of pathParts) {
+    if (targetFolder[part]) {
+      targetFolder = targetFolder[part];
+      console.log('Navigated to:', part, targetFolder);
+      // Don't navigate to contents here, we need the folder object itself
+    } else {
+      console.error('Target folder not found:', targetFolderPath, 'Missing part:', part);
+      console.error('Available folders:', Object.keys(targetFolder));
+      return null;
+    }
   }
 
   // Ensure the target folder has a contents object
   if (!targetFolder.contents) {
+    console.log('Creating contents object for folder:', targetFolder.name);
     targetFolder.contents = {};
   }
 
@@ -96,12 +109,35 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
     file: fileObj || null // Store the actual file object if provided
   };
 
+  // Convert File object to data URL for persistence if it's a binary file
+  if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      newFile.dataURL = e.target.result;
+      // Remove the File object since we have the data URL now
+      newFile.file = null;
+      setFileSystemState(fs);
+      saveState();
+
+      // Refresh views after async operation
+      if (typeof refreshExplorerViews === 'function') {
+        refreshExplorerViews();
+      }
+      if (targetFolderPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
+        renderDesktopIcons();
+      }
+    };
+    reader.readAsDataURL(fileObj);
+  }
+
   // Add to target folder contents
   targetFolder.contents[fileId] = newFile;
 
-  // Save changes
+  // Save changes (for non-binary files or immediate save)
   setFileSystemState(fs);
-  saveState();
+  if (!fileObj || !['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    saveState();
+  }
 
   // Refresh views if the function exists (will be available when file explorer is loaded)
   if (typeof refreshExplorerViews === 'function') {

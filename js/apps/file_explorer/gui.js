@@ -215,7 +215,7 @@ function openFile(incoming_file, e) {
   if (file.type === "ugc-file") {
     if (file.content_type === 'text' || file.content_type === 'txt') {
       content = `<div id="file-content" style="padding:10px;">
-        <div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;">${file.content || "Empty file"}</div>
+        <div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;">${file.content || file.contents || "Empty file"}</div>
       </div>`;
       windowType = 'editor';
 
@@ -237,9 +237,51 @@ function openFile(incoming_file, e) {
       </div>`;
       windowType = 'editor';
     } else if (file.content_type === 'html') {
-      content = file.content ? file.content : `<p style="padding:10px;">Empty HTML file.</p>`;
+      content = file.content || file.contents || `<p style="padding:10px;">Empty HTML file.</p>`;
+    } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
+      // Handle UGC image files
+      if (file.dataURL) {
+        content = `<img src="${file.dataURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      } else if (file.file && file.file instanceof File) {
+        const imageURL = URL.createObjectURL(file.file);
+        content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      } else {
+        content = `<p style="padding:10px;">Image file not found or invalid.</p>`;
+      }
+    } else if (['mp3', 'wav', 'ogg'].includes(file.content_type)) {
+      // Handle UGC audio files
+      if (file.dataURL) {
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="${file.dataURL}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
+      } else if (file.file && file.file instanceof File) {
+        const audioURL = URL.createObjectURL(file.file);
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="${audioURL}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
+      } else {
+        content = `<p style="padding:10px;">Audio file not found or invalid.</p>`;
+      }
+    } else if (['mp4', 'webm', 'avi', 'mov'].includes(file.content_type)) {
+      // Handle UGC video files
+      if (file.dataURL) {
+        content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
+            <source src="${file.dataURL}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>`;
+      } else if (file.file && file.file instanceof File) {
+        const videoURL = URL.createObjectURL(file.file);
+        content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
+            <source src="${videoURL}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>`;
+      } else {
+        content = `<p style="padding:10px;">Video file not found or invalid.</p>`;
+      }
     } else {
-      content = `<p style="padding:10px;">${file.content || "Empty file"}</p>`;
+      content = `<p style="padding:10px;">${file.content || file.contents || "Empty file"}</p>`;
     }
   } else {
     // Non-UGC file: fetch from the media folder.

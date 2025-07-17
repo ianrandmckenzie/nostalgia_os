@@ -1,11 +1,18 @@
 const version = '1.0';
-let oldVersion = localStorage.getItem('version');
-if (!oldVersion) localStorage.setItem('version', version);
-if (oldVersion !== version) {
-  localStorage.removeItem('appState');
-  localStorage.removeItem('splashScreen');
-  localStorage.removeItem('version');
-  localStorage.setItem('version', version);
+
+// Initialize storage-dependent code after storage is ready
+async function initializeApp() {
+  // Wait for storage to be ready
+  await storage.ensureReady?.() || Promise.resolve();
+
+  let oldVersion = storage.getItemSync('version');
+  if (!oldVersion) storage.setItemSync('version', version);
+  if (oldVersion !== version) {
+    storage.removeItemSync('appState');
+    storage.removeItemSync('splashScreen');
+    storage.removeItemSync('version');
+    storage.setItemSync('version', version);
+  }
 }
 let highestZ = 100;
 let activeMediaWindow = null; // ID of the active window with media
@@ -42,14 +49,19 @@ window.addEventListener('click', function (e) {
   }
 });
 
-window.addEventListener('load', function () {
-  if (!localStorage.getItem("splashScreen")) {
+window.addEventListener('load', async function () {
+  // Initialize app and storage first
+  await initializeApp();
+
+  const splashShown = await storage.getItem("splashScreen");
+  if (!splashShown) {
     showSplash();
   }
-  initializeAppState();
-  restoreWindows();
+
+  await initializeAppState();
+  await restoreWindows();
   renderDesktopIcons(); // Render icons first
-  restoreDesktopIcons(); // Then restore their positions
-  restoreDesktopSettings();
+  await restoreDesktopIcons(); // Then restore their positions
+  await restoreDesktopSettings();
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });

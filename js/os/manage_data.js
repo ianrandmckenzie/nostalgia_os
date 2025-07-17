@@ -28,7 +28,7 @@ function saveState() {
     desktopIconsState: desktopIconsState,
     desktopSettings: desktopSettings
   };
-  localStorage.setItem('appState', JSON.stringify(appState));
+  storage.setItemSync('appState', JSON.stringify(appState));
 }
 
 function getFileSystemState() {
@@ -147,8 +147,9 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
   return newFile;
 }
 
-function initializeAppState() {
-  if (!localStorage.getItem('appState')) {
+async function initializeAppState() {
+  const appStateData = await storage.getItem('appState');
+  if (!appStateData) {
     // No saved state; initialize using the default base objects.
     const initialState = {
       fileSystemState: fileSystemState,
@@ -156,15 +157,15 @@ function initializeAppState() {
       desktopIconsState: desktopIconsState,
       desktopSettings: desktopSettings
     };
-    localStorage.setItem('appState', JSON.stringify(initialState));
+    await storage.setItem('appState', JSON.stringify(initialState));
 
     // Add the default song to the Music folder on first load
     setTimeout(() => {
       addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
     }, 100);
   } else {
-    // Load state from localStorage
-    const storedState = JSON.parse(localStorage.getItem('appState'));
+    // Load state from IndexedDB
+    const storedState = JSON.parse(appStateData);
     setFileSystemState(storedState.fileSystemState);
     windowStates = storedState.windowStates;
     desktopIconsState = storedState.desktopIconsState;
@@ -186,15 +187,15 @@ function initializeAppState() {
   }
 }
 
-function restoreFileSystemState() {
-  const saved = localStorage.getItem('fileSystemState');
+async function restoreFileSystemState() {
+  const saved = await storage.getItem('fileSystemState');
   if (saved) {
     fileSystemState = JSON.parse(saved);
   }
 }
 
-function restoreWindows() {
-  const saved = localStorage.getItem('windowStates');
+async function restoreWindows() {
+  const saved = await storage.getItem('windowStates');
   if (saved) {
     const savedStates = JSON.parse(saved);
     windowStates = savedStates;
@@ -214,8 +215,8 @@ function restoreWindows() {
   }
 }
 
-function restoreDesktopIcons() {
-  const saved = localStorage.getItem('desktopIconsState');
+async function restoreDesktopIcons() {
+  const saved = await storage.getItem('desktopIconsState');
   if (saved) {
     desktopIconsState = JSON.parse(saved);
     for (const iconId in desktopIconsState) {
@@ -230,8 +231,8 @@ function restoreDesktopIcons() {
   }
 }
 
-function restoreDesktopSettings() {
-  const saved = localStorage.getItem('desktopSettings');
+async function restoreDesktopSettings() {
+  const saved = await storage.getItem('desktopSettings');
   if (saved) {
     desktopSettings = JSON.parse(saved);
     applyDesktopSettings();
@@ -292,4 +293,7 @@ function findFolderByPath(fs, targetPath) {
   return currentFolder;
 }
 
-restoreFileSystemState();
+// Initialize async
+restoreFileSystemState().then(() => {
+  console.log('File system state restored from IndexedDB');
+}).catch(console.error);

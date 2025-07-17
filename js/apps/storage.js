@@ -143,8 +143,8 @@ async function analyzeStoredData() {
     miscData: { count: 0, totalSize: 0, breakdown: [] }
   };
 
-  // Analyze localStorage
-  analyzeLocalStorage(analysis);
+  // Analyze storage (IndexedDB with localStorage fallback)
+  await analyzeStorage(analysis);
 
   // Analyze IndexedDB
   await analyzeIndexedDB(analysis);
@@ -152,9 +152,10 @@ async function analyzeStoredData() {
   return analysis;
 }
 
-function analyzeLocalStorage(analysis) {
+async function analyzeStorage(analysis) {
   try {
-    const appState = JSON.parse(localStorage.getItem('appState') || '{}');
+    const appStateData = await storage.getItem('appState');
+    const appState = JSON.parse(appStateData || '{}');
     const appStateSize = JSON.stringify(appState).length;
 
     // File system data
@@ -204,7 +205,7 @@ function analyzeLocalStorage(analysis) {
       });
     }
   } catch (error) {
-    console.error('Error analyzing localStorage:', error);
+    console.error('Error analyzing storage:', error);
   }
 }
 
@@ -412,15 +413,16 @@ async function clearMediaPlayer() {
   }
 }
 
-function clearDesktopSettings() {
-  const appState = JSON.parse(localStorage.getItem('appState') || '{}');
+async function clearDesktopSettings() {
+  const appStateData = await storage.getItem('appState');
+  const appState = JSON.parse(appStateData || '{}');
   appState.desktopSettings = {
     clockSeconds: false,
     bgColor: "#20b1b1",
     bgImage: ""
   };
   appState.desktopIconsState = {};
-  localStorage.setItem('appState', JSON.stringify(appState));
+  await storage.setItem('appState', JSON.stringify(appState));
 
   showDialogBox('Desktop settings reset successfully!', 'info');
   refreshStorageData();
@@ -444,8 +446,8 @@ function fullSystemRestart() {
 }
 
 function performFactoryReset() {
-  // Clear localStorage
-  localStorage.clear();
+  // Clear all storage
+  storage.clearSync();
 
   // Clear IndexedDB for media player
   const deleteRequest = indexedDB.deleteDatabase("media_player_db");

@@ -8,7 +8,7 @@ function initializeEditor(container) {
   const editorId = container.getAttribute('data-markdown-pro-plus-editor-id');
   const storageKey = `md_editor_${editorId}`;
   let storedContent = null;
-  const storedData = localStorage.getItem(storageKey);
+  const storedData = storage.getItemSync(storageKey);
   if (storedData) {
     try {
       const jsonData = JSON.parse(storedData);
@@ -157,10 +157,10 @@ function initializeEditor(container) {
       toolbar.classList.remove('hidden');
       toggleButton.textContent = "Preview & Save";
     } else {
-      // Convert Markdown to HTML, save to localStorage, then switch to Preview mode.
+      // Convert Markdown to HTML, save to IndexedDB, then switch to Preview mode.
       const markdownText = textarea.value;
       previewArea.innerHTML = convertMarkdownToHTML(markdownText);
-      localStorage.setItem(storageKey, JSON.stringify({ content: markdownText }));
+      storage.setItemSync(storageKey, JSON.stringify({ content: markdownText }));
       textarea.classList.add('hidden');
       previewArea.classList.remove('hidden');
       toggleButton.textContent = "Edit";

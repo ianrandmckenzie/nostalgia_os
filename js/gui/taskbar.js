@@ -32,7 +32,10 @@ function updateClock() {
   hours = hours < 10 ? '0' + hours : hours;
   minutes = minutes < 10 ? '0' + minutes : minutes;
   seconds = seconds < 10 ? '0' + seconds : seconds;
-  let timeStr = desktopSettings.clockSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
+
+  // Check if desktopSettings is available and initialized
+  const showSeconds = (typeof desktopSettings !== 'undefined' && desktopSettings && desktopSettings.clockSeconds) || false;
+  let timeStr = showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
   clockEl.textContent = timeStr;
 }
 

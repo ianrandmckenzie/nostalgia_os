@@ -14,7 +14,6 @@ function minimizeAllWindows() {
 }
 
 function openNav(title, content = '', dimensions = { type: 'default' }, windowType = 'default') {
-  toggleStartMenu();
   if (navWindows[title]) {
     const existingWindow = document.getElementById(navWindows[title]);
     if (existingWindow) { bringToFront(existingWindow); return; }

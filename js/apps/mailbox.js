@@ -1,7 +1,7 @@
 // Mailbox app – no innerHTML anywhere
 function launchMailbox() {
   // Check if running in Reddit context and prevent launch
-  if (window.parent !== window || window.location.href.includes('reddit.com') || window.location.href.includes('localhost')) {
+  if (window.parent !== window || window.location.href.includes('reddit.com')) {
     // Check if error dialog is already open to prevent duplicates
     if (document.getElementById('mailbox-error')) {
       return;

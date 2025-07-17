@@ -108,6 +108,13 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
       minimizeWindow(win.id);
     }
   };
+
+  // Add right-click context menu for taskbar tabs
+  tab.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    showTaskbarContextMenu(e, windowId, win);
+  });
+
   document.getElementById('window-tabs').appendChild(tab);
 
   windowStates[windowId] = {
@@ -415,3 +422,77 @@ document.addEventListener('click', e => {
     'default'
   );
 });
+
+function showTaskbarContextMenu(e, windowId, win) {
+  const menu = document.getElementById('context-menu');
+
+  // Clear old entries
+  menu.replaceChildren();
+  menu.style.zIndex = (highestZ || 1000) + 100;
+
+  const addItem = (text, disabled, onclick) => {
+    const item = document.createElement('div');
+    item.className = `px-4 py-2 ${
+      disabled ? 'text-gray-400' : 'hover:bg-gray-50 cursor-pointer'
+    }`;
+    item.textContent = text;
+    if (!disabled && onclick) {
+      item.addEventListener('click', onclick);
+    }
+    menu.appendChild(item);
+    return item;
+  };
+
+  // Determine current window state
+  const isMinimized = win.style.display === 'none';
+  const isFullScreen = windowStates[windowId] && windowStates[windowId].fullScreen;
+
+  // Add context menu items
+  if (isMinimized) {
+    addItem('Restore', false, () => {
+      bringToFront(win);
+      hideContextMenu();
+    });
+  } else {
+    addItem('Minimize', false, () => {
+      minimizeWindow(windowId);
+      hideContextMenu();
+    });
+  }
+
+  if (!isFullScreen) {
+    addItem('Maximize', false, () => {
+      toggleFullScreen(windowId);
+      hideContextMenu();
+    });
+  }
+
+  addItem('Close', false, () => {
+    closeWindow(windowId);
+    hideContextMenu();
+  });
+
+  // Position the menu
+  // First, show the menu to get its dimensions
+  menu.classList.remove('hidden');
+
+  const menuRect = menu.getBoundingClientRect();
+  const taskbarHeight = 48; // Taskbar height (h-12 = 3rem = 48px)
+
+  // Position horizontally
+  let leftPos = e.pageX;
+  if (leftPos + menuRect.width > window.innerWidth) {
+    leftPos = window.innerWidth - menuRect.width - 10;
+  }
+
+  // Position vertically (above the taskbar)
+  let topPos = window.innerHeight - taskbarHeight - menuRect.height - 5;
+
+  menu.style.left = leftPos + 'px';
+  menu.style.top = topPos + 'px';
+
+  // Hide menu on next click
+  setTimeout(() => {
+    document.addEventListener('click', hideContextMenu, { once: true });
+  }, 0);
+}

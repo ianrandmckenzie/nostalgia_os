@@ -49,7 +49,6 @@ function updateContent(windowId, newContent) {
 // Utility function to add a file to the file system
 function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
   const fs = getFileSystemState();
-  console.log('Adding file to path:', targetFolderPath);
 
   // Ensure file system is initialized
   if (!fs || !fs.folders) {

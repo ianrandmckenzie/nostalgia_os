@@ -312,22 +312,43 @@ function openWindow(id, content = '', dimensions = { type: 'default' }, windowTy
   return createWindow(id, content === '' ? 'Content for ' + id : content, false, null, false, false, dimensions, windowType, parentWin);
 }
 
-function showDialogBox(message, dialogType) {
+function showDialogBox(message, dialogType, onConfirm = null, onCancel = null) {
   const uniqueWindowId = 'dialogWindow-' + Date.now();
 
+  // Determine if this is a confirmation dialog that needs OK/Cancel buttons
+  const isConfirmationDialog = dialogType === 'confirmation' && (onConfirm || onCancel);
+
   // Create the HTML content as a string instead of DOM elements
-  const dialogContent = `
-    <div class="text-center p-4">
-      <h2 class="text-lg mb-4">${message}</h2>
-      <button id="${uniqueWindowId}-button" class="bg-gray-200 border-2 border-gray-400 px-4 py-2 hover:bg-gray-300" style="border-style: outset;">
-        OK
-      </button>
-    </div>
-  `;
+  let dialogContent;
+
+  if (isConfirmationDialog) {
+    dialogContent = `
+      <div class="text-center p-4">
+        <h2 class="text-lg mb-4">${message}</h2>
+        <div class="flex gap-2 justify-center">
+          <button id="${uniqueWindowId}-ok-button" class="bg-gray-200 border-2 border-gray-400 px-4 py-2 hover:bg-gray-300" style="border-style: outset;">
+            OK
+          </button>
+          <button id="${uniqueWindowId}-cancel-button" class="bg-gray-200 border-2 border-gray-400 px-4 py-2 hover:bg-gray-300" style="border-style: outset;">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    dialogContent = `
+      <div class="text-center p-4">
+        <h2 class="text-lg mb-4">${message}</h2>
+        <button id="${uniqueWindowId}-button" class="bg-gray-200 border-2 border-gray-400 px-4 py-2 hover:bg-gray-300" style="border-style: outset;">
+          OK
+        </button>
+      </div>
+    `;
+  }
 
   let title = '⚠️ Information';
   if (dialogType === 'confirmation') {
-    title = '✅ Success';
+    title = isConfirmationDialog ? '⚠️ Confirmation' : '✅ Success';
   }
   if (dialogType === 'error') {
     title = '⚠️ Error';
@@ -335,15 +356,36 @@ function showDialogBox(message, dialogType) {
     if (errorAudio) errorAudio.play();
   }
 
-  const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 300, height: 150 }, "default");
+  const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 350, height: 180 }, "default");
 
-  // Add event listener after the window is created
+  // Add event listeners after the window is created
   setTimeout(() => {
-    const button = document.getElementById(`${uniqueWindowId}-button`);
-    if (button) {
-      button.addEventListener('click', () => {
-        closeWindow(uniqueWindowId);
-      });
+    if (isConfirmationDialog) {
+      const okButton = document.getElementById(`${uniqueWindowId}-ok-button`);
+      const cancelButton = document.getElementById(`${uniqueWindowId}-cancel-button`);
+
+      if (okButton) {
+        okButton.addEventListener('click', () => {
+          closeWindow(uniqueWindowId);
+          if (onConfirm) onConfirm();
+        });
+      }
+
+      if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+          closeWindow(uniqueWindowId);
+          if (onCancel) onCancel();
+        });
+      }
+    } else {
+      const button = document.getElementById(`${uniqueWindowId}-button`);
+      if (button) {
+        button.addEventListener('click', () => {
+          closeWindow(uniqueWindowId);
+          // For backward compatibility, if onConfirm is provided for non-confirmation dialogs, call it
+          if (onConfirm) onConfirm();
+        });
+      }
     }
   }, 100);
 

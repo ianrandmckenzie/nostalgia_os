@@ -128,6 +128,16 @@ document.getElementById('sysset').addEventListener('click', () => {
   openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
 });
 
+document.getElementById('storageapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('storage');
+});
+
+document.getElementById('watercolourapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('watercolour');
+});
+
 document.getElementById('letterpad').addEventListener('click', () => {
   toggleStartMenu();
   createNewFile(null, 'C://Documents', (newFileId) => {

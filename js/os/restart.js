@@ -1,17 +1,5 @@
 function restart() {
-  // Clear localStorage
-  localStorage.clear();
-
-  // Clear IndexedDB for media player
-  const deleteRequest = indexedDB.deleteDatabase("media_player_db");
-  deleteRequest.onsuccess = () => {
-    console.log("Media player database cleared");
-  };
-  deleteRequest.onerror = (event) => {
-    console.error("Error clearing media player database:", event);
-  };
-
-  // Reset state objects
+  // Reset state objects for current session
   windowStates = {};
   desktopIconsState = {};
   desktopSettings = {
@@ -20,6 +8,6 @@ function restart() {
     bgImage: ""
   };
 
-  // Reload the page
-  window.location.reload();
+  // Show splash screen instead of directly reloading
+  showSplash();
 }

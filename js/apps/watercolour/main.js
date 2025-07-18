@@ -108,7 +108,7 @@ function getWatercolourHTML() {
     </div>
 
     <!-- Right Panel: Color Palette & Stroke Size -->
-    <div style="width: 6rem; padding: 0.5rem; background-color: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 1rem;">
+    <div style="width: 8rem; padding: 0.5rem; background-color: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 1rem;">
       <!-- Color Palette -->
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem;">

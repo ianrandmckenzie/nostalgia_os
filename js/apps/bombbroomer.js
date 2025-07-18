@@ -25,11 +25,13 @@ function launchBombbroomer() {
   );
 
   // Initialize the game UI
-  initializeBombbroomerUI(win);
+  initializeBombbroomerUI(win).catch(error => {
+    console.error('Error initializing Bombbroomer:', error);
+  });
 }
 
 // Separate function to initialize the Bombbroomer UI (for restoration)
-function initializeBombbroomerUI(win) {
+async function initializeBombbroomerUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-gray-200 h-full overflow-hidden';
@@ -38,7 +40,7 @@ function initializeBombbroomerUI(win) {
   content.innerHTML = '';
 
   // Try to load saved game state
-  let gameState = loadBombbroomerGameState();
+  let gameState = await loadBombbroomerGameState();
 
   // If no saved state, create default state
   if (!gameState) {
@@ -73,7 +75,7 @@ function initializeBombbroomerUI(win) {
   const newGameBtn = document.createElement('button');
   newGameBtn.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
   newGameBtn.textContent = 'New Game';
-  newGameBtn.addEventListener('click', startNewGame);
+  newGameBtn.addEventListener('click', async () => await startNewGame());
 
   // menuBar.appendChild(gameMenu); // doesn't do anything right now
   menuBar.appendChild(newGameBtn);
@@ -94,7 +96,7 @@ function initializeBombbroomerUI(win) {
   faceButton.style.borderStyle = 'outset';
   faceButton.id = 'face-button';
   faceButton.textContent = '🙂';
-  faceButton.addEventListener('click', startNewGame);
+  faceButton.addEventListener('click', async () => await startNewGame());
 
   const timerDisplay = document.createElement('div');
   timerDisplay.className = 'bg-black text-red-500 px-2 py-1 font-mono text-lg border-2 border-gray-500';
@@ -223,8 +225,8 @@ function initializeBombbroomerUI(win) {
         }
 
         // Add event listeners
-        cell.addEventListener('click', (e) => handleCellClick(e, row, col));
-        cell.addEventListener('contextmenu', (e) => handleRightClick(e, row, col));
+        cell.addEventListener('click', async (e) => await handleCellClick(e, row, col));
+        cell.addEventListener('contextmenu', async (e) => await handleRightClick(e, row, col));
 
         gameGrid.appendChild(cell);
       }
@@ -232,7 +234,7 @@ function initializeBombbroomerUI(win) {
   }
 
   // Handle left click on cell
-  function handleCellClick(e, row, col) {
+  async function handleCellClick(e, row, col) {
     e.preventDefault();
 
     if (gameState.gameOver || gameState.gameWon) return;
@@ -250,18 +252,18 @@ function initializeBombbroomerUI(win) {
 
     // Reveal cell
     if (cell.isBomb) {
-      gameOver();
+      await gameOver();
     } else {
       revealCell(row, col);
-      checkWinCondition();
+      await checkWinCondition();
     }
 
     renderGrid();
-    saveBombbroomerGameState(gameState); // Save state after each move
+    await saveBombbroomerGameState(gameState); // Save state after each move
   }
 
   // Handle right click (flag/unflag)
-  function handleRightClick(e, row, col) {
+  async function handleRightClick(e, row, col) {
     e.preventDefault();
 
     if (gameState.gameOver || gameState.gameWon) return;
@@ -279,7 +281,7 @@ function initializeBombbroomerUI(win) {
 
     updateDisplay();
     renderGrid();
-    saveBombbroomerGameState(gameState); // Save state after flagging
+    await saveBombbroomerGameState(gameState); // Save state after flagging
   }
 
   // Reveal a cell and potentially cascade
@@ -303,15 +305,15 @@ function initializeBombbroomerUI(win) {
 
   // Start the timer
   function startTimer() {
-    gameState.timerInterval = setInterval(() => {
+    gameState.timerInterval = setInterval(async () => {
       gameState.timer++;
       updateDisplay();
-      saveBombbroomerGameState(gameState); // Save state with updated timer
+      await saveBombbroomerGameState(gameState); // Save state with updated timer
     }, 1000);
   }
 
   // Game over
-  function gameOver() {
+  async function gameOver() {
     gameState.gameOver = true;
     if (gameState.timerInterval) {
       clearInterval(gameState.timerInterval);
@@ -326,7 +328,7 @@ function initializeBombbroomerUI(win) {
       }
     }
 
-    saveBombbroomerGameState(gameState); // Save final game over state
+    await saveBombbroomerGameState(gameState); // Save final game over state
     document.getElementById('face-button').textContent = '😵';
     setTimeout(() => {
       showDialogBox('Game Over! Try again?', 'confirmation');
@@ -334,7 +336,7 @@ function initializeBombbroomerUI(win) {
   }
 
   // Check win condition
-  function checkWinCondition() {
+  async function checkWinCondition() {
     let revealedCount = 0;
     for (let row = 0; row < gameState.rows; row++) {
       for (let col = 0; col < gameState.cols; col++) {
@@ -350,7 +352,7 @@ function initializeBombbroomerUI(win) {
       if (gameState.timerInterval) {
         clearInterval(gameState.timerInterval);
       }
-      saveBombbroomerGameState(gameState); // Save final win state
+      await saveBombbroomerGameState(gameState); // Save final win state
       document.getElementById('face-button').textContent = '😎';
       setTimeout(() => {
         showDialogBox('Congratulations! You won!', 'confirmation');
@@ -370,10 +372,10 @@ function initializeBombbroomerUI(win) {
   }
 
   // Start new game
-  function startNewGame() {
+  async function startNewGame() {
     document.getElementById('face-button').textContent = '🙂';
     initializeGrid();
-    clearBombbroomerGameState(); // Clear saved state when starting new game
+    await clearBombbroomerGameState(); // Clear saved state when starting new game
   }
 
   // Restore saved game
@@ -424,24 +426,24 @@ function initializeBombbroomerUI(win) {
   }
 }
 
-// Save game state to localStorage
-function saveBombbroomerGameState(gameState) {
+// Save game state to IndexedDB
+async function saveBombbroomerGameState(gameState) {
   try {
     // Create a clean copy without the timer interval
     const stateToSave = {
       ...gameState,
       timerInterval: null // Don't save the interval
     };
-    localStorage.setItem('bombbroomer_gameState', JSON.stringify(stateToSave));
+    await storage.setItem('bombbroomer_gameState', JSON.stringify(stateToSave));
   } catch (error) {
     console.warn('Failed to save Bombbroomer game state:', error);
   }
 }
 
-// Load game state from localStorage
-function loadBombbroomerGameState() {
+// Load game state from IndexedDB
+async function loadBombbroomerGameState() {
   try {
-    const savedState = localStorage.getItem('bombbroomer_gameState');
+    const savedState = await storage.getItem('bombbroomer_gameState');
     if (savedState) {
       const gameState = JSON.parse(savedState);
       // Ensure timerInterval is null when loading
@@ -455,9 +457,9 @@ function loadBombbroomerGameState() {
 }
 
 // Clear saved game state
-function clearBombbroomerGameState() {
+async function clearBombbroomerGameState() {
   try {
-    localStorage.removeItem('bombbroomer_gameState');
+    await storage.removeItem('bombbroomer_gameState');
   } catch (error) {
     console.warn('Failed to clear Bombbroomer game state:', error);
   }

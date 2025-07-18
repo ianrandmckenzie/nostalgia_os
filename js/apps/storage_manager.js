@@ -1,4 +1,4 @@
-function launchStorage() {
+function launchStorageManager() {
   const storageWindow = createWindow(
     'Storage Manager',
     '<div id="storage-content" style="padding: 20px;">Loading storage information...</div>',
@@ -371,7 +371,7 @@ function openCleanupWindow() {
     'storage-cleanup-window',
     false,
     false,
-    { type: 'integer', width: 400, height: 300 },
+    { type: 'integer', width: 400, height: 340 },
     'default'
   );
 

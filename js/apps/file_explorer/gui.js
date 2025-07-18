@@ -350,14 +350,14 @@ function openFile(incoming_file, e) {
       }, 100);
     } else if (file.content_type === 'markdown' || file.content_type === 'md') {
       content = `<div id="file-content" style="padding:10px;">
-        <div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${file.id}"></div>
+        <div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${file.id}"></div>
       </div>`;
       windowType = 'editor';
 
-      // Initialize the markdown editor with existing content after the window is created
+      // Initialize the LetterPad editor with existing content after the window is created
       setTimeout(() => {
         // Store the file content in the expected storage format for the editor
-        const storageKey = `md_editor_${file.id}`;
+        const storageKey = `letterpad_${file.id}`;
 
         // Check if there's already content in storage (from previous edits)
         const existingData = storage.getItemSync(storageKey);
@@ -378,9 +378,9 @@ function openFile(incoming_file, e) {
         storage.setItemSync(storageKey, JSON.stringify({ content: contentToStore }));
 
         // Initialize the editor
-        const editorContainer = document.querySelector(`[data-markdown-pro-plus-editor-id="${file.id}"]`);
-        if (editorContainer && typeof initializeEditor === 'function') {
-          initializeEditor(editorContainer);
+        const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
+        if (editorContainer && typeof initializeLetterPad === 'function') {
+          initializeLetterPad(editorContainer);
         }
       }, 100);
     } else if (file.content_type === 'html') {
@@ -610,7 +610,7 @@ function openFile(incoming_file, e) {
           const win = document.getElementById(file.id);
           const contentDiv = win ? win.querySelector('.p-2') : null;
           if (contentDiv) {
-            contentDiv.innerHTML = `<div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${file.id}"></div>`;
+            contentDiv.innerHTML = `<div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${file.id}"></div>`;
           }
           saveState();
         })

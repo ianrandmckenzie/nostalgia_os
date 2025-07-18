@@ -146,7 +146,7 @@ function showContextMenu(e, target, fromFullPath) {
 
     const newFileItem = addItem('New File', false, null, true);
     addSubmenu(newFileItem, [
-      { text: 'Letterpad', disabled: false, onclick: ev => createNewLetterpad(ev, fromFullPath) },
+      { text: 'LetterPad', disabled: false, onclick: ev => createNewLetterpad(ev, fromFullPath) },
       { text: 'Image', disabled: false, onclick: ev => createNewImage(ev, fromFullPath) }
     ]);
 
@@ -691,9 +691,9 @@ function createNewShortcut(e, fromFullPath) {
   });
 }
 
-/* =========================
-   Create a new Letterpad file
-   ========================= */
+/* =====================
+   Create a new LetterPad file
+====================== */
 function createNewLetterpad(e, fromFullPath, onCreated = null) {
   if (e) e.stopPropagation();
   hideContextMenu();
@@ -702,10 +702,10 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
 
   // Generate unique ID and default content
   const fileId = `file-${Date.now()}`;
-  const fileName = 'New Letterpad.md';
+  const fileName = 'New LetterPad.md';
   const defaultContent = '# Dear friend,\n\nWrite your letter here...\n\n**Sincerely,**\n*Your name*';
 
-  // Create letterpad file in the filesystem
+  // Create LetterPad file in the filesystem
   const newFile = {
     id: fileId,
     name: fileName,
@@ -713,7 +713,7 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
     content: defaultContent,
     content_type: 'markdown',
     icon_url: 'image/doc.png',
-    description: 'Letterpad document'
+    description: 'LetterPad document'
   };
 
   // Insert into filesystem
@@ -751,10 +751,10 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   refreshExplorerViews();
   if (fromFullPath === 'C://Desktop') renderDesktopIcons();
 
-  // Launch the markdown editor directly for immediate editing
+  // Launch the LetterPad editor directly for immediate editing
   const win = createWindow(
     fileName,
-    `<div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${fileId}"></div>`,
+    `<div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${fileId}"></div>`,
     false,
     fileId,
     false,
@@ -765,12 +765,12 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
 
   // Initialize the editor with the default content
   setTimeout(() => {
-    const storageKey = `md_editor_${fileId}`;
+    const storageKey = `letterpad_${fileId}`;
     storage.setItemSync(storageKey, JSON.stringify({ content: defaultContent }));
 
-    const editorContainer = document.querySelector(`[data-markdown-pro-plus-editor-id="${fileId}"]`);
-    if (editorContainer && typeof initializeEditor === 'function') {
-      initializeEditor(editorContainer);
+    const editorContainer = document.querySelector(`[data-letterpad-editor-id="${fileId}"]`);
+    if (editorContainer && typeof initializeLetterPad === 'function') {
+      initializeLetterPad(editorContainer);
     }
   }, 100);
 

@@ -1,12 +1,12 @@
 // Function to initialize a single editor container
-function initializeEditor(container) {
+function initializeLetterPad(container) {
   // Skip if already initialized
   if (container.dataset.initialized === "true") return;
   container.dataset.initialized = "true";
 
   // Get the editor's unique ID from data attribute
-  const editorId = container.getAttribute('data-markdown-pro-plus-editor-id');
-  const storageKey = `md_editor_${editorId}`;
+  const editorId = container.getAttribute('data-letterpad-editor-id');
+  const storageKey = `letterpad_${editorId}`;
   let storedContent = null;
   const storedData = storage.getItemSync(storageKey);
   if (storedData) {
@@ -171,8 +171,8 @@ function initializeEditor(container) {
 
 // Initialize editors that exist at DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('.md_editor_pro_plus').forEach(function(container) {
-    initializeEditor(container);
+  document.querySelectorAll('.letterpad_editor').forEach(function(container) {
+    initializeLetterPad(container);
   });
 
   // Use a MutationObserver to catch new editor elements added later.
@@ -182,12 +182,12 @@ document.addEventListener('DOMContentLoaded', function () {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // If the added node itself has the editor class, initialize it.
-            if (node.classList.contains('md_editor_pro_plus')) {
-              initializeEditor(node);
+            if (node.classList.contains('letterpad_editor')) {
+              initializeLetterPad(node);
             }
             // Also check its descendants.
-            node.querySelectorAll && node.querySelectorAll('.md_editor_pro_plus').forEach(child => {
-              initializeEditor(child);
+            node.querySelectorAll && node.querySelectorAll('.letterpad_editor').forEach(child => {
+              initializeLetterPad(child);
             });
           }
         });

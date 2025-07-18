@@ -691,23 +691,24 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   hideContextMenu();
 
   const parentPath = fromFullPath || 'C://';
-  const winId = `window-${Date.now()}`;
 
-  // Create letterpad file immediately with default content
-  const fileName = 'New Letterpad.txt';
-  const defaultContent = 'Dear friend,\n\nWrite your letter here...\n\nSincerely,\nYour name';
+  // Generate unique ID and default content
+  const fileId = `file-${Date.now()}`;
+  const fileName = 'New Letterpad.md';
+  const defaultContent = '# Dear friend,\n\nWrite your letter here...\n\n**Sincerely,**\n*Your name*';
 
+  // Create letterpad file in the filesystem
   const newFile = {
-    id: `file-${Date.now()}`,
+    id: fileId,
     name: fileName,
     type: 'ugc-file',
     content: defaultContent,
-    content_type: 'text',
+    content_type: 'markdown',
     icon_url: 'image/doc.png',
     description: 'Letterpad document'
   };
 
-  // Insert into filesystem using existing method
+  // Insert into filesystem
   const fs = getFileSystemState();
   const drive = parentPath.substring(0, 4);
   const paths = parentPath.substring(4).split('/');
@@ -728,18 +729,44 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
 
   dest[newFile.id] = newFile;
 
-  // Refresh views
+  // Save filesystem state
+  setFileSystemState(fs);
+  saveState();
+
+  // Refresh views to show the new file
   const explorerWin = document.getElementById('explorer-window');
   if (explorerWin) {
     explorerWin.querySelector('.file-explorer-window').outerHTML =
       getExplorerWindowContent(parentPath);
     setupFolderDrop();
   }
-  setFileSystemState(fs);
-  saveState();
-  if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
   refreshExplorerViews();
   if (fromFullPath === 'C://Desktop') renderDesktopIcons();
+
+  // Launch the markdown editor directly for immediate editing
+  const win = createWindow(
+    fileName,
+    `<div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${fileId}"></div>`,
+    false,
+    fileId,
+    false,
+    false,
+    { type: 'integer', width: 600, height: 500 },
+    'editor'
+  );
+
+  // Initialize the editor with the default content
+  setTimeout(() => {
+    const storageKey = `md_editor_${fileId}`;
+    storage.setItemSync(storageKey, JSON.stringify({ content: defaultContent }));
+
+    const editorContainer = document.querySelector(`[data-markdown-pro-plus-editor-id="${fileId}"]`);
+    if (editorContainer && typeof initializeEditor === 'function') {
+      initializeEditor(editorContainer);
+    }
+  }, 100);
+
+  if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
 }
 
 /* =========================

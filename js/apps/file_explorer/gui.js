@@ -242,6 +242,36 @@ function openFile(incoming_file, e) {
         <div class="md_editor_pro_plus min-h-48 h-full w-full" data-markdown-pro-plus-editor-id="${file.id}"></div>
       </div>`;
       windowType = 'editor';
+
+      // Initialize the markdown editor with existing content after the window is created
+      setTimeout(() => {
+        // Store the file content in the expected storage format for the editor
+        const storageKey = `md_editor_${file.id}`;
+
+        // Check if there's already content in storage (from previous edits)
+        const existingData = storage.getItemSync(storageKey);
+        let contentToStore = file.content || file.contents || '';
+
+        if (existingData) {
+          try {
+            const jsonData = JSON.parse(existingData);
+            // If there's existing content in storage, use that instead of file content
+            if (jsonData.content !== undefined) {
+              contentToStore = jsonData.content;
+            }
+          } catch (e) {
+            console.error('Error parsing existing storage data:', e);
+          }
+        }
+
+        storage.setItemSync(storageKey, JSON.stringify({ content: contentToStore }));
+
+        // Initialize the editor
+        const editorContainer = document.querySelector(`[data-markdown-pro-plus-editor-id="${file.id}"]`);
+        if (editorContainer && typeof initializeEditor === 'function') {
+          initializeEditor(editorContainer);
+        }
+      }, 100);
     } else if (file.content_type === 'html') {
       content = file.content || file.contents || `<p style="padding:10px;">Empty HTML file.</p>`;
     } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {

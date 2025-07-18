@@ -1,11 +1,28 @@
 async function launchWatercolour() {
-  const content = getWatercolourHTML();
-  createWindow('Watercolour', content, false, 'watercolour', false, false, { type: 'integer', width: 700, height: 440 }, 'app', null, 'white');
+  // Check if watercolour window already exists
+  const existingWindow = document.getElementById('watercolour');
+  if (existingWindow) {
+    const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
+    const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
+      getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
+    );
+    existingWindow.style.zIndex = `${parseInt(highestZIndex.style.zIndex) + 1}`;
+    return;
+  }
 
-  // Load the watercolour logic after the window is created
-  setTimeout(() => {
-    initializeWatercolour();
-  }, 100);
+  const content = getWatercolourHTML();
+  const win = createWindow('Watercolour', content, false, 'watercolour', false, false, { type: 'integer', width: 700, height: 440 }, 'app', null, 'white');
+
+  // Initialize the watercolour UI
+  initializeWatercolourUI(win);
+}
+
+// Separate function to initialize the Watercolour UI (for restoration)
+async function initializeWatercolourUI(win) {
+  console.log('Initializing Watercolour UI, window:', win);
+
+  // Load the watercolour logic immediately for restoration
+  await initializeWatercolour();
 }
 
 function getWatercolourHTML() {
@@ -155,6 +172,13 @@ async function initializeWatercolour() {
 
     // Execute the script in the current context
     eval(coreScript);
+
+    // Restore the saved state after initialization
+    setTimeout(() => {
+      if (typeof restoreWatercolourState === 'function') {
+        restoreWatercolourState();
+      }
+    }, 50);
 
     console.log('Watercolour initialized successfully');
   } catch (error) {

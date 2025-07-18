@@ -379,9 +379,23 @@ async function initializeRestoredApp(windowId) {
       }
     },
     'watercolour': () => {
-      // Watercolour app needs canvas initialization
-      if (typeof initializeWatercolourCanvas === 'function') {
-        setTimeout(initializeWatercolourCanvas, 100);
+      // Watercolour needs UI reconstruction
+      const watercolourWindow = document.getElementById('watercolour');
+      if (watercolourWindow) {
+        const content = watercolourWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Watercolour content empty, reinitializing...');
+          initializeWatercolourUI(watercolourWindow);
+        } else {
+          console.log('Watercolour content exists, but ensuring event handlers are set up...');
+          // Even if content exists, we need to ensure event handlers and global functions are set up
+          if (typeof initializeWatercolour === 'function') {
+            initializeWatercolour();
+          } else {
+            // If initializeWatercolour is not available, call initializeWatercolourUI to load it
+            initializeWatercolourUI(watercolourWindow);
+          }
+        }
       }
     },
     'tubestream': () => {

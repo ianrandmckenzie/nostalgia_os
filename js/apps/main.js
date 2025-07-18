@@ -13,6 +13,7 @@ function openApp(id) {
   if (id === 'watercolour') launchWatercolour();
   if (id === 'calculator') launchCalculator();
   if (id === 'solitaire') launchSolitaire();
+  if (id === 'chess') launchChess();
   if (id === 'bombbroomer') launchBombbroomer();
   if (id === 'mediaplayer') launchMediaPlayer();
   if (id === 'compostbin') launchCompostBin();

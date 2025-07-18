@@ -329,6 +329,40 @@ function makeWin95Button(label) {
   return btn;
 }
 
+// Create a dropdown with Win-95 styling
+function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
+  const select = document.createElement('select');
+  select.className = 'bg-white border-t-2 border-l-2 border-black border-b-2 border-r-2 border-gray-300 px-2 py-1';
+
+  // Add options to the dropdown
+  options.forEach(option => {
+    const optionElement = document.createElement('option');
+
+    // Handle both string options and object options with value/text
+    if (typeof option === 'string') {
+      optionElement.value = option;
+      optionElement.textContent = option;
+    } else {
+      optionElement.value = option.value;
+      optionElement.textContent = option.text || option.value;
+    }
+
+    // Set selected if this matches the selectedValue
+    if (selectedValue !== null && optionElement.value === selectedValue) {
+      optionElement.selected = true;
+    }
+
+    select.appendChild(optionElement);
+  });
+
+  // Add change event listener if provided
+  if (onChange && typeof onChange === 'function') {
+    select.addEventListener('change', (e) => onChange(e.target.value, e));
+  }
+
+  return select;
+}
+
 function openCleanupWindow() {
   const cleanupWindow = createWindow(
     'Storage Cleanup',

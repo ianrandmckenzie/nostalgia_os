@@ -157,6 +157,11 @@ document.getElementById('solapp').addEventListener('click', () => {
   openApp('solitaire');
 });
 
+document.getElementById('chessapp').addEventListener('click', () => {
+  toggleStartMenu();
+  openApp('chess');
+});
+
 document.getElementById('bombapp').addEventListener('click', () => {
   toggleStartMenu();
   openApp('bombbroomer');

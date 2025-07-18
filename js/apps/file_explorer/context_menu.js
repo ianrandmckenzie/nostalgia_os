@@ -703,7 +703,7 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   // Generate unique ID and default content
   const fileId = `file-${Date.now()}`;
   const fileName = 'New LetterPad.md';
-  const defaultContent = '# Dear friend,\n\nWrite your letter here...\n\n**Sincerely,**\n*Your name*';
+  const defaultContent = '';
 
   // Create LetterPad file in the filesystem
   const newFile = {
@@ -712,8 +712,7 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
     type: 'ugc-file',
     content: defaultContent,
     content_type: 'markdown',
-    icon_url: 'image/doc.png',
-    description: 'LetterPad document'
+    icon_url: 'image/doc.png'
   };
 
   // Insert into filesystem

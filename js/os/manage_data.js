@@ -365,6 +365,23 @@ async function initializeRestoredApp(windowId) {
         }
       }
     },
+    'chess': () => {
+      // Chess needs UI reconstruction
+      const chessWindow = document.getElementById('chess');
+      if (chessWindow) {
+        const content = chessWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Chess content empty, reinitializing...');
+          if (typeof initializeChessUI === 'function') {
+            initializeChessUI(chessWindow);
+          } else {
+            console.warn('initializeChessUI function not available');
+          }
+        } else {
+          console.log('Chess content already exists, skipping reinitialization');
+        }
+      }
+    },
     'compost-bin': () => {
       // Compost Bin needs to load its contents
       const compostWindow = document.getElementById('compost-bin');

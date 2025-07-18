@@ -157,16 +157,123 @@ function getExplorerWindowContent(currentPath = 'C://') {
 }
 
 /* File-explorer interaction — single place, zero inline JS */
+// Add single-click handler for image selection mode (HIGH PRIORITY - placed first)
+document.addEventListener('click', e => {
+  console.log('Global click detected, target:', e.target);
+
+  // First check if we're in image selection mode
+  const explorerElem = e.target.closest('.file-explorer-window');
+  console.log('Explorer element found:', explorerElem);
+
+  if (explorerElem) {
+    console.log('Explorer mode attribute:', explorerElem.getAttribute('data-image-selection-mode'));
+  }
+
+  if (explorerElem && explorerElem.getAttribute('data-image-selection-mode') === 'true') {
+    console.log('Click detected in image selection mode, target:', e.target);
+
+    const li = e.target.closest('[data-open-file]');
+    console.log('Closest li element:', li);
+
+    if (li) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation(); // Stop all other handlers
+
+      console.log('Single-click detected in image selection mode, li:', li);
+      console.log('Li dataset:', li.dataset);
+
+      // Get the file info
+      const currentPath = explorerElem.getAttribute('data-current-path');
+      console.log('Current path:', currentPath);
+
+      const itemsObj = getItemsForPath(currentPath);
+      console.log('Items obj:', itemsObj);
+
+      const file = Object.values(itemsObj).find(it => it.id === li.dataset.openFile);
+      console.log('File found:', file);
+
+      // Check if it's an image file
+      if (file && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
+        console.log('Valid image file selected:', file.name);
+
+        // Clear previous selection
+        const allFileItems = explorerElem.querySelectorAll('[data-open-file]');
+        console.log('Found file items to clear:', allFileItems.length);
+        allFileItems.forEach(item => {
+          item.classList.remove('bg-blue-100', 'border-blue-300');
+          item.style.backgroundColor = ''; // Clear inline styles
+          item.style.border = '';
+          console.log('Cleared selection from:', item);
+        });
+
+        // Highlight selected item with both classes and inline styles for visibility
+        console.log('Adding highlight classes to:', li);
+        li.classList.add('bg-blue-100', 'border-blue-300');
+        li.style.backgroundColor = '#dbeafe'; // Light blue background
+        li.style.border = '2px solid #93c5fd'; // Blue border
+        li.style.borderRadius = '4px';
+        console.log('Li classes after adding:', li.className);
+        console.log('Li styles after adding:', li.style.cssText);
+
+        // Update selection info
+        const selectedNameSpan = document.getElementById('selected-image-name');
+        const openButton = document.getElementById('open-selected-image');
+
+        console.log('UI elements found:', {
+          selectedNameSpan: !!selectedNameSpan,
+          openButton: !!openButton
+        });
+
+        if (selectedNameSpan && openButton) {
+          selectedNameSpan.textContent = `Selected: ${file.name}`;
+          openButton.disabled = false;
+          window.watercolourSelectedFile = file;
+          console.log('Selection UI updated successfully');
+        } else {
+          console.error('Selection UI elements not found', {
+            selectedNameSpan,
+            openButton
+          });
+        }
+      } else {
+        console.log('Not an image file or file not found', {
+          file,
+          contentType: file?.content_type
+        });
+        // Show message for non-image files
+        const selectedNameSpan = document.getElementById('selected-image-name');
+        if (selectedNameSpan) {
+          selectedNameSpan.textContent = 'Please select an image file';
+        }
+      }
+      return; // Exit early
+    } else {
+      console.log('No [data-open-file] element found for click target');
+    }
+  }
+}, true); // Use capture phase to ensure this runs first
+
 document.addEventListener('dblclick', e => {
   const li = e.target.closest('[data-open-folder],[data-open-file],[data-open-shortcut]');
   if (!li) return;
 
+  // Check if this is in image selection mode - if so, completely disable double-clicks
+  const explorerElem = e.target.closest('.file-explorer-window');
+  if (explorerElem && explorerElem.getAttribute('data-image-selection-mode') === 'true') {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Double-click disabled in image selection mode');
+    return false;
+  }
+
   if (li.dataset.openFolder) {
     openExplorer(li.dataset.openFolder);
   } else if (li.dataset.openFile) {
+    // Normal file opening
     openFile(li.dataset.openFile, e);
   } else if (li.dataset.openShortcut) {
-    openShortcut(li);           // same API you were already using
+    openShortcut(li);
   }
 });
 
@@ -554,4 +661,90 @@ function openShortcut(target) {
   if (url) {
     window.open(url, '_blank');
   }
+}
+
+// Enhanced file opening that can handle image selection for Watercolour
+function handleWatercolourImageSelection(file) {
+  if (!file || !window.watercolourImageSelectionCallback) {
+    return false;
+  }
+
+  // Check if it's an image file
+  if (!['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
+    alert('Please select an image file (.png, .jpg, .jpeg, .gif, .webp)');
+    return false;
+  }
+
+  // Get the image data
+  let imageData = null;
+
+  if (file.dataURL) {
+    imageData = file.dataURL;
+    // Pass both image data and file info to the callback
+    const fileInfo = {
+      name: file.name,
+      path: getCurrentPath(),
+      data: imageData,
+      storageKey: file.storageLocation === 'indexeddb' ? `file_data_${file.id}` : null
+    };
+    window.watercolourImageSelectionCallback(imageData, fileInfo);
+    closeWindow('explorer-image-select');
+    window.watercolourImageSelectionCallback = null;
+    window.watercolourSelectedFile = null;
+    return true;
+  } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
+    // Load from IndexedDB
+    storage.getItem(`file_data_${file.id}`).then(data => {
+      if (data) {
+        const fileInfo = {
+          name: file.name,
+          path: getCurrentPath(),
+          data: data,
+          storageKey: `file_data_${file.id}`
+        };
+        window.watercolourImageSelectionCallback(data, fileInfo);
+        closeWindow('explorer-image-select');
+        window.watercolourImageSelectionCallback = null;
+        window.watercolourSelectedFile = null;
+      } else {
+        alert('Could not load image data.');
+      }
+    }).catch(error => {
+      console.error('Error loading image:', error);
+      alert('Error loading image: ' + error.message);
+    });
+    return true;
+  } else if (file.file && file.file instanceof File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileInfo = {
+        name: file.name,
+        path: getCurrentPath(),
+        data: e.target.result,
+        storageKey: null
+      };
+      window.watercolourImageSelectionCallback(e.target.result, fileInfo);
+      closeWindow('explorer-image-select');
+      window.watercolourImageSelectionCallback = null;
+      window.watercolourSelectedFile = null;
+    };
+    reader.readAsDataURL(file.file);
+    return true;
+  }
+
+  alert('Could not load the selected image.');
+  return false;
+}
+
+// Helper function to get current path from active file explorer
+function getCurrentPath() {
+  // Try to find an active file explorer window
+  const fileExplorerWindows = document.querySelectorAll('.file-explorer-window');
+  if (fileExplorerWindows.length > 0) {
+    // Use the most recent (last) file explorer window
+    const currentWindow = fileExplorerWindows[fileExplorerWindows.length - 1];
+    return currentWindow.getAttribute('data-current-path') || 'C://Documents';
+  }
+  // Default fallback
+  return 'C://Documents';
 }

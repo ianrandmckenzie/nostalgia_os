@@ -222,6 +222,10 @@ const storage = {
 // Initialize and migrate data
 storage.migrateFromLocalStorage().catch(console.error);
 
+// Make storage available globally for iframe access immediately
+window.globalStorage = storage;
+console.log('Global storage made available for iframes');
+
 async function clearStorage() {
     // Clear localStorage
     localStorage.clear();

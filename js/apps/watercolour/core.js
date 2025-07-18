@@ -2,6 +2,8 @@
 const canvas = document.getElementById('watercolourCanvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
+console.log('Watercolour Core.js loaded - VERSION 3.0 - Direct integration');
+
 // Global state variables
 let painting = false;
 let currentTool = 'brush';
@@ -10,6 +12,7 @@ let activeColor = '#000000';
 let strokeSize = 5;
 let savedImage = null; // Holds the committed canvas state (data URL)
 let backupCanvas = null; // Offscreen canvas for shape previews
+let currentFile = null; // Track the currently opened/saved file {name, path, data}
 const textInput = document.getElementById('textInput');
 const strokeSizeInput = document.getElementById('strokeSize');
 const colorPicker = document.getElementById('colorPicker');
@@ -81,6 +84,183 @@ document.querySelectorAll('[data-color]').forEach(el => {
     document.getElementById('colorPicker').value = activeColor;
   });
 });
+
+// File menu functionality - work with existing button structure
+let fileMenuInitRetries = 0;
+const maxRetries = 3;
+
+function initializeFileMenu() {
+  fileMenuInitRetries++;
+
+  if (fileMenuInitRetries > maxRetries) {
+    console.log('Using existing button structure (no dropdown)');
+    // Work with the existing buttons that we know exist
+    initializeExistingButtons();
+    return;
+  }
+
+  // Try to find dropdown elements first
+  const fileMenuBtn = document.getElementById('fileMenuBtn');
+  const fileDropdown = document.getElementById('fileDropdown');
+  const saveAsBtn = document.getElementById('saveAsBtn');
+
+  if (fileMenuBtn && fileDropdown && saveAsBtn) {
+    console.log('Found dropdown elements, initializing dropdown menu...');
+    initializeDropdownMenu();
+    return;
+  }
+
+  console.log(`Dropdown elements not found, trying again... (${fileMenuInitRetries}/${maxRetries})`);
+  setTimeout(initializeFileMenu, 200);
+}
+
+function initializeExistingButtons() {
+  console.log('Initializing with existing button structure...');
+
+  const saveBtn = document.getElementById('saveBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const newBtn = document.getElementById('newBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  if (!saveBtn || !loadBtn || !newBtn || !exportBtn) {
+    console.error('Could not find expected buttons');
+    return;
+  }
+
+  // Convert Save button to Save As functionality since we don't have separate buttons
+  saveBtn.addEventListener('click', async () => {
+    console.log('Save button clicked - using Save As functionality');
+    await saveAsNewFile();
+  });
+
+  loadBtn.addEventListener('click', () => {
+    console.log('Load button clicked');
+    loadWatercolourDrawing();
+  });
+
+  newBtn.addEventListener('click', () => {
+    if (confirm('Clear canvas? Unsaved work will be lost.')) {
+      const cssWidth = canvas.offsetWidth;
+      const cssHeight = canvas.offsetHeight;
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+      savedImage = canvas.toDataURL();
+      commitState();
+      currentFile = null;
+    }
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'drawing.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+
+  console.log('Existing buttons initialized successfully');
+}
+
+function initializeDropdownMenu() {
+  const fileMenuBtn = document.getElementById('fileMenuBtn');
+  const fileDropdown = document.getElementById('fileDropdown');
+  const saveBtn = document.getElementById('saveBtn');
+  const saveAsBtn = document.getElementById('saveAsBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const newBtn = document.getElementById('newBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  // Toggle dropdown visibility
+  fileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileDropdown.classList.toggle('hidden');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!fileMenuBtn.contains(e.target) && !fileDropdown.contains(e.target)) {
+      fileDropdown.classList.add('hidden');
+    }
+  });
+
+  // Close dropdown when clicking menu items
+  fileDropdown.addEventListener('click', () => {
+    fileDropdown.classList.add('hidden');
+  });
+
+  // File menu button event listeners
+  saveBtn.addEventListener('click', async () => {
+    console.log('Save button clicked - save to current file');
+    if (currentFile) {
+      await saveToCurrentFile();
+    }
+  });
+
+  saveAsBtn.addEventListener('click', async () => {
+    console.log('Save As button clicked - prompt for new file');
+    await saveAsNewFile();
+  });
+
+  loadBtn.addEventListener('click', () => {
+    console.log('Load button clicked');
+    loadWatercolourDrawing();
+  });
+
+  newBtn.addEventListener('click', () => {
+    if (confirm('Clear canvas? Unsaved work will be lost.')) {
+      const cssWidth = canvas.offsetWidth;
+      const cssHeight = canvas.offsetHeight;
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+      savedImage = canvas.toDataURL();
+      commitState();
+      currentFile = null;
+      if (window.updateSaveButtonState) {
+        window.updateSaveButtonState();
+      }
+    }
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'drawing.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+
+  // Update Save button state based on whether we have a current file
+  function updateSaveButtonState() {
+    const currentSaveBtn = document.getElementById('saveBtn');
+    if (currentSaveBtn) {
+      if (currentFile) {
+        currentSaveBtn.disabled = false;
+        currentSaveBtn.title = `Save to ${currentFile.name}`;
+        console.log('Save button enabled for file:', currentFile.name);
+      } else {
+        currentSaveBtn.disabled = true;
+        currentSaveBtn.title = 'No file loaded - use Save As... instead';
+        console.log('Save button disabled - no current file');
+      }
+    } else {
+      console.error('Save button not found in DOM');
+    }
+  }
+
+  // Make updateSaveButtonState available globally
+  window.updateSaveButtonState = updateSaveButtonState;
+
+  // Initial save button state
+  updateSaveButtonState();
+}
+
+// Try multiple methods to ensure DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeFileMenu);
+} else {
+  // DOM is already loaded
+  initializeFileMenu();
+}
 
 // Mouse event handlers for canvas
 canvas.addEventListener('pointerdown', (e) => {
@@ -194,48 +374,6 @@ canvas.addEventListener('click', (e) => {
   }
 });
 
-// Menu actions
-document.getElementById('newBtn').addEventListener('click', () => {
-  if (confirm('Clear canvas? Unsaved work will be lost.')) {
-    const cssWidth = canvas.offsetWidth;
-    const cssHeight = canvas.offsetHeight;
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, cssWidth, cssHeight);
-    savedImage = canvas.toDataURL();
-    commitState();
-  }
-});
-
-document.getElementById('saveBtn').addEventListener('click', () => {
-  localStorage.setItem('appState.paint', canvas.toDataURL());
-  alert('Drawing saved!');
-});
-
-document.getElementById('loadBtn').addEventListener('click', () => {
-  const dataUrl = localStorage.getItem('appState.paint');
-  if (dataUrl) {
-    const img = new Image();
-    img.src = dataUrl;
-    img.onload = () => {
-      const cssWidth = canvas.offsetWidth;
-      const cssHeight = canvas.offsetHeight;
-      ctx.clearRect(0, 0, cssWidth, cssHeight);
-      ctx.drawImage(img, 0, 0, cssWidth, cssHeight);
-      savedImage = canvas.toDataURL();
-      commitState();
-    }
-  } else {
-    alert('No saved drawing found.');
-  }
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const link = document.createElement('a');
-  link.download = 'drawing.png';
-  link.href = canvas.toDataURL();
-  link.click();
-});
 // Undo button event listener
 document.getElementById('undoBtn').addEventListener('click', () => {
   if (undoStack.length > 1) {
@@ -319,24 +457,6 @@ function resizeCanvas() {
 function updateStatus(x, y) {
   const status = document.getElementById('status');
   status.textContent = `Tool: ${currentTool.charAt(0).toUpperCase() + currentTool.slice(1)} | x: ${Math.floor(x)}, y: ${Math.floor(y)}`;
-}
-
-function commitText() {
-  // Grab the stored coordinates
-  const x = parseFloat(textInput.dataset.x);
-  const y = parseFloat(textInput.dataset.y);
-  const text = textInput.value;
-
-  textInput.style.display = 'none';
-  textInput.value = '';
-  textInput.onblur = null;
-
-  // Draw text on canvas
-  ctx.fillStyle = activeColor;
-  ctx.font = `${strokeSize * 4}px sans-serif`;
-  ctx.textBaseline = 'top'; // Aligns text's top edge to (x, y)
-  ctx.fillText(text, x, y);
-  commitState();
 }
 
 function commitText() {
@@ -512,4 +632,322 @@ function hexToRgb(hex) {
 // Helper: Convert RGB to hex string
 function rgbToHex(r, g, b) {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+// New save functions for File menu
+async function saveToCurrentFile() {
+  if (!currentFile) {
+    console.error('saveToCurrentFile called but no current file exists');
+    return;
+  }
+
+  try {
+    // Get canvas as data URL
+    const dataURL = canvas.toDataURL('image/png');
+    console.log('Saving to current file:', currentFile.name);
+
+    // Check if we have access to the global storage and file system functions
+    const storage = globalStorage;
+    const addFileToFileSystem = globalAddFileToFileSystem;
+
+    if (!storage) {
+      console.log('Global storage not available');
+      alert('Cannot access storage. Please ensure the main OS is loaded.');
+      return;
+    }
+
+    // Update in IndexedDB if we have a storage key
+    if (currentFile.storageKey) {
+      await storage.setItem(currentFile.storageKey, dataURL);
+      console.log('Updated in IndexedDB with key:', currentFile.storageKey);
+    }
+
+    // Update in file system
+    if (addFileToFileSystem) {
+      console.log('Updating file in file system...');
+      const response = await fetch(dataURL);
+      const blob = await response.blob();
+      const file = new File([blob], currentFile.name, { type: 'image/png' });
+
+      const result = addFileToFileSystem(currentFile.name, dataURL, currentFile.path, 'png', file);
+      console.log('File system update result:', result);
+
+      // Force refresh of views
+      if (refreshExplorerViews) {
+        refreshExplorerViews();
+      }
+
+      if (currentFile.path === 'C://Desktop' && renderDesktopIcons) {
+        renderDesktopIcons();
+      }
+
+      // Update current file data
+      currentFile.data = dataURL;
+
+      alert(`"${currentFile.name}" saved successfully!`);
+    } else {
+      console.log('addFileToFileSystem not available');
+      alert('File system not available. Could not save file.');
+    }
+  } catch (error) {
+    console.error('Error saving to current file:', error);
+    alert('Error saving file: ' + error.message);
+  }
+}
+
+async function saveAsNewFile() {
+  // This function is the same as the original saveWatercolourDrawing but updates currentFile
+  console.log('saveAsNewFile called');
+  try {
+    // Get canvas as data URL
+    const dataURL = canvas.toDataURL('image/png');
+    console.log('Canvas dataURL generated, length:', dataURL.length);
+
+    // Check if we have access to the global storage and file system functions
+    const storage = globalStorage;
+    const addFileToFileSystem = globalAddFileToFileSystem;
+
+    if (!storage) {
+      console.log('Global storage not available');
+      alert('Cannot access storage. Please ensure the main OS is loaded.');
+      return;
+    }
+
+    console.log('Global storage available');
+
+    // Store in IndexedDB using the existing storage system
+    const timestamp = Date.now();
+    const storageKey = `watercolour_drawing_${timestamp}`;
+
+    // Save to IndexedDB
+    console.log('Saving to IndexedDB with key:', storageKey);
+    await storage.setItem(storageKey, dataURL);
+    console.log('Saved to IndexedDB successfully');
+
+    // Prompt for filename and save to file system
+    const fileName = prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`);
+    if (fileName) {
+      console.log('User entered filename:', fileName);
+      // Ensure .png extension
+      const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
+
+      // Get the current folder path
+      const currentPath = getCurrentFolderPath();
+      console.log('Current path:', currentPath);
+
+      // Add file to file system
+      if (addFileToFileSystem) {
+        console.log('Adding file to file system...');
+        // Create a blob from the dataURL to simulate a file object
+        const response = await fetch(dataURL);
+        const blob = await response.blob();
+        const file = new File([blob], finalFileName, { type: 'image/png' });
+
+        const result = addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
+        console.log('File system result:', result);
+
+        // Update current file tracking
+        currentFile = {
+          name: finalFileName,
+          path: currentPath,
+          storageKey: storageKey,
+          data: dataURL
+        };
+        if (window.updateSaveButtonState) {
+          window.updateSaveButtonState();
+        }
+
+        // Force refresh of views
+        if (refreshExplorerViews) {
+          console.log('Refreshing explorer views...');
+          refreshExplorerViews();
+        }
+
+        if (currentPath === 'C://Desktop' && renderDesktopIcons) {
+          console.log('Refreshing desktop icons...');
+          renderDesktopIcons();
+        }
+
+        alert(`Drawing saved as "${finalFileName}" in ${currentPath}!`);
+      } else {
+        console.log('addFileToFileSystem not available');
+        alert('File system not available. Drawing saved to storage only.');
+      }
+    } else {
+      alert('Drawing saved to storage but not added to file system.');
+    }
+  } catch (error) {
+    console.error('Error saving drawing:', error);
+    alert('Error saving drawing: ' + error.message);
+  }
+}
+
+// Watercolour save and load functions
+async function saveWatercolourDrawing() {
+  console.log('saveWatercolourDrawing called');
+  try {
+    // Get canvas as data URL
+    const dataURL = canvas.toDataURL('image/png');
+    console.log('Canvas dataURL generated, length:', dataURL.length);
+
+    // Check if we have access to the parent window's storage
+    const parentStorage = parent?.globalStorage || parent?.storage;
+    const parentAddFileToFileSystem = parent?.globalAddFileToFileSystem || parent?.addFileToFileSystem;
+
+    if (!parentStorage) {
+      console.log('Parent storage not available');
+      alert('Cannot access storage. Please ensure the main OS is loaded.');
+      return;
+    }
+
+    console.log('Parent storage available');
+
+    // Store in IndexedDB using the existing storage system
+    const timestamp = Date.now();
+    const storageKey = `watercolour_drawing_${timestamp}`;
+
+    // Save to IndexedDB
+    console.log('Saving to IndexedDB with key:', storageKey);
+    await parentStorage.setItem(storageKey, dataURL);
+    console.log('Saved to IndexedDB successfully');
+
+    // Prompt for filename and save to file system
+    const fileName = prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`);
+    if (fileName) {
+      console.log('User entered filename:', fileName);
+      // Ensure .png extension
+      const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
+
+      // Get the current folder path from the parent window
+      const currentPath = getCurrentFolderPath();
+      console.log('Current path:', currentPath);
+
+      // Add file to file system
+      if (parentAddFileToFileSystem) {
+        console.log('Adding file to file system...');
+        // Create a blob from the dataURL to simulate a file object
+        const response = await fetch(dataURL);
+        const blob = await response.blob();
+        const file = new File([blob], finalFileName, { type: 'image/png' });
+
+        const result = parentAddFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
+        console.log('File system result:', result);
+
+        // Force refresh of views
+        if (parent.refreshExplorerViews) {
+          console.log('Refreshing explorer views...');
+          parent.refreshExplorerViews();
+        }
+
+        if (currentPath === 'C://Desktop' && parent.renderDesktopIcons) {
+          console.log('Refreshing desktop icons...');
+          parent.renderDesktopIcons();
+        }
+
+        alert(`Drawing saved as "${finalFileName}" in ${currentPath}!`);
+      } else {
+        console.log('addFileToFileSystem not available');
+        alert('File system not available. Drawing saved to storage only.');
+      }
+    } else {
+      alert('Drawing saved to storage but not added to file system.');
+    }
+  } catch (error) {
+    console.error('Error saving drawing:', error);
+    alert('Error saving drawing: ' + error.message);
+  }
+}function loadWatercolourDrawing() {
+  // Open file explorer to let user choose an image
+  if (openFileExplorerForImageSelection) {
+    openFileExplorerForImageSelection((imageData, fileInfo) => {
+      if (imageData) {
+        loadImageOntoCanvas(imageData, fileInfo);
+      }
+    });
+  } else {
+    // Fallback: try to open a file explorer window
+    if (createWindow && getExplorerWindowContent) {
+      // Store the callback on the window so the file explorer can call it
+      window.watercolourLoadCallback = (imageData, fileInfo) => {
+        if (imageData) {
+          loadImageOntoCanvas(imageData, fileInfo);
+        }
+      };
+
+      // Open file explorer
+      const explorerContent = getExplorerWindowContent('C://Documents');
+      createWindow('Select Image - File Explorer', explorerContent, true, 'explorer-watercolour-load', false, false, { type: 'integer', width: 600, height: 500 }, 'file-explorer');
+
+      alert('Select an image file from the file explorer to load it onto the canvas.');
+    } else {
+      alert('File explorer not available. Please ensure the main OS is loaded.');
+    }
+  }
+}
+
+function loadImageOntoCanvas(imageData, fileInfo = null) {
+  console.log('=== loadImageOntoCanvas called ===');
+  console.log('imageData length:', imageData ? imageData.length : 'null');
+  console.log('fileInfo:', fileInfo);
+
+  const img = new Image();
+  img.onload = () => {
+    console.log('Image loaded successfully');
+    const cssWidth = canvas.offsetWidth;
+    const cssHeight = canvas.offsetHeight;
+
+    // Clear canvas and set white background
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+    // Calculate scaling to fit image while maintaining aspect ratio
+    const scale = Math.min(cssWidth / img.width, cssHeight / img.height);
+    const scaledWidth = img.width * scale;
+    const scaledHeight = img.height * scale;
+
+    // Center the image
+    const x = (cssWidth - scaledWidth) / 2;
+    const y = (cssHeight - scaledHeight) / 2;
+
+    // Draw the image
+    ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+    // Update saved state
+    savedImage = canvas.toDataURL();
+    commitState();
+
+    // Track the loaded file for Save functionality
+    // When loading an image, we're creating a new drawing based on that image,
+    // not opening an existing drawing file for editing
+    console.log('Image loaded as canvas background - this is a new drawing');
+    currentFile = null; // Clear current file since this is a new drawing
+    if (window.updateSaveButtonState) {
+      console.log('Calling updateSaveButtonState after loading base image');
+      window.updateSaveButtonState();
+    }
+  };
+  img.onerror = () => {
+    console.error('Error loading selected image.');
+    alert('Error loading selected image.');
+  };
+  img.src = imageData;
+}
+
+function getCurrentFolderPath() {
+  // Try to get the current folder path from a file explorer window
+  if (parent && parent.document) {
+    const explorerWindows = parent.document.querySelectorAll('.file-explorer-window');
+    if (explorerWindows.length > 0) {
+      // Use the most recent file explorer window
+      const latestExplorer = explorerWindows[explorerWindows.length - 1];
+      const currentPath = latestExplorer.getAttribute('data-current-path');
+      if (currentPath) {
+        return currentPath;
+      }
+    }
+  }
+
+  // Default to Documents folder
+  return 'C://Documents';
 }

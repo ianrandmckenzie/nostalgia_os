@@ -204,6 +204,9 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
   return newFile;
 }
 
+// Make addFileToFileSystem available globally for iframe access
+window.globalAddFileToFileSystem = addFileToFileSystem;
+
 async function initializeAppState() {
   const appStateData = await storage.getItem('appState');
   if (!appStateData) {

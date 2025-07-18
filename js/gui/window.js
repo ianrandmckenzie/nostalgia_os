@@ -31,7 +31,7 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
   win.textContent = ''
 
   const container = document.createElement('div')
-  container.className = 'relative w-full h-[calc(100%-1rem)]'
+  container.className = 'relative w-full h-[calc(100%-2.5rem)]'
 
   // --- Header Bar ---
   const header = document.createElement('div')
@@ -256,7 +256,7 @@ function makeDraggable(el) {
 
 function makeResizable(el) {
   const resizer = document.createElement('div');
-  resizer.className = 'sticky bottom-0 left-full w-4 h-4 cursor-se-resize';
+  resizer.className = 'absolute bottom-0 right-0 w-4 h-4 cursor-se-resize';
   resizer.style.background = 'rgba(0,0,0,0.2)';
   el.appendChild(resizer);
   resizer.addEventListener('mousedown', function (e) {

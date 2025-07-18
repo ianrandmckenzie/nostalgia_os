@@ -24,15 +24,34 @@ function launchCalculator() {
     'gray-100'
   );
 
+  // Initialize the calculator UI
+  initializeCalculatorUI(win);
+}
+
+// Separate function to initialize the Calculator UI (for restoration)
+function initializeCalculatorUI(win) {
+  console.log('Initializing Calculator UI, window:', win);
+
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-4 bg-gray-100 h-full overflow-hidden';
 
-  // Calculator state
-  let display = '0';
-  let previousValue = null;
-  let operation = null;
-  let waitingForOperand = false;
+  // Clear any existing content
+  content.innerHTML = '';
+
+  // Try to load saved calculator state
+  let calculatorState = loadCalculatorState();
+  console.log('Loaded calculator state:', calculatorState);
+
+  // If no saved state, create default state
+  if (!calculatorState) {
+    calculatorState = {
+      display: '0',
+      previousValue: null,
+      operation: null,
+      waitingForOperand: false
+    };
+  }
 
   // Create calculator layout
   const calculatorContainer = document.createElement('div');
@@ -49,7 +68,7 @@ function launchCalculator() {
   const displayElement = document.createElement('div');
   displayElement.id = 'calc-display';
   displayElement.className = 'text-right text-lg font-mono bg-white text-black min-h-6 px-1';
-  displayElement.textContent = display;
+  displayElement.textContent = calculatorState.display;
   displayContainer.appendChild(displayElement);
 
   // Button grid
@@ -127,70 +146,71 @@ function launchCalculator() {
 
   // Calculator functions
   function updateDisplay() {
-    displayElement.textContent = display;
+    displayElement.textContent = calculatorState.display;
+    saveCalculatorState(calculatorState); // Save state after display update
   }
 
   function handleButtonClick(value, type) {
     switch (type) {
       case 'number':
-        if (waitingForOperand) {
-          display = value;
-          waitingForOperand = false;
+        if (calculatorState.waitingForOperand) {
+          calculatorState.display = value;
+          calculatorState.waitingForOperand = false;
         } else {
-          display = display === '0' ? value : display + value;
+          calculatorState.display = calculatorState.display === '0' ? value : calculatorState.display + value;
         }
         break;
 
       case 'decimal':
-        if (waitingForOperand) {
-          display = '0.';
-          waitingForOperand = false;
-        } else if (display.indexOf('.') === -1) {
-          display += '.';
+        if (calculatorState.waitingForOperand) {
+          calculatorState.display = '0.';
+          calculatorState.waitingForOperand = false;
+        } else if (calculatorState.display.indexOf('.') === -1) {
+          calculatorState.display += '.';
         }
         break;
 
       case 'clear':
-        display = '0';
-        previousValue = null;
-        operation = null;
-        waitingForOperand = false;
+        calculatorState.display = '0';
+        calculatorState.previousValue = null;
+        calculatorState.operation = null;
+        calculatorState.waitingForOperand = false;
         break;
 
       case 'sign':
-        if (display !== '0') {
-          display = display.charAt(0) === '-' ? display.slice(1) : '-' + display;
+        if (calculatorState.display !== '0') {
+          calculatorState.display = calculatorState.display.charAt(0) === '-' ? calculatorState.display.slice(1) : '-' + calculatorState.display;
         }
         break;
 
       case 'operator':
-        const inputValue = parseFloat(display);
+        const inputValue = parseFloat(calculatorState.display);
 
-        if (previousValue === null) {
-          previousValue = inputValue;
-        } else if (operation) {
-          const currentValue = previousValue || 0;
-          const newValue = calculate(currentValue, inputValue, operation);
+        if (calculatorState.previousValue === null) {
+          calculatorState.previousValue = inputValue;
+        } else if (calculatorState.operation) {
+          const currentValue = calculatorState.previousValue || 0;
+          const newValue = calculate(currentValue, inputValue, calculatorState.operation);
 
-          display = String(newValue);
-          previousValue = newValue;
+          calculatorState.display = String(newValue);
+          calculatorState.previousValue = newValue;
         }
 
-        waitingForOperand = true;
-        operation = value;
+        calculatorState.waitingForOperand = true;
+        calculatorState.operation = value;
         break;
 
       case 'equals':
-        const inputVal = parseFloat(display);
+        const inputVal = parseFloat(calculatorState.display);
 
-        if (previousValue !== null && operation) {
-          const currentValue = previousValue || 0;
-          const newValue = calculate(currentValue, inputVal, operation);
+        if (calculatorState.previousValue !== null && calculatorState.operation) {
+          const currentValue = calculatorState.previousValue || 0;
+          const newValue = calculate(currentValue, inputVal, calculatorState.operation);
 
-          display = String(newValue);
-          previousValue = null;
-          operation = null;
-          waitingForOperand = true;
+          calculatorState.display = String(newValue);
+          calculatorState.previousValue = null;
+          calculatorState.operation = null;
+          calculatorState.waitingForOperand = true;
         }
         break;
     }
@@ -228,10 +248,10 @@ function launchCalculator() {
     } else if (key === 'Escape' || key === 'c' || key === 'C') {
       handleButtonClick('C', 'clear');
     } else if (key === 'Backspace') {
-      if (display.length > 1) {
-        display = display.slice(0, -1);
+      if (calculatorState.display.length > 1) {
+        calculatorState.display = calculatorState.display.slice(0, -1);
       } else {
-        display = '0';
+        calculatorState.display = '0';
       }
       updateDisplay();
     }
@@ -255,4 +275,35 @@ function launchCalculator() {
   observer.observe(document.getElementById('windows-container'), {
     childList: true
   });
+}
+
+// Save calculator state to localStorage
+function saveCalculatorState(calculatorState) {
+  try {
+    localStorage.setItem('calculator_state', JSON.stringify(calculatorState));
+  } catch (error) {
+    console.warn('Failed to save Calculator state:', error);
+  }
+}
+
+// Load calculator state from localStorage
+function loadCalculatorState() {
+  try {
+    const savedState = localStorage.getItem('calculator_state');
+    if (savedState) {
+      return JSON.parse(savedState);
+    }
+  } catch (error) {
+    console.warn('Failed to load Calculator state:', error);
+  }
+  return null;
+}
+
+// Clear saved calculator state
+function clearCalculatorState() {
+  try {
+    localStorage.removeItem('calculator_state');
+  } catch (error) {
+    console.warn('Failed to clear Calculator state:', error);
+  }
 }

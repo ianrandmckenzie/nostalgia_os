@@ -3,7 +3,7 @@ let fileSystemState = {
     "C://": {
       "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
       "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {
-          "compostbin": { id: 'compostbin', name: 'Composting Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
+          "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
         }
       },
       "Music": { id: 'Music', name: 'Music', type: 'folder', fullPath: 'C://Music', contents: {} },
@@ -314,7 +314,7 @@ async function initializeRestoredApp(windowId) {
         const content = calcWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
           console.log('Calculator content empty, reinitializing...');
-          reinitializeApp('calculator', launchCalculator);
+          initializeCalculatorUI(calcWindow);
         } else {
           console.log('Calculator content already exists, skipping reinitialization');
         }
@@ -327,7 +327,7 @@ async function initializeRestoredApp(windowId) {
         const content = playerWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
           console.log('Media Player content empty, reinitializing...');
-          reinitializeApp('mediaplayer', launchMediaPlayer);
+          initializeMediaPlayerUI(playerWindow);
         } else {
           console.log('Media Player content already exists, skipping reinitialization');
         }

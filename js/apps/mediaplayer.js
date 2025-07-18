@@ -24,9 +24,35 @@ function launchMediaPlayer() {
     'gray'
   );
 
+  // Initialize the media player UI
+  initializeMediaPlayerUI(win);
+}
+
+// Separate function to initialize the Media Player UI (for restoration)
+function initializeMediaPlayerUI(win) {
+  console.log('Initializing Media Player UI, window:', win);
+
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-gray-200 h-full flex flex-col';
+
+  // Clear any existing content
+  content.innerHTML = '';
+
+  // Try to load saved media player state
+  let playerState = loadMediaPlayerState();
+  console.log('Loaded media player state:', playerState);
+
+  // If no saved state, create default state
+  if (!playerState) {
+    playerState = {
+      currentTrackIndex: -1,
+      currentTime: 0,
+      volume: 0.5,
+      isPlaying: false,
+      playlist: []
+    };
+  }
 
   // --- UI Elements ---
   const mediaContainer = document.createElement('div');
@@ -93,8 +119,10 @@ function launchMediaPlayer() {
 
   // --- Media Player Logic ---
   const audio = content.querySelector('#audio-player');
-  let currentTrackIndex = -1;
-  let playlist = [];
+
+  // Use player state instead of individual variables
+  let currentTrackIndex = playerState.currentTrackIndex;
+  let playlist = playerState.playlist;
 
   const playBtn = content.querySelector('#play-btn');
   const nextBtn = content.querySelector('#next-btn');
@@ -191,7 +219,16 @@ function launchMediaPlayer() {
 
       renderPlaylist();
       if (playlist.length > 0) {
-        loadTrack(0);
+        // Restore saved state if available
+        if (playerState.currentTrackIndex >= 0 && playerState.currentTrackIndex < playlist.length) {
+          loadTrack(playerState.currentTrackIndex);
+          // Restore current time
+          audio.addEventListener('loadedmetadata', () => {
+            audio.currentTime = playerState.currentTime || 0;
+          }, { once: true });
+        } else {
+          loadTrack(0);
+        }
       }
     };
   }
@@ -216,6 +253,7 @@ function launchMediaPlayer() {
     if (index < 0 || index >= playlist.length) return;
 
     currentTrackIndex = index;
+    playerState.currentTrackIndex = currentTrackIndex;
     const track = playlist[index];
 
     if (track.isDefault) {
@@ -233,6 +271,7 @@ function launchMediaPlayer() {
 
     content.querySelector('#current-track-name').textContent = track.name;
     updatePlaylistUI();
+    saveMediaPlayerState(playerState); // Save state after loading track
   }
 
   function updatePlaylistUI() {
@@ -291,7 +330,9 @@ function launchMediaPlayer() {
 
   function updateVolume() {
     audio.volume = volumeControl.value;
+    playerState.volume = audio.volume;
     content.querySelector('#volume-display').textContent = `${Math.round(volumeControl.value * 100)}%`;
+    saveMediaPlayerState(playerState); // Save state after volume change
   }
 
   function updateProgress() {
@@ -341,7 +382,98 @@ function launchMediaPlayer() {
     }
   });
 
+  // Set initial volume from saved state
+  volumeControl.value = playerState.volume;
+  audio.volume = playerState.volume;
+  content.querySelector('#volume-display').textContent = `${Math.round(playerState.volume * 100)}%`;
+
+  // Audio event listeners for state persistence
+  audio.addEventListener('timeupdate', () => {
+    playerState.currentTime = audio.currentTime;
+    // Save state every 5 seconds to avoid too frequent saves
+    if (Math.floor(audio.currentTime) % 5 === 0) {
+      saveMediaPlayerState(playerState);
+    }
+  });
+
+  audio.addEventListener('play', () => {
+    playerState.isPlaying = true;
+    saveMediaPlayerState(playerState);
+  });
+
+  audio.addEventListener('pause', () => {
+    playerState.isPlaying = false;
+    saveMediaPlayerState(playerState);
+  });
+
   // --- Initial Load ---
   initDB();
   updateVolume();
+
+  // Restore track and position if available
+  if (playerState.currentTrackIndex >= 0 && playlist.length > playerState.currentTrackIndex) {
+    setTimeout(() => {
+      restoreMediaPlayerSession();
+    }, 500); // Wait for playlist to load
+  }
+}
+
+// Restore the media player session (track, position, etc.)
+function restoreMediaPlayerSession() {
+  const playerState = loadMediaPlayerState();
+  if (!playerState || playerState.currentTrackIndex < 0) return;
+
+  console.log('Restoring media player session:', playerState);
+
+  // Load the track if we have a valid index
+  if (playlist.length > playerState.currentTrackIndex) {
+    loadTrack(playerState.currentTrackIndex);
+
+    // Restore position when track is loaded
+    audio.addEventListener('loadedmetadata', function restorePosition() {
+      if (playerState.currentTime > 0) {
+        audio.currentTime = playerState.currentTime;
+        console.log('Restored playback position to:', playerState.currentTime);
+      }
+
+      // Resume playback if it was playing
+      if (playerState.isPlaying) {
+        safePlay();
+      }
+
+      // Remove this listener as it's only needed once
+      audio.removeEventListener('loadedmetadata', restorePosition);
+    });
+  }
+}
+
+// Save media player state to localStorage
+function saveMediaPlayerState(playerState) {
+  try {
+    localStorage.setItem('mediaplayer_state', JSON.stringify(playerState));
+  } catch (error) {
+    console.warn('Failed to save Media Player state:', error);
+  }
+}
+
+// Load media player state from localStorage
+function loadMediaPlayerState() {
+  try {
+    const savedState = localStorage.getItem('mediaplayer_state');
+    if (savedState) {
+      return JSON.parse(savedState);
+    }
+  } catch (error) {
+    console.warn('Failed to load Media Player state:', error);
+  }
+  return null;
+}
+
+// Clear saved media player state
+function clearMediaPlayerState() {
+  try {
+    localStorage.removeItem('mediaplayer_state');
+  } catch (error) {
+    console.warn('Failed to clear Media Player state:', error);
+  }
 }

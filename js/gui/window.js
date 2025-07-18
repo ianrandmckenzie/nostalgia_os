@@ -119,16 +119,22 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
 
   document.getElementById('window-tabs').appendChild(tab);
 
+  // Preserve existing window state if this is a restore operation
+  const existingState = windowStates[windowId];
+  const savedPosition = existingState ? existingState.position : null;
+  const savedDimensions = existingState ? existingState.dimensions : dimensions;
+  const savedFullScreen = existingState ? existingState.fullScreen : false;
+
   windowStates[windowId] = {
     id: windowId,
     title: title,
     content: contentToPrint,
     isNav: isNav,
     isMinimized: initialMinimized,
-    dimensions: dimensions,
+    dimensions: restore && existingState ? savedDimensions : dimensions,
     windowType: windowType,
-    position: windowStates[windowId] ? windowStates[windowId].position : null,
-    fullScreen: false
+    position: savedPosition,
+    fullScreen: savedFullScreen
   };
   if (isNav) {
     navWindows[title] = windowId;
@@ -137,10 +143,16 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
     bringToFront(win);
   }
   if (dimensions.type !== 'default') {
-    if (restore && windowStates[windowId].position) {
-      win.style.left = windowStates[windowId].position.left;
-      win.style.top = windowStates[windowId].position.top;
-    } else {
+    if (restore && savedPosition) {
+      win.style.left = savedPosition.left;
+      win.style.top = savedPosition.top;
+    }
+    // Apply saved dimensions if restoring
+    if (restore && savedDimensions && savedDimensions.type === 'integer') {
+      win.style.width = savedDimensions.width + 'px';
+      win.style.height = savedDimensions.height + 'px';
+    }
+    if (!restore || !savedPosition) {
       if (parentWin) {
         let parentLeft = parseInt(parentWin.style.left, 10) || 0;
         let parentTop = parseInt(parentWin.style.top, 10) || 0;

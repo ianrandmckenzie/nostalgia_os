@@ -26,7 +26,8 @@ function saveState() {
     fileSystemState: fileSystemState,
     windowStates: windowStates,
     desktopIconsState: desktopIconsState,
-    desktopSettings: desktopSettings
+    desktopSettings: desktopSettings,
+    navWindows: navWindows
   };
   storage.setItemSync('appState', JSON.stringify(appState));
 }
@@ -215,7 +216,8 @@ async function initializeAppState() {
       fileSystemState: fileSystemState,
       windowStates: windowStates,
       desktopIconsState: desktopIconsState,
-      desktopSettings: desktopSettings
+      desktopSettings: desktopSettings,
+      navWindows: navWindows
     };
     await storage.setItem('appState', JSON.stringify(initialState));
 
@@ -227,8 +229,9 @@ async function initializeAppState() {
     // Load state from IndexedDB
     const storedState = JSON.parse(appStateData);
     setFileSystemState(storedState.fileSystemState);
-    windowStates = storedState.windowStates;
-    desktopIconsState = storedState.desktopIconsState;
+    windowStates = storedState.windowStates || {};
+    desktopIconsState = storedState.desktopIconsState || {};
+    navWindows = storedState.navWindows || {};
 
     // Merge stored desktop settings with defaults to ensure all properties exist
     desktopSettings = {
@@ -267,12 +270,11 @@ async function restoreFileSystemState() {
 }
 
 async function restoreWindows() {
-  const saved = await storage.getItem('windowStates');
-  if (saved) {
-    const savedStates = JSON.parse(saved);
-    windowStates = savedStates;
-    for (const id in savedStates) {
-      const state = savedStates[id];
+  // Window states are already loaded in windowStates during initializeAppState()
+  // Just need to recreate the windows from the loaded state
+  if (windowStates && Object.keys(windowStates).length > 0) {
+    for (const id in windowStates) {
+      const state = windowStates[id];
       createWindow(
         state.title,
         state.content,
@@ -286,6 +288,23 @@ async function restoreWindows() {
     }
   }
 }
+
+// Debug function to check current window states
+function debugWindowStates() {
+  console.log('Current windowStates:', windowStates);
+  console.log('Current navWindows:', navWindows);
+  console.log('Current desktop icons state:', desktopIconsState);
+}
+
+// Force save current state (for testing)
+function forceSaveState() {
+  saveState();
+  console.log('State saved manually');
+}
+
+// Make debug functions globally available
+window.debugWindowStates = debugWindowStates;
+window.forceSaveState = forceSaveState;
 
 async function restoreDesktopIcons() {
   // Desktop icon positions are already loaded into desktopIconsState during initializeAppState()

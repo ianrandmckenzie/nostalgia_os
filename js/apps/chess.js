@@ -25,11 +25,13 @@ function launchChess() {
   );
 
   // Initialize the chess UI
-  initializeChessUI(win);
+  initializeChessUI(win).catch(error => {
+    console.error('Error initializing Chess:', error);
+  });
 }
 
 // Separate function to initialize the Chess UI (for restoration)
-function initializeChessUI(win) {
+async function initializeChessUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-4 bg-white h-full overflow-hidden';
@@ -38,7 +40,7 @@ function initializeChessUI(win) {
   content.innerHTML = '';
 
   // Try to load saved game state
-  let gameState = loadChessGameState();
+  let gameState = await loadChessGameState();
 
   // If no saved state, create default state
   if (!gameState) {
@@ -86,9 +88,9 @@ function initializeChessUI(win) {
   const difficultyDropdown = makeWin95Dropdown(
     difficultyOptions,
     gameState.difficulty,
-    (selectedValue) => {
+    async (selectedValue) => {
       gameState.difficulty = selectedValue;
-      saveChessGameState(gameState);
+      await saveChessGameState(gameState);
     }
   );
   difficultyDropdown.id = 'difficulty-select';
@@ -130,7 +132,7 @@ function initializeChessUI(win) {
       }
 
       // Add click event listener
-      square.addEventListener('click', () => handleSquareClick(row, col, gameState, win));
+      square.addEventListener('click', async () => await handleSquareClick(row, col, gameState, win));
 
       board.appendChild(square);
     }
@@ -153,7 +155,7 @@ function initializeChessUI(win) {
   container.appendChild(statusBar);
 
   // Add event listeners for control buttons
-  infoBar.querySelector('#new-game-btn').addEventListener('click', () => {
+  infoBar.querySelector('#new-game-btn').addEventListener('click', async () => {
     gameState.board = initializeBoard();
     gameState.currentPlayer = 'white';
     gameState.gameOver = false;
@@ -161,7 +163,7 @@ function initializeChessUI(win) {
     gameState.moveHistory = [];
     gameState.selectedSquare = null;
     gameState.possibleMoves = [];
-    saveChessGameState(gameState);
+    await saveChessGameState(gameState);
     updateChessUI(gameState, win);
   });
 
@@ -172,7 +174,7 @@ function initializeChessUI(win) {
 
   // If it's AI's turn, make AI move
   if (gameState.currentPlayer === 'black' && !gameState.gameOver) {
-    setTimeout(() => makeAIMove(gameState, win), 500);
+    setTimeout(async () => await makeAIMove(gameState, win), 500);
   }
 }
 
@@ -222,7 +224,7 @@ function updateChessUI(gameState, win) {
 
   // If it's AI's turn, make AI move
   if (gameState.currentPlayer === 'black' && !gameState.gameOver) {
-    setTimeout(() => makeAIMove(gameState, win), 500);
+    setTimeout(async () => await makeAIMove(gameState, win), 500);
   }
 }
 
@@ -269,7 +271,7 @@ function getPieceSymbol(piece) {
   return symbols[piece.color][piece.type];
 }
 
-function handleSquareClick(row, col, gameState, win) {
+async function handleSquareClick(row, col, gameState, win) {
   if (gameState.gameOver || gameState.currentPlayer === 'black') return;
 
   const clickedPiece = gameState.board[row][col];
@@ -294,7 +296,7 @@ function handleSquareClick(row, col, gameState, win) {
 
       // Switch turn and save state
       gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
-      saveChessGameState(gameState);
+      await saveChessGameState(gameState);
 
       // Check for game over
       if (isGameOver(gameState)) {
@@ -595,7 +597,7 @@ function makeMove(gameState, fromRow, fromCol, toRow, toCol) {
   });
 }
 
-function makeAIMove(gameState, win) {
+async function makeAIMove(gameState, win) {
   let move;
 
   switch (gameState.difficulty) {
@@ -620,7 +622,7 @@ function makeAIMove(gameState, win) {
       gameState.winner = getWinner(gameState);
     }
 
-    saveChessGameState(gameState);
+    await saveChessGameState(gameState);
     updateChessUI(gameState, win);
   }
 }
@@ -1118,17 +1120,17 @@ function getWinner(gameState) {
   return gameState.winner;
 }
 
-function saveChessGameState(gameState) {
+async function saveChessGameState(gameState) {
   try {
-    localStorage.setItem('chessGameState', JSON.stringify(gameState));
+    await storage.setItem('chessGameState', JSON.stringify(gameState));
   } catch (error) {
     console.warn('Failed to save chess game state:', error);
   }
 }
 
-function loadChessGameState() {
+async function loadChessGameState() {
   try {
-    const saved = localStorage.getItem('chessGameState');
+    const saved = await storage.getItem('chessGameState');
     return saved ? JSON.parse(saved) : null;
   } catch (error) {
     console.warn('Failed to load chess game state:', error);

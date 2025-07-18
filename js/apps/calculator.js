@@ -25,11 +25,13 @@ function launchCalculator() {
   );
 
   // Initialize the calculator UI
-  initializeCalculatorUI(win);
+  initializeCalculatorUI(win).catch(error => {
+    console.error('Error initializing Calculator:', error);
+  });
 }
 
 // Separate function to initialize the Calculator UI (for restoration)
-function initializeCalculatorUI(win) {
+async function initializeCalculatorUI(win) {
   console.log('Initializing Calculator UI, window:', win);
 
   // Get the content area
@@ -40,7 +42,7 @@ function initializeCalculatorUI(win) {
   content.innerHTML = '';
 
   // Try to load saved calculator state
-  let calculatorState = loadCalculatorState();
+  let calculatorState = await loadCalculatorState();
   console.log('Loaded calculator state:', calculatorState);
 
   // If no saved state, create default state
@@ -134,7 +136,7 @@ function initializeCalculatorUI(win) {
     });
 
     // Button functionality
-    button.addEventListener('click', () => handleButtonClick(btn.text, btn.type));
+    button.addEventListener('click', async () => await handleButtonClick(btn.text, btn.type));
 
     buttonGrid.appendChild(button);
   });
@@ -145,12 +147,12 @@ function initializeCalculatorUI(win) {
   content.appendChild(calculatorContainer);
 
   // Calculator functions
-  function updateDisplay() {
+  async function updateDisplay() {
     displayElement.textContent = calculatorState.display;
-    saveCalculatorState(calculatorState); // Save state after display update
+    await saveCalculatorState(calculatorState); // Save state after display update
   }
 
-  function handleButtonClick(value, type) {
+  async function handleButtonClick(value, type) {
     switch (type) {
       case 'number':
         if (calculatorState.waitingForOperand) {
@@ -215,7 +217,7 @@ function initializeCalculatorUI(win) {
         break;
     }
 
-    updateDisplay();
+    await updateDisplay();
   }
 
   function calculate(firstValue, secondValue, operation) {
@@ -234,26 +236,26 @@ function initializeCalculatorUI(win) {
   }
 
   // Keyboard support
-  function handleKeydown(event) {
+  async function handleKeydown(event) {
     const key = event.key;
 
     if (/[0-9]/.test(key)) {
-      handleButtonClick(key, 'number');
+      await handleButtonClick(key, 'number');
     } else if (['+', '-', '*', '/'].includes(key)) {
-      handleButtonClick(key, 'operator');
+      await handleButtonClick(key, 'operator');
     } else if (key === '.') {
-      handleButtonClick(key, 'decimal');
+      await handleButtonClick(key, 'decimal');
     } else if (key === 'Enter' || key === '=') {
-      handleButtonClick('=', 'equals');
+      await handleButtonClick('=', 'equals');
     } else if (key === 'Escape' || key === 'c' || key === 'C') {
-      handleButtonClick('C', 'clear');
+      await handleButtonClick('C', 'clear');
     } else if (key === 'Backspace') {
       if (calculatorState.display.length > 1) {
         calculatorState.display = calculatorState.display.slice(0, -1);
       } else {
         calculatorState.display = '0';
       }
-      updateDisplay();
+      await updateDisplay();
     }
   }
 
@@ -277,19 +279,19 @@ function initializeCalculatorUI(win) {
   });
 }
 
-// Save calculator state to localStorage
-function saveCalculatorState(calculatorState) {
+// Save calculator state to IndexedDB
+async function saveCalculatorState(calculatorState) {
   try {
-    localStorage.setItem('calculator_state', JSON.stringify(calculatorState));
+    await storage.setItem('calculator_state', JSON.stringify(calculatorState));
   } catch (error) {
     console.warn('Failed to save Calculator state:', error);
   }
 }
 
-// Load calculator state from localStorage
-function loadCalculatorState() {
+// Load calculator state from IndexedDB
+async function loadCalculatorState() {
   try {
-    const savedState = localStorage.getItem('calculator_state');
+    const savedState = await storage.getItem('calculator_state');
     if (savedState) {
       return JSON.parse(savedState);
     }
@@ -300,9 +302,9 @@ function loadCalculatorState() {
 }
 
 // Clear saved calculator state
-function clearCalculatorState() {
+async function clearCalculatorState() {
   try {
-    localStorage.removeItem('calculator_state');
+    await storage.removeItem('calculator_state');
   } catch (error) {
     console.warn('Failed to clear Calculator state:', error);
   }

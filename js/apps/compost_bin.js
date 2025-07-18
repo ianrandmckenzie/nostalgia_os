@@ -189,8 +189,6 @@ function moveItemToCompostBin(itemId, fromPath) {
         updateCompostBinHeader(compostBinWindow);
       }
     }
-
-    showDialogBox(`"${sourceItem.name}" moved to Compost Bin`, 'info');
   }
 }
 

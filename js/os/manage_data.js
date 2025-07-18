@@ -56,22 +56,38 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
     return null;
   }
 
-  // Navigate to target folder
+  // Extract drive and navigate to target folder
+  const driveMatch = targetFolderPath.match(/^([A-Z]:\/\/)/);
+  if (!driveMatch) {
+    console.error('Invalid path format:', targetFolderPath);
+    return null;
+  }
+
+  const drive = driveMatch[1];
   const pathParts = targetFolderPath.replace(/^[A-Z]:\/\//, '').split('/').filter(p => p);
-  let targetFolder = fs.folders['C://'];
+  let targetFolder = fs.folders[drive];
 
   console.log('Adding file to path:', targetFolderPath);
+  console.log('Drive:', drive);
   console.log('Path parts:', pathParts);
   console.log('Initial target folder:', targetFolder);
 
+  // Navigate through the path parts
   for (const part of pathParts) {
     if (targetFolder[part]) {
       targetFolder = targetFolder[part];
       console.log('Navigated to:', part, targetFolder);
       // Don't navigate to contents here, we need the folder object itself
+    } else if (targetFolder.contents && targetFolder.contents[part]) {
+      // Check if the folder is in contents (for nested folders)
+      targetFolder = targetFolder.contents[part];
+      console.log('Navigated to (via contents):', part, targetFolder);
     } else {
       console.error('Target folder not found:', targetFolderPath, 'Missing part:', part);
       console.error('Available folders:', Object.keys(targetFolder));
+      if (targetFolder.contents) {
+        console.error('Available in contents:', Object.keys(targetFolder.contents));
+      }
       return null;
     }
   }

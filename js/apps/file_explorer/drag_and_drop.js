@@ -417,8 +417,6 @@ function restoreItemFromCompostBin(itemId, targetPath) {
       updateCompostBinHeader(compostBinWindow);
     }
   }
-
-  showDialogBox(`"${item.name}" restored from Compost Bin`, 'info');
 }
 
 // Setup desktop as a drop target for both compost bin items and regular file explorer items
@@ -480,8 +478,8 @@ function moveItemToDesktop(itemId) {
 
   const { item, parent } = result;
 
-  // Don't move if already on desktop
-  if (item.fullPath && item.fullPath.includes('C://Desktop')) {
+  // Don't move if already directly on desktop (not in a subfolder)
+  if (item.fullPath && item.fullPath === 'C://Desktop/' + item.id) {
     return;
   }
 
@@ -504,8 +502,6 @@ function moveItemToDesktop(itemId) {
   saveState();
   refreshExplorerViews();
   renderDesktopIcons();
-
-  showDialogBox(`"${item.name}" moved to Desktop`, 'info');
 }
 
 // Function to move an item from any location to a specific explorer path
@@ -554,6 +550,4 @@ function moveItemToExplorerPath(itemId, targetPath) {
   saveState();
   refreshExplorerViews();
   renderDesktopIcons();
-
-  showDialogBox(`"${item.name}" moved to ${targetPath}`, 'info');
 }

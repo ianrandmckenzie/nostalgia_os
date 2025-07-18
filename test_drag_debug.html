@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag Debug Test</title>
+    <style>
+        .test-icon {
+            position: absolute;
+            width: 96px;
+            height: 128px;
+            background: blue;
+            left: 100px;
+            top: 100px;
+            touch-action: none;
+            user-select: none;
+            cursor: pointer;
+        }
+        .test-icon.dragging {
+            opacity: 0.7;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body style="height: 100vh; margin: 0; background: #f0f0f0;">
+    <div id="test-icon" class="test-icon">DRAG ME</div>
+    
+    <script>
+        function makeTestIconDraggable(icon) {
+            let isDragging = false;
+            let startX, startY;
+            let dragThreshold = 5;
+
+            icon.addEventListener('pointerdown', function (e) {
+                if (!e.isPrimary) return;
+                e.preventDefault();
+
+                console.log('Pointerdown event triggered');
+                
+                isDragging = false;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                const rect = icon.getBoundingClientRect();
+                const offsetX = e.clientX - rect.left;
+                const offsetY = e.clientY - rect.top;
+
+                function pointerMoveHandler(e) {
+                    if (!e.isPrimary) return;
+
+                    const moveDistance = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
+
+                    if (!isDragging && moveDistance > dragThreshold) {
+                        isDragging = true;
+                        icon.classList.add('dragging');
+                        console.log('Started dragging');
+                    }
+
+                    if (isDragging) {
+                        icon.style.left = (e.clientX - offsetX) + 'px';
+                        icon.style.top = (e.clientY - offsetY) + 'px';
+                        console.log('Moving to:', e.clientX - offsetX, e.clientY - offsetY);
+                    }
+                }
+
+                function pointerUpHandler(e) {
+                    if (!e.isPrimary) return;
+
+                    console.log('Pointerup event triggered, isDragging:', isDragging);
+                    
+                    document.removeEventListener('pointermove', pointerMoveHandler);
+                    document.removeEventListener('pointerup', pointerUpHandler);
+                    document.removeEventListener('pointercancel', pointerUpHandler);
+
+                    if (isDragging) {
+                        icon.classList.remove('dragging');
+                        console.log('Stopped dragging');
+                    }
+
+                    isDragging = false;
+                }
+
+                document.addEventListener('pointermove', pointerMoveHandler);
+                document.addEventListener('pointerup', pointerUpHandler);
+                document.addEventListener('pointercancel', pointerUpHandler);
+            });
+        }
+
+        // Initialize the test
+        const testIcon = document.getElementById('test-icon');
+        makeTestIconDraggable(testIcon);
+        console.log('Test icon drag functionality initialized');
+    </script>
+</body>
+</html>

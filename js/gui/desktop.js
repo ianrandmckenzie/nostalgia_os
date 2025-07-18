@@ -71,7 +71,15 @@ function makeIconDraggable(icon) {
         icon.classList.remove('dragging');
 
         // Check if dropped on a folder or file explorer window
+        // Temporarily disable pointer events on the dragged element to get accurate elementFromPoint
+        const originalPointerEvents = icon.style.pointerEvents;
+        icon.style.pointerEvents = 'none';
+        
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+        
+        // Restore the icon pointer events
+        icon.style.pointerEvents = originalPointerEvents;
+        
         const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
         const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
 

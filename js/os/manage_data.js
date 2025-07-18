@@ -285,7 +285,197 @@ async function restoreWindows() {
         state.dimensions,
         state.windowType
       );
+
+      // Initialize app-specific functionality for restored windows
+      await initializeRestoredApp(state.id);
     }
+  }
+}
+
+// Initialize app-specific functionality for restored windows
+async function initializeRestoredApp(windowId) {
+  // Add a small delay to ensure all scripts are loaded
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // Mapping of window IDs to their initialization functions
+  const appInitializers = {
+    'storage-window': () => {
+      // Storage Manager needs to load storage data
+      if (typeof loadStorageData === 'function') {
+        setTimeout(loadStorageData, 100);
+      } else {
+        console.warn('loadStorageData function not available for storage window restoration');
+      }
+    },
+    'calculator': () => {
+      // Calculator needs UI reconstruction
+      const calcWindow = document.getElementById('calculator');
+      if (calcWindow) {
+        const content = calcWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Calculator content empty, reinitializing...');
+          reinitializeApp('calculator', launchCalculator);
+        } else {
+          console.log('Calculator content already exists, skipping reinitialization');
+        }
+      }
+    },
+    'mediaplayer': () => {
+      // Media Player needs UI reconstruction
+      const playerWindow = document.getElementById('mediaplayer');
+      if (playerWindow) {
+        const content = playerWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Media Player content empty, reinitializing...');
+          reinitializeApp('mediaplayer', launchMediaPlayer);
+        } else {
+          console.log('Media Player content already exists, skipping reinitialization');
+        }
+      }
+    },
+    'bombbroomer': () => {
+      // Bombbroomer needs UI reconstruction
+      const gameWindow = document.getElementById('bombbroomer');
+      if (gameWindow) {
+        const content = gameWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Bombbroomer content empty, reinitializing...');
+          if (typeof initializeBombbroomerUI === 'function') {
+            initializeBombbroomerUI(gameWindow);
+          } else {
+            console.warn('initializeBombbroomerUI function not available');
+          }
+        } else {
+          console.log('Bombbroomer content already exists, skipping reinitialization');
+        }
+      }
+    },
+    'solitaire': () => {
+      // Solitaire needs UI reconstruction
+      const gameWindow = document.getElementById('solitaire');
+      if (gameWindow) {
+        const content = gameWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          console.log('Solitaire content empty, reinitializing...');
+          initializeSolitaireUI(gameWindow);
+        } else {
+          console.log('Solitaire content already exists, skipping reinitialization');
+        }
+      }
+    },
+    'compost-bin': () => {
+      // Compost Bin needs to load its contents
+      const compostWindow = document.getElementById('compost-bin');
+      if (compostWindow) {
+        const contentArea = compostWindow.querySelector('#compost-bin-content');
+        if (contentArea && typeof loadCompostBinContents === 'function') {
+          loadCompostBinContents(contentArea);
+          if (typeof updateCompostBinHeader === 'function') {
+            updateCompostBinHeader(compostWindow);
+          }
+        } else {
+          console.warn('Compost bin content area not found or loadCompostBinContents not available');
+        }
+      }
+    },
+    'watercolour': () => {
+      // Watercolour app needs canvas initialization
+      if (typeof initializeWatercolourCanvas === 'function') {
+        setTimeout(initializeWatercolourCanvas, 100);
+      }
+    },
+    'tubestream': () => {
+      // TubeStream needs its interface initialized
+      if (typeof initializeTubeStream === 'function') {
+        setTimeout(initializeTubeStream, 100);
+      }
+    }
+  };
+
+  // Call the appropriate initializer if it exists
+  if (appInitializers[windowId]) {
+    try {
+      appInitializers[windowId]();
+    } catch (error) {
+      console.warn(`Failed to initialize restored app ${windowId}:`, error);
+    }
+  }
+}
+
+// Helper function to check if app content needs reinitialization
+function needsReinitialization(content) {
+  if (!content) return true;
+
+  const html = content.innerHTML.trim();
+
+  // Empty content
+  if (!html) return true;
+
+  // Only whitespace or basic structure
+  if (html.length < 50 && !html.includes('button') && !html.includes('canvas') && !html.includes('input')) {
+    return true;
+  }
+
+  // Check for specific app indicators that suggest proper initialization
+  if (content.querySelector('button, canvas, input[type="text"], .game-board, #media-container, #game-grid, #calc-display')) {
+    return false; // Has proper app elements
+  }
+
+  return true; // Needs reinitialization
+}
+
+// Helper function to reinitialize app content in existing window
+function reinitializeApp(windowId, launchFunction) {
+  if (typeof launchFunction !== 'function') {
+    console.warn(`Launch function not available for ${windowId}`);
+    return;
+  }
+
+  const existingWindow = document.getElementById(windowId);
+  if (!existingWindow) {
+    console.warn(`Window ${windowId} not found for reinitialization`);
+    return;
+  }
+
+  try {
+    // Temporarily change the window ID to avoid conflicts
+    const tempId = windowId + '-temp-' + Date.now();
+    existingWindow.id = tempId;
+
+    // Call the launch function - it will create a new window
+    launchFunction();
+
+    // Get the newly created window
+    const newWindow = document.getElementById(windowId);
+    if (newWindow && newWindow !== existingWindow) {
+      // Copy the content from new window to existing window
+      const existingContent = existingWindow.querySelector('.p-2');
+      const newContent = newWindow.querySelector('.p-2');
+
+      if (existingContent && newContent) {
+        existingContent.innerHTML = newContent.innerHTML;
+        existingContent.className = newContent.className;
+      }
+
+      // Remove the new window and its tab
+      newWindow.remove();
+      const newTab = document.getElementById('tab-' + windowId);
+      if (newTab) newTab.remove();
+
+      // Remove the entry from windowStates that was created by the new window
+      delete windowStates[windowId];
+    }
+
+    // Restore the original window ID
+    existingWindow.id = windowId;
+
+    console.log(`Successfully reinitialized ${windowId}`);
+  } catch (error) {
+    // Restore window ID if something went wrong
+    if (existingWindow && existingWindow.id !== windowId) {
+      existingWindow.id = windowId;
+    }
+    console.error(`Failed to reinitialize ${windowId}:`, error);
   }
 }
 
@@ -302,9 +492,45 @@ function forceSaveState() {
   console.log('State saved manually');
 }
 
+// Test app restoration (for testing)
+function testAppRestoration(windowId) {
+  initializeRestoredApp(windowId);
+  console.log(`Tested restoration for app: ${windowId}`);
+}
+
+// Test app reinitialization (for testing)
+function testAppReinitialization(windowId) {
+  const launchFunctions = {
+    'calculator': launchCalculator,
+    'mediaplayer': launchMediaPlayer,
+    'bombbroomer': launchBombbroomer,
+    'solitaire': launchSolitaire
+  };
+
+  if (launchFunctions[windowId]) {
+    reinitializeApp(windowId, launchFunctions[windowId]);
+  } else {
+    console.warn(`No launch function found for ${windowId}`);
+  }
+}
+
+// Test Bombbroomer specific initialization
+function testBombbroomerInit() {
+  const gameWindow = document.getElementById('bombbroomer');
+  if (gameWindow && typeof initializeBombbroomerUI === 'function') {
+    initializeBombbroomerUI(gameWindow);
+    console.log('Bombbroomer UI initialized');
+  } else {
+    console.warn('Bombbroomer window not found or function not available');
+  }
+}
+
 // Make debug functions globally available
 window.debugWindowStates = debugWindowStates;
 window.forceSaveState = forceSaveState;
+window.testAppRestoration = testAppRestoration;
+window.testAppReinitialization = testAppReinitialization;
+window.testBombbroomerInit = testBombbroomerInit;
 
 async function restoreDesktopIcons() {
   // Desktop icon positions are already loaded into desktopIconsState during initializeAppState()

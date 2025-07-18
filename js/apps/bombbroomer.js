@@ -24,24 +24,38 @@ function launchBombbroomer() {
     'gray'
   );
 
+  // Initialize the game UI
+  initializeBombbroomerUI(win);
+}
+
+// Separate function to initialize the Bombbroomer UI (for restoration)
+function initializeBombbroomerUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-gray-200 h-full overflow-hidden';
 
-  // Game state
-  let gameState = {
-    grid: [],
-    gameStarted: false,
-    gameOver: false,
-    gameWon: false,
-    bombs: 10,
-    flaggedCount: 0,
-    rows: 9,
-    cols: 9,
-    firstClick: true,
-    timer: 0,
-    timerInterval: null
-  };
+  // Clear any existing content
+  content.innerHTML = '';
+
+  // Try to load saved game state
+  let gameState = loadBombbroomerGameState();
+
+  // If no saved state, create default state
+  if (!gameState) {
+    gameState = {
+      grid: [],
+      gameStarted: false,
+      gameOver: false,
+      gameWon: false,
+      bombs: 10,
+      flaggedCount: 0,
+      rows: 9,
+      cols: 9,
+      firstClick: true,
+      timer: 0,
+      timerInterval: null
+    };
+  }
 
   // Create game layout
   const gameContainer = document.createElement('div');
@@ -243,6 +257,7 @@ function launchBombbroomer() {
     }
 
     renderGrid();
+    saveBombbroomerGameState(gameState); // Save state after each move
   }
 
   // Handle right click (flag/unflag)
@@ -264,6 +279,7 @@ function launchBombbroomer() {
 
     updateDisplay();
     renderGrid();
+    saveBombbroomerGameState(gameState); // Save state after flagging
   }
 
   // Reveal a cell and potentially cascade
@@ -290,6 +306,7 @@ function launchBombbroomer() {
     gameState.timerInterval = setInterval(() => {
       gameState.timer++;
       updateDisplay();
+      saveBombbroomerGameState(gameState); // Save state with updated timer
     }, 1000);
   }
 
@@ -309,6 +326,7 @@ function launchBombbroomer() {
       }
     }
 
+    saveBombbroomerGameState(gameState); // Save final game over state
     document.getElementById('face-button').textContent = '😵';
     setTimeout(() => {
       showDialogBox('Game Over! Try again?', 'confirmation');
@@ -332,6 +350,7 @@ function launchBombbroomer() {
       if (gameState.timerInterval) {
         clearInterval(gameState.timerInterval);
       }
+      saveBombbroomerGameState(gameState); // Save final win state
       document.getElementById('face-button').textContent = '😎';
       setTimeout(() => {
         showDialogBox('Congratulations! You won!', 'confirmation');
@@ -354,6 +373,29 @@ function launchBombbroomer() {
   function startNewGame() {
     document.getElementById('face-button').textContent = '🙂';
     initializeGrid();
+    clearBombbroomerGameState(); // Clear saved state when starting new game
+  }
+
+  // Restore saved game
+  function restoreGame() {
+    // Update face button based on game state
+    const faceButton = document.getElementById('face-button');
+    if (gameState.gameOver) {
+      faceButton.textContent = '😵';
+    } else if (gameState.gameWon) {
+      faceButton.textContent = '😎';
+    } else {
+      faceButton.textContent = '🙂';
+    }
+
+    // Restart timer if game is in progress and not finished
+    if (gameState.gameStarted && !gameState.gameOver && !gameState.gameWon) {
+      startTimer();
+    }
+
+    // Update display and render grid
+    updateDisplay();
+    renderGrid();
   }
 
   // Cleanup when window is closed
@@ -373,5 +415,50 @@ function launchBombbroomer() {
   });
 
   // Initialize the game
-  startNewGame();
+  if (gameState.grid.length === 0) {
+    // No saved game, start new
+    startNewGame();
+  } else {
+    // Restore saved game
+    restoreGame();
+  }
+}
+
+// Save game state to localStorage
+function saveBombbroomerGameState(gameState) {
+  try {
+    // Create a clean copy without the timer interval
+    const stateToSave = {
+      ...gameState,
+      timerInterval: null // Don't save the interval
+    };
+    localStorage.setItem('bombbroomer_gameState', JSON.stringify(stateToSave));
+  } catch (error) {
+    console.warn('Failed to save Bombbroomer game state:', error);
+  }
+}
+
+// Load game state from localStorage
+function loadBombbroomerGameState() {
+  try {
+    const savedState = localStorage.getItem('bombbroomer_gameState');
+    if (savedState) {
+      const gameState = JSON.parse(savedState);
+      // Ensure timerInterval is null when loading
+      gameState.timerInterval = null;
+      return gameState;
+    }
+  } catch (error) {
+    console.warn('Failed to load Bombbroomer game state:', error);
+  }
+  return null;
+}
+
+// Clear saved game state
+function clearBombbroomerGameState() {
+  try {
+    localStorage.removeItem('bombbroomer_gameState');
+  } catch (error) {
+    console.warn('Failed to clear Bombbroomer game state:', error);
+  }
 }

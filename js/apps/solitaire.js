@@ -24,25 +24,39 @@ function launchSolitaire() {
     'green'
   );
 
+  // Initialize the game UI
+  initializeSolitaireUI(win);
+}
+
+// Separate function to initialize the Solitaire UI (for restoration)
+function initializeSolitaireUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-green-600 h-full overflow-hidden';
   content.style.backgroundImage = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%)';
 
-  // Game state
-  let gameState = {
-    deck: [],
-    waste: [],
-    foundations: [[], [], [], []], // Hearts, Diamonds, Clubs, Spades
-    tableaus: [[], [], [], [], [], [], []], // 7 columns
-    score: 0,
-    moves: 0,
-    time: 0,
-    gameStarted: false,
-    selectedCard: null,
-    selectedPile: null,
-    dragElement: null
-  };
+  // Clear any existing content
+  content.innerHTML = '';
+
+  // Try to load saved game state
+  let gameState = loadSolitaireGameState();
+
+  // If no saved state, create default state
+  if (!gameState) {
+    gameState = {
+      deck: [],
+      waste: [],
+      foundations: [[], [], [], []], // Hearts, Diamonds, Clubs, Spades
+      tableaus: [[], [], [], [], [], [], []], // 7 columns
+      score: 0,
+      moves: 0,
+      time: 0,
+      gameStarted: false,
+      selectedCard: null,
+      selectedPile: null,
+      dragElement: null
+    };
+  }
 
   let gameTimer = null;
 
@@ -216,6 +230,7 @@ function launchSolitaire() {
     }
 
     renderGame();
+    saveSolitaireGameState(gameState); // Save state after dealing cards
   }
 
   // Render the game
@@ -309,6 +324,7 @@ function launchSolitaire() {
       gameState.moves++;
     }
     renderGame();
+    saveSolitaireGameState(gameState); // Save state after deck action
   }
 
   // Handle card dragging (for both mouse and touch)
@@ -524,6 +540,7 @@ function launchSolitaire() {
     gameState.score += 10;
     renderGame();
     checkWinCondition();
+    saveSolitaireGameState(gameState); // Save state after foundation move
   }
 
   function moveCardToTableau(cardElement, tableauIndex) {
@@ -535,6 +552,7 @@ function launchSolitaire() {
 
     gameState.moves++;
     renderGame();
+    saveSolitaireGameState(gameState); // Save state after tableau move
   }
 
   function removeCardFromCurrentLocation(cardElement, moveStack = false) {
@@ -561,6 +579,7 @@ function launchSolitaire() {
           if (tableau.length > 0 && !tableau[tableau.length - 1].faceUp) {
             tableau[tableau.length - 1].faceUp = true;
             gameState.score += 5;
+            saveSolitaireGameState(gameState); // Save state after card flip
           }
           return movedCards;
       }
@@ -600,10 +619,28 @@ function launchSolitaire() {
     gameTimer = setInterval(() => {
       gameState.time++;
       updateScore();
+      saveSolitaireGameState(gameState); // Save state with updated time
     }, 1000);
 
     initializeDeck();
     dealCards();
+    clearSolitaireGameState(); // Clear saved state when starting new game
+  }
+
+  // Restore saved game
+  function restoreGame() {
+    // Restart timer if game is in progress
+    if (gameState.gameStarted) {
+      gameTimer = setInterval(() => {
+        gameState.time++;
+        updateScore();
+        saveSolitaireGameState(gameState); // Save state with updated time
+      }, 1000);
+    }
+
+    // Update display and render game
+    updateScore();
+    renderGame();
   }
 
   // Check win condition
@@ -611,6 +648,7 @@ function launchSolitaire() {
     const totalFoundationCards = gameState.foundations.reduce((sum, foundation) => sum + foundation.length, 0);
     if (totalFoundationCards === 52) {
       if (gameTimer) clearInterval(gameTimer);
+      saveSolitaireGameState(gameState); // Save final win state
       setTimeout(() => {
         showDialogBox('Congratulations! You won!', 'confirmation');
       }, 500);
@@ -634,5 +672,54 @@ function launchSolitaire() {
   });
 
   // Start the game
-  startNewGame();
+  if (!gameState.gameStarted || gameState.deck.length === 0) {
+    // No saved game or empty game, start new
+    startNewGame();
+  } else {
+    // Restore saved game
+    restoreGame();
+  }
+}
+
+// Save game state to localStorage
+function saveSolitaireGameState(gameState) {
+  try {
+    // Create a clean copy without non-serializable elements
+    const stateToSave = {
+      ...gameState,
+      selectedCard: null,
+      selectedPile: null,
+      dragElement: null
+    };
+    localStorage.setItem('solitaire_gameState', JSON.stringify(stateToSave));
+  } catch (error) {
+    console.warn('Failed to save Solitaire game state:', error);
+  }
+}
+
+// Load game state from localStorage
+function loadSolitaireGameState() {
+  try {
+    const savedState = localStorage.getItem('solitaire_gameState');
+    if (savedState) {
+      const gameState = JSON.parse(savedState);
+      // Ensure non-serializable elements are reset
+      gameState.selectedCard = null;
+      gameState.selectedPile = null;
+      gameState.dragElement = null;
+      return gameState;
+    }
+  } catch (error) {
+    console.warn('Failed to load Solitaire game state:', error);
+  }
+  return null;
+}
+
+// Clear saved game state
+function clearSolitaireGameState() {
+  try {
+    localStorage.removeItem('solitaire_gameState');
+  } catch (error) {
+    console.warn('Failed to clear Solitaire game state:', error);
+  }
 }

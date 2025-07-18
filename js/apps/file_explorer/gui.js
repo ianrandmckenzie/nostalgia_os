@@ -15,6 +15,8 @@ function openExplorer(folderId) {
     explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
     explorerWindow.querySelector('.file-explorer-window').setAttribute('data-current-path', fullPath);
     setTimeout(setupFolderDrop, 100);
+    // Save state after navigation
+    setTimeout(saveFileExplorerState, 150);
   } else {
     explorerWindow = createWindow(
       fullPath,
@@ -26,6 +28,8 @@ function openExplorer(folderId) {
       { type: 'integer', width: 600, height: 400 },
       "Explorer"
     );
+    // Save state after initial creation
+    setTimeout(saveFileExplorerState, 150);
   }
 }
 
@@ -747,4 +751,88 @@ function getCurrentPath() {
   }
   // Default fallback
   return 'C://Documents';
+}
+
+/* =====================
+   File Explorer State Management
+   Functions to save and restore file explorer state
+====================== */
+
+// Save file explorer state to localStorage
+function saveFileExplorerState() {
+  try {
+    const explorerWindow = document.getElementById('explorer-window');
+    if (explorerWindow) {
+      const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
+      if (fileExplorerDiv) {
+        const currentPath = fileExplorerDiv.getAttribute('data-current-path') || 'C://';
+        const state = {
+          currentPath: currentPath,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('fileExplorerState', JSON.stringify(state));
+        console.log('File explorer state saved:', state);
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to save file explorer state:', error);
+  }
+}
+
+// Load file explorer state from localStorage
+function loadFileExplorerState() {
+  try {
+    const stateData = localStorage.getItem('fileExplorerState');
+    if (stateData) {
+      const state = JSON.parse(stateData);
+      console.log('File explorer state loaded:', state);
+      return state;
+    }
+  } catch (error) {
+    console.warn('Failed to load file explorer state:', error);
+  }
+  return {
+    currentPath: 'C://',
+    timestamp: 0
+  };
+}
+
+// Clear file explorer state
+function clearFileExplorerState() {
+  try {
+    localStorage.removeItem('fileExplorerState');
+    console.log('File explorer state cleared');
+  } catch (error) {
+    console.warn('Failed to clear file explorer state:', error);
+  }
+}
+
+// Initialize file explorer UI (for restoration)
+function initializeFileExplorerUI(win) {
+  console.log('Initializing File Explorer UI, window:', win);
+
+  // Restore the saved state
+  setTimeout(() => {
+    restoreFileExplorerState();
+  }, 50);
+}
+
+// Restore file explorer state
+function restoreFileExplorerState() {
+  const state = loadFileExplorerState();
+  const explorerWindow = document.getElementById('explorer-window');
+
+  if (explorerWindow && state.currentPath) {
+    console.log('Restoring file explorer to path:', state.currentPath);
+
+    // Navigate to the saved path
+    const newContent = getExplorerWindowContent(state.currentPath);
+    const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
+    if (fileExplorerDiv) {
+      fileExplorerDiv.outerHTML = newContent;
+      // Set up event handlers again
+      setTimeout(setupFolderDrop, 100);
+      console.log('File explorer state restored to:', state.currentPath);
+    }
+  }
 }

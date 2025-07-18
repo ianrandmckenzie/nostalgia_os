@@ -403,6 +403,21 @@ async function initializeRestoredApp(windowId) {
       if (typeof initializeTubeStream === 'function') {
         setTimeout(initializeTubeStream, 100);
       }
+    },
+    'explorer-window': () => {
+      // File Explorer needs to restore its current path
+      const explorerWindow = document.getElementById('explorer-window');
+      if (explorerWindow) {
+        console.log('File Explorer found, restoring state...');
+        if (typeof initializeFileExplorerUI === 'function') {
+          initializeFileExplorerUI(explorerWindow);
+        } else {
+          console.log('File Explorer UI initializer not available, trying direct restoration...');
+          if (typeof restoreFileExplorerState === 'function') {
+            setTimeout(restoreFileExplorerState, 100);
+          }
+        }
+      }
     }
   };
 

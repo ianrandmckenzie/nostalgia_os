@@ -431,6 +431,7 @@ function createNewFolder(e, fromFullPath) {
       if (parentFolder && parentFolder.contents) {
         destination = parentFolder.contents;
       } else {
+        console.error('Parent folder not found or has no contents:', fromFullPath);
         destination = fs.folders[fromFullPath.substring(0, 4)] || {};
       }
     }

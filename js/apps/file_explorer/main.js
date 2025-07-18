@@ -41,8 +41,9 @@ function findFolderObjectByFullPath(fullPath, fileSystem = null) {
   const fs = fileSystem || getFileSystemState();
   // For drive roots, return a synthetic folder object.
   if (/^[A-Z]:\/\/$/.test(fullPath)) {
-    return { id: fullPath, name: fullPath, fullPath: fullPath };
+    return { id: fullPath, name: fullPath, fullPath: fullPath, contents: fs.folders[fullPath] };
   }
+
   function search(contents) {
     for (const key in contents) {
       const item = contents[key];
@@ -50,13 +51,16 @@ function findFolderObjectByFullPath(fullPath, fileSystem = null) {
         if (normalizePath(item.fullPath) === fullPath) {
           return item;
         }
-        const nested = getItemsForPath(item.fullPath);
-        const result = search(nested);
-        if (result) return result;
+        // Search recursively in this folder's contents
+        if (item.contents) {
+          const result = search(item.contents);
+          if (result) return result;
+        }
       }
     }
     return null;
   }
+
   // Search in each drive root.
   const fsFolders = fs.folders;
   for (const drive in fsFolders) {

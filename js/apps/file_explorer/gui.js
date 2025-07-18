@@ -88,7 +88,7 @@ function getExplorerWindowContent(currentPath = 'C://') {
   Object.values(itemsObj).forEach(item => {
     const isFolder  = item.type === 'folder';
     let   icon      = isFolder ? 'image/folder.png' : 'image/file.png';
-    
+
     // Use specific icon if available (check both icon and icon_url for compatibility)
     if (item.icon) {
       icon = item.icon;

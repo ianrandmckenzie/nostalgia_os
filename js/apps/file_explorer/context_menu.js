@@ -345,6 +345,14 @@ function deleteItem(e) {
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
   deleteBtn.addEventListener('click', () => {
+    // Clean up desktop icon position if deleting from desktop
+    if (contextPath === 'C://Desktop') {
+      const iconId = 'icon-' + fileId;
+      if (desktopIconsState[iconId]) {
+        delete desktopIconsState[iconId];
+      }
+    }
+
     // remove file
     delete folderContents[fileId];
 

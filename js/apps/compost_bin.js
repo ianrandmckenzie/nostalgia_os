@@ -174,6 +174,14 @@ function moveItemToCompostBin(itemId, fromPath) {
     // Remove from original location
     delete sourceContainer[itemId];
 
+    // Clean up desktop icon position if moving from desktop
+    if (fromPath === 'C://Desktop') {
+      const iconId = 'icon-' + itemId;
+      if (desktopIconsState[iconId]) {
+        delete desktopIconsState[iconId];
+      }
+    }
+
     // Save state and refresh
     setFileSystemState(fs);
     saveState();
@@ -239,8 +247,19 @@ function emptyCompostBin() {
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
   emptyBtn.addEventListener('click', () => {
+    // Get list of items before clearing for cleanup
+    const itemIds = Object.keys(compostBin.contents || {});
+
     // Empty the compost bin
     compostBin.contents = {};
+
+    // Clean up desktop icon positions for deleted items
+    itemIds.forEach(itemId => {
+      const iconId = 'icon-' + itemId;
+      if (desktopIconsState[iconId]) {
+        delete desktopIconsState[iconId];
+      }
+    });
 
     // Save state and refresh
     setFileSystemState(fs);

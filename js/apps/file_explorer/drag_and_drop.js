@@ -144,8 +144,20 @@ function moveItemToFolder(itemId, folderId) {
     return;
   }
   const { item, parent } = result;
+
+  // Check if item is moving from desktop for cleanup
+  const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
+
   // Remove the item from its current parent's contents.
   delete parent[itemId];
+
+  // Clean up desktop icon position if moving from desktop
+  if (isMovingFromDesktop) {
+    const iconId = 'icon-' + itemId;
+    if (desktopIconsState[iconId]) {
+      delete desktopIconsState[iconId];
+    }
+  }
 
   // Find the target folder object.
   let targetFullPath = findFolderFullPathById(folderId);
@@ -522,8 +534,19 @@ function moveItemToExplorerPath(itemId, targetPath) {
     return;
   }
 
+  // Check if item is moving from desktop for cleanup
+  const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
+
   // Remove from current location
   delete parent[itemId];
+
+  // Clean up desktop icon position if moving from desktop
+  if (isMovingFromDesktop) {
+    const iconId = 'icon-' + itemId;
+    if (desktopIconsState[iconId]) {
+      delete desktopIconsState[iconId];
+    }
+  }
 
   // Find target container
   let targetContainer;

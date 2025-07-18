@@ -288,17 +288,15 @@ async function restoreWindows() {
 }
 
 async function restoreDesktopIcons() {
-  const saved = await storage.getItem('desktopIconsState');
-  if (saved) {
-    desktopIconsState = JSON.parse(saved);
-    for (const iconId in desktopIconsState) {
-      const icon = document.getElementById(iconId);
-      if (icon) {
-        const pos = desktopIconsState[iconId];
-        icon.style.position = 'absolute';
-        icon.style.left = pos.left;
-        icon.style.top = pos.top;
-      }
+  // Desktop icon positions are already loaded into desktopIconsState during initializeAppState()
+  // Just apply them to the existing icons
+  for (const iconId in desktopIconsState) {
+    const icon = document.getElementById(iconId);
+    if (icon) {
+      const pos = desktopIconsState[iconId];
+      icon.style.position = 'absolute';
+      icon.style.left = pos.left;
+      icon.style.top = pos.top;
     }
   }
 }

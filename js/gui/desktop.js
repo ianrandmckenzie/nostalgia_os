@@ -191,6 +191,7 @@ function renderDesktopIcons() {
   const iconsPerColumn = Math.floor((availableHeight - START_Y) / (ICON_HEIGHT + PADDING));
 
   let iconIndex = 0;
+  let gridIndex = 0; // Separate counter for grid positioning
 
   Object.values(desktopFolder.contents).forEach(item => {
     const iconElem = document.createElement('div');
@@ -239,16 +240,24 @@ function renderDesktopIcons() {
       <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
     `;
 
-    // Position icon in grid only if not previously positioned by user
-    if (!desktopIconsState[iconElem.id]) {
-      const column = Math.floor(iconIndex / iconsPerColumn);
-      const row = iconIndex % iconsPerColumn;
+    // Position icon in grid or restore saved position
+    if (desktopIconsState[iconElem.id]) {
+      // Restore saved position
+      const savedPos = desktopIconsState[iconElem.id];
+      iconElem.style.left = savedPos.left;
+      iconElem.style.top = savedPos.top;
+    } else {
+      // Use default grid position
+      const column = Math.floor(gridIndex / iconsPerColumn);
+      const row = gridIndex % iconsPerColumn;
 
       const x = START_X + (column * (ICON_WIDTH + PADDING));
       const y = START_Y + (row * (ICON_HEIGHT + PADDING));
 
       iconElem.style.left = x + 'px';
       iconElem.style.top = y + 'px';
+
+      gridIndex++; // Only increment grid index for items without saved positions
     }
 
     desktopIconsContainer.appendChild(iconElem);

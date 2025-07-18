@@ -169,7 +169,19 @@ async function initializeAppState() {
     setFileSystemState(storedState.fileSystemState);
     windowStates = storedState.windowStates;
     desktopIconsState = storedState.desktopIconsState;
-    desktopSettings = storedState.desktopSettings;
+
+    // Merge stored desktop settings with defaults to ensure all properties exist
+    desktopSettings = {
+      clockSeconds: false,
+      bgColor: "#20b1b1",
+      bgImage: "",
+      ...(storedState.desktopSettings || {})
+    };
+
+    console.log('Loaded desktop settings:', desktopSettings);
+
+    // Apply desktop settings after loading them
+    applyDesktopSettings();
 
     // Check if default song exists in Music folder, add if not (for migration)
     setTimeout(() => {
@@ -232,10 +244,13 @@ async function restoreDesktopIcons() {
 }
 
 async function restoreDesktopSettings() {
-  const saved = await storage.getItem('desktopSettings');
-  if (saved) {
-    desktopSettings = JSON.parse(saved);
-    applyDesktopSettings();
+  const appStateData = await storage.getItem('appState');
+  if (appStateData) {
+    const storedState = JSON.parse(appStateData);
+    if (storedState.desktopSettings) {
+      desktopSettings = storedState.desktopSettings;
+      applyDesktopSettings();
+    }
   }
 }
 

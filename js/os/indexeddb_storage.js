@@ -75,7 +75,8 @@ class IndexedDBStorage {
       const request = store.get(key);
       request.onsuccess = () => {
         const result = request.result;
-        const value = result ? result.value : null;
+        let value = result ? result.value : null;
+
         // Update cache
         this.cache.set(key, value);
         resolve(value);
@@ -128,9 +129,14 @@ class IndexedDBStorage {
 
   // Synchronous methods with async fallback for compatibility
   setItemSync(key, value) {
-    // For immediate use, set in localStorage and async update IndexedDB
+    // Set in localStorage immediately for sync access
     localStorage.setItem(key, value);
-    this.setItem(key, value).catch(console.error);
+    // Also update cache for consistency
+    this.cache.set(key, value);
+    // Async update IndexedDB in background
+    this.setItem(key, value).catch(error => {
+      console.warn('Failed to save to IndexedDB, using localStorage fallback:', error);
+    });
   }
 
   getItemSync(key) {

@@ -142,11 +142,16 @@ function updateDesktopSettings() {
   const color = document.getElementById('bgColorInput').value;
   const image = document.getElementById('bgImageInput').value.trim();
   const clockSec = document.getElementById('clockSecondsInput').checked;
+
+  console.log('Updating desktop settings:', { color, image, clockSec });
+
   desktopSettings.bgColor = color;
   desktopSettings.bgImage = image;
   desktopSettings.clockSeconds = clockSec;
   applyDesktopSettings();
   saveState();
+
+  console.log('Desktop settings saved:', desktopSettings);
 }
 
 function renderDesktopIcons() {

@@ -62,6 +62,5 @@ window.addEventListener('load', async function () {
   await restoreWindows();
   renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
-  await restoreDesktopSettings();
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });

@@ -96,26 +96,26 @@ function getExplorerWindowContent(currentPath = 'C://') {
       icon = item.icon_url;
     }
 
-    const classes   = 'cursor-pointer hover:bg-gray-50 file-item' +
+    const classes   = 'cursor-pointer hover:bg-gray-50 file-item truncate' +
                       (isFolder ? ' folder-item' : '');
     const extraDesc = item.description ? ` (${item.description})` : '';
 
     if (isFolder) {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
-        `data-open-folder="${item.id}">` +
+        `data-open-folder="${item.id}" title="${item.name}">` +
         `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}</li>`
       );
     } else if (item.type === 'shortcut') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
-        `data-open-shortcut="true" data-url="${item.url}">` +
+        `data-open-shortcut="true" data-url="${item.url}" title="${item.name}${extraDesc}">` +
         `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
       );
     } else {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
-        `data-open-file="${item.id}">` +
+        `data-open-file="${item.id}" title="${item.name}${extraDesc}">` +
         `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
       );
     }
@@ -278,6 +278,38 @@ function openFile(incoming_file, e) {
       // Handle UGC image files
       if (file.dataURL) {
         content = `<img src="${file.dataURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
+        // For large files stored in IndexedDB, we need to load them asynchronously
+        content = `<div style="padding:10px; text-align:center;">Loading image...</div>`;
+        windowType = 'image';
+
+        // Load the image data from IndexedDB after window creation
+        setTimeout(async () => {
+          try {
+            const imageData = await storage.getItem(`file_data_${file.id}`);
+            if (imageData) {
+              const img = `<img src="${imageData}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+              const win = document.getElementById(file.id);
+              if (win) {
+                const contentDiv = win.querySelector('.p-2');
+                if (contentDiv) {
+                  contentDiv.innerHTML = img;
+                }
+              }
+            } else {
+              throw new Error('Image data not found in storage');
+            }
+          } catch (error) {
+            console.error('Error loading large image file:', error);
+            const win = document.getElementById(file.id);
+            if (win) {
+              const contentDiv = win.querySelector('.p-2');
+              if (contentDiv) {
+                contentDiv.innerHTML = `<p style="padding:10px;">Error loading image: ${error.message}</p>`;
+              }
+            }
+          }
+        }, 100);
       } else if (file.file && file.file instanceof File) {
         const imageURL = URL.createObjectURL(file.file);
         content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
@@ -291,6 +323,37 @@ function openFile(incoming_file, e) {
               <source src="${file.dataURL}" type="audio/mpeg">
               Your browser does not support the audio element.
             </audio>`;
+      } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
+        content = `<div style="padding:10px; text-align:center;">Loading audio...</div>`;
+        windowType = 'audio';
+
+        setTimeout(async () => {
+          try {
+            const audioData = await storage.getItem(`file_data_${file.id}`);
+            if (audioData) {
+              const audio = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+                <source src="${audioData}" type="audio/mpeg">
+                Your browser does not support the audio element.
+              </audio>`;
+              const win = document.getElementById(file.id);
+              if (win) {
+                const contentDiv = win.querySelector('.p-2');
+                if (contentDiv) {
+                  contentDiv.innerHTML = audio;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error loading large audio file:', error);
+            const win = document.getElementById(file.id);
+            if (win) {
+              const contentDiv = win.querySelector('.p-2');
+              if (contentDiv) {
+                contentDiv.innerHTML = `<p style="padding:10px;">Error loading audio: ${error.message}</p>`;
+              }
+            }
+          }
+        }, 100);
       } else if (file.file && file.file instanceof File) {
         const audioURL = URL.createObjectURL(file.file);
         content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
@@ -307,6 +370,37 @@ function openFile(incoming_file, e) {
             <source src="${file.dataURL}" type="video/mp4">
             Your browser does not support the video tag.
           </video>`;
+      } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
+        content = `<div style="padding:10px; text-align:center;">Loading video...</div>`;
+        windowType = 'video';
+
+        setTimeout(async () => {
+          try {
+            const videoData = await storage.getItem(`file_data_${file.id}`);
+            if (videoData) {
+              const video = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
+                <source src="${videoData}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>`;
+              const win = document.getElementById(file.id);
+              if (win) {
+                const contentDiv = win.querySelector('.p-2');
+                if (contentDiv) {
+                  contentDiv.innerHTML = video;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error loading large video file:', error);
+            const win = document.getElementById(file.id);
+            if (win) {
+              const contentDiv = win.querySelector('.p-2');
+              if (contentDiv) {
+                contentDiv.innerHTML = `<p style="padding:10px;">Error loading video: ${error.message}</p>`;
+              }
+            }
+          }
+        }, 100);
       } else if (file.file && file.file instanceof File) {
         const videoURL = URL.createObjectURL(file.file);
         content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">

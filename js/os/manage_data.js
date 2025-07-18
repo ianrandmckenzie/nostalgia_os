@@ -128,12 +128,53 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
   // Convert File object to data URL for persistence if it's a binary file
   if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
     const reader = new FileReader();
-    reader.onload = function(e) {
-      newFile.dataURL = e.target.result;
-      // Remove the File object since we have the data URL now
+    reader.onload = async function(e) {
+      const dataURL = e.target.result;
+      const fileSizeInMB = (dataURL.length * 0.75) / (1024 * 1024); // Approximate size after base64 encoding
+
+      // If file is larger than 1MB, store in IndexedDB instead of localStorage
+      if (fileSizeInMB > 1) {
+        try {
+          // Store large file in IndexedDB
+          await storage.setItem(`file_data_${fileId}`, dataURL);
+          newFile.isLargeFile = true;
+          newFile.storageLocation = 'indexeddb';
+          console.log(`Large file (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
+        } catch (error) {
+          console.error('Failed to store large file in IndexedDB:', error);
+          // Fallback: don't store the file data, just the metadata
+          newFile.isLargeFile = true;
+          newFile.storageLocation = 'failed';
+          showDialogBox(`File "${fileName}" is too large to store (${fileSizeInMB.toFixed(2)}MB). Consider using smaller files.`, 'error');
+        }
+      } else {
+        // Store small file in localStorage as before
+        newFile.dataURL = dataURL;
+        console.log(`Small file (${fileSizeInMB.toFixed(2)}MB) stored in localStorage:`, fileName);
+      }
+
+      // Remove the File object since we have the data stored
       newFile.file = null;
       setFileSystemState(fs);
-      saveState();
+
+      // Save state with try-catch to handle quota errors
+      try {
+        saveState();
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          console.error('Storage quota exceeded. Moving file to IndexedDB.');
+          // Move the file data to IndexedDB and retry
+          if (newFile.dataURL) {
+            await storage.setItem(`file_data_${fileId}`, newFile.dataURL);
+            delete newFile.dataURL;
+            newFile.isLargeFile = true;
+            newFile.storageLocation = 'indexeddb';
+            saveState(); // Retry saving
+          }
+        } else {
+          throw error;
+        }
+      }
 
       // Refresh views after async operation
       if (typeof refreshExplorerViews === 'function') {

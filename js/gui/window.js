@@ -39,9 +39,11 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
 
   const titleSpan = document.createElement('span')
   titleSpan.textContent = title
+  titleSpan.className = 'flex-1 truncate pr-2'
+  titleSpan.style.maxWidth = 'calc(100% - 120px)' // Reserve space for the 3 buttons (40px each)
 
   const buttonContainer = document.createElement('div')
-  buttonContainer.className = 'my-1'
+  buttonContainer.className = 'my-1 flex-shrink-0'
 
   // Minimize button
   const minimizeBtn = document.createElement('button')

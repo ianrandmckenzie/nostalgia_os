@@ -236,7 +236,7 @@ function renderDesktopIcons() {
 
     iconElem.innerHTML = `
       <img src="${iconSrc}" alt="${item.name}" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
-      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon">${item.name}</span>
+      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
     `;
 
     // Position icon in grid only if not previously positioned by user

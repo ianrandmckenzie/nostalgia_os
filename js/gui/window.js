@@ -134,7 +134,8 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
     dimensions: restore && existingState ? savedDimensions : dimensions,
     windowType: windowType,
     position: savedPosition,
-    fullScreen: savedFullScreen
+    fullScreen: savedFullScreen,
+    color: color  // Store the background color
   };
   if (isNav) {
     navWindows[title] = windowId;

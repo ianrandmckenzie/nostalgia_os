@@ -283,7 +283,9 @@ async function restoreWindows() {
         state.isMinimized,
         true,
         state.dimensions,
-        state.windowType
+        state.windowType,
+        null,  // parentWin
+        state.color || 'white'  // Use saved color or default to white
       );
 
       // Initialize app-specific functionality for restored windows

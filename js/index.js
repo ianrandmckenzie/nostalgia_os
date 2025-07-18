@@ -1,3 +1,4 @@
+const isReddit = window.location.href.includes('reddit.com');
 const version = '1.0';
 
 // Initialize storage-dependent code after storage is ready

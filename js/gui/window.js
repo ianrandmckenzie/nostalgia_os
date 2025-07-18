@@ -404,22 +404,28 @@ document.addEventListener('click', e => {
   if (!btn) return;
 
   e.stopPropagation();
-  toggleButtonActiveState('settings-apply-button', 'Applied!');
-  setTimeout(() => {
-    toggleButtonActiveState('settings-apply-button', 'Apply');
-  }, 1000);
 
-  updateDesktopSettings();
+  showDialogBox(
+    'Are you sure you want to apply these desktop settings changes?',
+    'confirmation',
+    () => {
+      // Confirmed - apply the settings
+      toggleButtonActiveState('settings-apply-button', 'Applied!');
+      setTimeout(() => {
+        toggleButtonActiveState('settings-apply-button', 'Apply');
+      }, 1000);
 
-  createWindow(
-    'Settings Applied',
-    'Your settings have successfully been saved!',
-    false,
-    'settings-saved',
-    false,
-    false,
-    { type: 'integer', height: 300, width: 200 },
-    'default'
+      updateDesktopSettings();
+
+      showDialogBox(
+        'Your settings have successfully been saved!',
+        'info'
+      );
+    },
+    () => {
+      // Cancelled - do nothing
+      console.log('Settings changes cancelled by user');
+    }
   );
 });
 

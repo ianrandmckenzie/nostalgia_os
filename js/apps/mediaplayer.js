@@ -25,11 +25,11 @@ function launchMediaPlayer() {
   );
 
   // Initialize the media player UI
-  initializeMediaPlayerUI(win);
+  initializeMediaPlayerUI(win).catch(console.error);
 }
 
 // Separate function to initialize the Media Player UI (for restoration)
-function initializeMediaPlayerUI(win) {
+async function initializeMediaPlayerUI(win) {
   console.log('Initializing Media Player UI, window:', win);
 
   // Get the content area
@@ -40,7 +40,7 @@ function initializeMediaPlayerUI(win) {
   content.innerHTML = '';
 
   // Try to load saved media player state
-  let playerState = loadMediaPlayerState();
+  let playerState = await loadMediaPlayerState();
   console.log('Loaded media player state:', playerState);
 
   // If no saved state, create default state
@@ -271,7 +271,7 @@ function initializeMediaPlayerUI(win) {
 
     content.querySelector('#current-track-name').textContent = track.name;
     updatePlaylistUI();
-    saveMediaPlayerState(playerState); // Save state after loading track
+    saveMediaPlayerState(playerState).catch(console.error); // Save state after loading track
   }
 
   function updatePlaylistUI() {
@@ -332,7 +332,7 @@ function initializeMediaPlayerUI(win) {
     audio.volume = volumeControl.value;
     playerState.volume = audio.volume;
     content.querySelector('#volume-display').textContent = `${Math.round(volumeControl.value * 100)}%`;
-    saveMediaPlayerState(playerState); // Save state after volume change
+    saveMediaPlayerState(playerState).catch(console.error); // Save state after volume change
   }
 
   function updateProgress() {
@@ -392,18 +392,18 @@ function initializeMediaPlayerUI(win) {
     playerState.currentTime = audio.currentTime;
     // Save state every 5 seconds to avoid too frequent saves
     if (Math.floor(audio.currentTime) % 5 === 0) {
-      saveMediaPlayerState(playerState);
+      saveMediaPlayerState(playerState).catch(console.error);
     }
   });
 
   audio.addEventListener('play', () => {
     playerState.isPlaying = true;
-    saveMediaPlayerState(playerState);
+    saveMediaPlayerState(playerState).catch(console.error);
   });
 
   audio.addEventListener('pause', () => {
     playerState.isPlaying = false;
-    saveMediaPlayerState(playerState);
+    saveMediaPlayerState(playerState).catch(console.error);
   });
 
   // --- Initial Load ---
@@ -412,15 +412,15 @@ function initializeMediaPlayerUI(win) {
 
   // Restore track and position if available
   if (playerState.currentTrackIndex >= 0 && playlist.length > playerState.currentTrackIndex) {
-    setTimeout(() => {
-      restoreMediaPlayerSession();
+    setTimeout(async () => {
+      await restoreMediaPlayerSession();
     }, 500); // Wait for playlist to load
   }
 }
 
 // Restore the media player session (track, position, etc.)
-function restoreMediaPlayerSession() {
-  const playerState = loadMediaPlayerState();
+async function restoreMediaPlayerSession() {
+  const playerState = await loadMediaPlayerState();
   if (!playerState || playerState.currentTrackIndex < 0) return;
 
   console.log('Restoring media player session:', playerState);
@@ -447,33 +447,54 @@ function restoreMediaPlayerSession() {
   }
 }
 
-// Save media player state to localStorage
-function saveMediaPlayerState(playerState) {
+// Save media player state to IndexedDB
+async function saveMediaPlayerState(playerState) {
   try {
-    localStorage.setItem('mediaplayer_state', JSON.stringify(playerState));
+    await storage.setItem('mediaplayer_state', JSON.stringify(playerState));
   } catch (error) {
     console.warn('Failed to save Media Player state:', error);
+    // Fallback to sync method if async fails
+    try {
+      storage.setItemSync('mediaplayer_state', JSON.stringify(playerState));
+    } catch (fallbackError) {
+      console.error('Failed to save Media Player state with fallback:', fallbackError);
+    }
   }
 }
 
-// Load media player state from localStorage
-function loadMediaPlayerState() {
+// Load media player state from IndexedDB
+async function loadMediaPlayerState() {
   try {
-    const savedState = localStorage.getItem('mediaplayer_state');
+    const savedState = await storage.getItem('mediaplayer_state');
     if (savedState) {
       return JSON.parse(savedState);
     }
   } catch (error) {
     console.warn('Failed to load Media Player state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const savedState = storage.getItemSync('mediaplayer_state');
+      if (savedState) {
+        return JSON.parse(savedState);
+      }
+    } catch (fallbackError) {
+      console.warn('Failed to load Media Player state with fallback:', fallbackError);
+    }
   }
   return null;
 }
 
 // Clear saved media player state
-function clearMediaPlayerState() {
+async function clearMediaPlayerState() {
   try {
-    localStorage.removeItem('mediaplayer_state');
+    await storage.removeItem('mediaplayer_state');
   } catch (error) {
     console.warn('Failed to clear Media Player state:', error);
+    // Fallback to sync method if async fails
+    try {
+      storage.removeItemSync('mediaplayer_state');
+    } catch (fallbackError) {
+      console.error('Failed to clear Media Player state with fallback:', fallbackError);
+    }
   }
 }

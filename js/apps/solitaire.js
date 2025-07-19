@@ -25,11 +25,11 @@ function launchSolitaire() {
   );
 
   // Initialize the game UI
-  initializeSolitaireUI(win);
+  initializeSolitaireUI(win).catch(console.error);
 }
 
 // Separate function to initialize the Solitaire UI (for restoration)
-function initializeSolitaireUI(win) {
+async function initializeSolitaireUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-green-600 h-full overflow-hidden';
@@ -39,7 +39,7 @@ function initializeSolitaireUI(win) {
   content.innerHTML = '';
 
   // Try to load saved game state
-  let gameState = loadSolitaireGameState();
+  let gameState = await loadSolitaireGameState();
 
   // If no saved state, create default state
   if (!gameState) {
@@ -230,7 +230,7 @@ function initializeSolitaireUI(win) {
     }
 
     renderGame();
-    saveSolitaireGameState(gameState); // Save state after dealing cards
+    saveSolitaireGameState(gameState).catch(console.error); // Save state after dealing cards
   }
 
   // Render the game
@@ -324,7 +324,7 @@ function initializeSolitaireUI(win) {
       gameState.moves++;
     }
     renderGame();
-    saveSolitaireGameState(gameState); // Save state after deck action
+    saveSolitaireGameState(gameState).catch(console.error); // Save state after deck action
   }
 
   // Handle card dragging (for both mouse and touch)
@@ -540,7 +540,7 @@ function initializeSolitaireUI(win) {
     gameState.score += 10;
     renderGame();
     checkWinCondition();
-    saveSolitaireGameState(gameState); // Save state after foundation move
+    saveSolitaireGameState(gameState).catch(console.error); // Save state after foundation move
   }
 
   function moveCardToTableau(cardElement, tableauIndex) {
@@ -552,7 +552,7 @@ function initializeSolitaireUI(win) {
 
     gameState.moves++;
     renderGame();
-    saveSolitaireGameState(gameState); // Save state after tableau move
+    saveSolitaireGameState(gameState).catch(console.error); // Save state after tableau move
   }
 
   function removeCardFromCurrentLocation(cardElement, moveStack = false) {
@@ -579,7 +579,7 @@ function initializeSolitaireUI(win) {
           if (tableau.length > 0 && !tableau[tableau.length - 1].faceUp) {
             tableau[tableau.length - 1].faceUp = true;
             gameState.score += 5;
-            saveSolitaireGameState(gameState); // Save state after card flip
+            saveSolitaireGameState(gameState).catch(console.error); // Save state after card flip
           }
           return movedCards;
       }
@@ -619,12 +619,12 @@ function initializeSolitaireUI(win) {
     gameTimer = setInterval(() => {
       gameState.time++;
       updateScore();
-      saveSolitaireGameState(gameState); // Save state with updated time
+      saveSolitaireGameState(gameState).catch(console.error); // Save state with updated time
     }, 1000);
 
     initializeDeck();
     dealCards();
-    clearSolitaireGameState(); // Clear saved state when starting new game
+    clearSolitaireGameState().catch(console.error); // Clear saved state when starting new game
   }
 
   // Restore saved game
@@ -634,7 +634,7 @@ function initializeSolitaireUI(win) {
       gameTimer = setInterval(() => {
         gameState.time++;
         updateScore();
-        saveSolitaireGameState(gameState); // Save state with updated time
+        saveSolitaireGameState(gameState).catch(console.error); // Save state with updated time
       }, 1000);
     }
 
@@ -648,7 +648,7 @@ function initializeSolitaireUI(win) {
     const totalFoundationCards = gameState.foundations.reduce((sum, foundation) => sum + foundation.length, 0);
     if (totalFoundationCards === 52) {
       if (gameTimer) clearInterval(gameTimer);
-      saveSolitaireGameState(gameState); // Save final win state
+      saveSolitaireGameState(gameState).catch(console.error); // Save final win state
       setTimeout(() => {
         showDialogBox('Congratulations! You won!', 'confirmation');
       }, 500);
@@ -681,8 +681,8 @@ function initializeSolitaireUI(win) {
   }
 }
 
-// Save game state to localStorage
-function saveSolitaireGameState(gameState) {
+// Save game state to IndexedDB
+async function saveSolitaireGameState(gameState) {
   try {
     // Create a clean copy without non-serializable elements
     const stateToSave = {
@@ -691,16 +691,28 @@ function saveSolitaireGameState(gameState) {
       selectedPile: null,
       dragElement: null
     };
-    localStorage.setItem('solitaire_gameState', JSON.stringify(stateToSave));
+    await storage.setItem('solitaire_gameState', JSON.stringify(stateToSave));
   } catch (error) {
     console.warn('Failed to save Solitaire game state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const stateToSave = {
+        ...gameState,
+        selectedCard: null,
+        selectedPile: null,
+        dragElement: null
+      };
+      storage.setItemSync('solitaire_gameState', JSON.stringify(stateToSave));
+    } catch (fallbackError) {
+      console.error('Failed to save Solitaire game state with fallback:', fallbackError);
+    }
   }
 }
 
-// Load game state from localStorage
-function loadSolitaireGameState() {
+// Load game state from IndexedDB
+async function loadSolitaireGameState() {
   try {
-    const savedState = localStorage.getItem('solitaire_gameState');
+    const savedState = await storage.getItem('solitaire_gameState');
     if (savedState) {
       const gameState = JSON.parse(savedState);
       // Ensure non-serializable elements are reset
@@ -711,15 +723,35 @@ function loadSolitaireGameState() {
     }
   } catch (error) {
     console.warn('Failed to load Solitaire game state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const savedState = storage.getItemSync('solitaire_gameState');
+      if (savedState) {
+        const gameState = JSON.parse(savedState);
+        // Ensure non-serializable elements are reset
+        gameState.selectedCard = null;
+        gameState.selectedPile = null;
+        gameState.dragElement = null;
+        return gameState;
+      }
+    } catch (fallbackError) {
+      console.warn('Failed to load Solitaire game state with fallback:', fallbackError);
+    }
   }
   return null;
 }
 
 // Clear saved game state
-function clearSolitaireGameState() {
+async function clearSolitaireGameState() {
   try {
-    localStorage.removeItem('solitaire_gameState');
+    await storage.removeItem('solitaire_gameState');
   } catch (error) {
     console.warn('Failed to clear Solitaire game state:', error);
+    // Fallback to sync method if async fails
+    try {
+      storage.removeItemSync('solitaire_gameState');
+    } catch (fallbackError) {
+      console.error('Failed to clear Solitaire game state with fallback:', fallbackError);
+    }
   }
 }

@@ -1,3 +1,116 @@
+// Function to get app icon based on window ID or title
+function getAppIcon(windowId, title) {
+  // Map of app window IDs to their icons
+  const appIconMap = {
+    'calculator': 'image/calculator.png',
+    'mediaplayer': 'image/video.png',
+    'bombbroomer': 'image/bombbroomer.png',
+    'solitaire': 'image/solitaire.png',
+    'chess': 'image/guillotine_chess.png',
+    'mailbox': 'image/mail.png',
+    'watercolour': 'image/watercolour.png',
+    'compostbin': 'image/compost-bin.png',
+    'storage': 'image/drive_c.png',
+    'explorer-window': 'image/computer.png',
+    'tubestream': 'image/video.png'
+  };
+
+  // Map of window titles to their icons (for navigation windows and other special cases)
+  const titleIconMap = {
+    'Settings': 'image/gears.png',
+    'About This Computer': 'image/info.png',
+    'My Computer': 'image/computer.png',
+    'File Explorer': 'image/computer.png',
+    'Media Player': 'image/video.png',
+    'Calculator': 'image/calculator.png',
+    'Bombbroomer': 'image/bombbroomer.png',
+    'Solitaire': 'image/solitaire.png',
+    'Guillotine Chess': 'image/guillotine_chess.png',
+    'Chess': 'image/guillotine_chess.png',
+    'Inpeek Mailbox': 'image/mail.png',
+    'Watercolour': 'image/watercolour.png',
+    'Compost Bin': 'image/compost-bin.png',
+    'Storage Manager': 'image/drive_c.png',
+    'TubeStream': 'image/video.png'
+  };
+
+  // Check by window ID first
+  if (appIconMap[windowId]) {
+    return appIconMap[windowId];
+  }
+
+  // Check by title
+  if (titleIconMap[title]) {
+    return titleIconMap[title];
+  }
+
+  // Special handling for file windows that may have IDs like file names
+  if (windowId && windowId.includes('-')) {
+    // Check if this might be a file window
+    const lowerTitle = title.toLowerCase();
+    const lowerWindowId = windowId.toLowerCase();
+
+    // Image files
+    if (lowerTitle.match(/\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i) ||
+        lowerWindowId.match(/\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i)) {
+      return 'image/image.png';
+    }
+
+    // Video files
+    if (lowerTitle.match(/\.(mp4|webm|avi|mov|mkv)$/i) ||
+        lowerWindowId.match(/\.(mp4|webm|avi|mov|mkv)$/i)) {
+      return 'image/video.png';
+    }
+
+    // Audio files
+    if (lowerTitle.match(/\.(mp3|wav|ogg|m4a|flac)$/i) ||
+        lowerWindowId.match(/\.(mp3|wav|ogg|m4a|flac)$/i)) {
+      return 'image/audio.png';
+    }
+
+    // Text/Document files
+    if (lowerTitle.match(/\.(txt|md|doc|docx)$/i) ||
+        lowerWindowId.match(/\.(txt|md|doc|docx)$/i) ||
+        lowerTitle.includes('letterpad')) {
+      return 'image/file.png';
+    }
+
+    // HTML files
+    if (lowerTitle.match(/\.(html|htm)$/i) ||
+        lowerWindowId.match(/\.(html|htm)$/i)) {
+      return 'image/html.png';
+    }
+  }
+
+  // Default icons for common window title patterns
+  if (title.includes('LetterPad') || title.includes('.md') || title.includes('.txt')) {
+    return 'image/file.png';
+  }
+
+  if (title.includes('.jpg') || title.includes('.png') || title.includes('.gif') ||
+      title.includes('.webp') || title.includes('.jpeg') || title.includes('.bmp') ||
+      title.includes('.avif')) {
+    return 'image/image.png';
+  }
+
+  if (title.includes('.mp4') || title.includes('.webm') || title.includes('.avi') ||
+      title.includes('.mov') || title.includes('.mkv')) {
+    return 'image/video.png';
+  }
+
+  if (title.includes('.mp3') || title.includes('.wav') || title.includes('.ogg') ||
+      title.includes('.m4a') || title.includes('.flac')) {
+    return 'image/audio.png';
+  }
+
+  if (title.includes('.html') || title.includes('.htm')) {
+    return 'image/html.png';
+  }
+
+  // Return null for unknown window types (will fall back to text-only)
+  return null;
+}
+
 function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white') {
   let contentToPrint = content;
   if (!windowId) {
@@ -101,8 +214,24 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
 
   const tab = document.createElement('div');
   tab.id = 'tab-' + windowId;
-  tab.className = 'bg-gray-200 border border-gray-500 px-2 py-1 cursor-pointer';
-  tab.textContent = title;
+  tab.className = 'bg-gray-200 border border-gray-500 px-2 py-1 cursor-pointer flex items-center';
+
+  // Get app icon and create tab content
+  const appIcon = getAppIcon(windowId, title);
+  if (appIcon) {
+    const iconImg = document.createElement('img');
+    iconImg.src = appIcon;
+    iconImg.className = 'h-4 w-4 mr-2';
+    iconImg.alt = title;
+    tab.appendChild(iconImg);
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = title;
+    tab.appendChild(titleSpan);
+  } else {
+    tab.textContent = title;
+  }
+
   tab.onclick = function () {
     if (win.style.display === 'none') {
       bringToFront(win);

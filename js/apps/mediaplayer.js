@@ -52,6 +52,20 @@ async function initializeMediaPlayerUI(win) {
       isPlaying: false,
       playlist: []
     };
+  } else {
+    // Validate loaded state to prevent non-finite values
+    if (!isFinite(playerState.volume) || playerState.volume < 0 || playerState.volume > 1) {
+      playerState.volume = 0.5; // Reset to default if invalid
+    }
+    if (!isFinite(playerState.currentTime) || playerState.currentTime < 0) {
+      playerState.currentTime = 0; // Reset to default if invalid
+    }
+    if (!Number.isInteger(playerState.currentTrackIndex)) {
+      playerState.currentTrackIndex = -1; // Reset to default if invalid
+    }
+    if (!Array.isArray(playerState.playlist)) {
+      playerState.playlist = []; // Reset to default if invalid
+    }
   }
 
   // --- UI Elements ---
@@ -391,9 +405,17 @@ async function initializeMediaPlayerUI(win) {
   });
 
   // Set initial volume from saved state
-  volumeControl.value = playerState.volume;
-  audio.volume = playerState.volume;
-  content.querySelector('#volume-display').textContent = `${Math.round(playerState.volume * 100)}%`;
+  // Additional validation before setting audio volume
+  const validVolume = isFinite(playerState.volume) && playerState.volume >= 0 && playerState.volume <= 1
+    ? playerState.volume
+    : 0.5;
+
+  volumeControl.value = validVolume;
+  audio.volume = validVolume;
+  content.querySelector('#volume-display').textContent = `${Math.round(validVolume * 100)}%`;
+
+  // Update playerState with validated volume
+  playerState.volume = validVolume;
 
   // Audio event listeners for state persistence
   audio.addEventListener('timeupdate', () => {

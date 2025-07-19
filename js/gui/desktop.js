@@ -162,7 +162,7 @@ function updateDesktopSettings() {
   console.log('Desktop settings saved:', desktopSettings);
 }
 
-function renderDesktopIcons() {
+async function renderDesktopIcons() {
   const desktopIconsContainer = document.getElementById('desktop-icons');
   desktopIconsContainer.innerHTML = "";
 
@@ -175,9 +175,66 @@ function renderDesktopIcons() {
     }
   });
 
-  let fs = getFileSystemState();
-  const desktopFolder = fs.folders['C://']?.['Desktop'];
-  if (!desktopFolder) return;
+  let fs = await getFileSystemState();
+
+  // If file system is not initialized, initialize it with default state
+  if (!fs || !fs.folders || !fs.folders['C://'] || !fs.folders['C://']['Desktop']) {
+    console.log('File system not initialized, initializing with default state...');
+    // Call initializeAppState to set up the default file system
+    if (typeof initializeAppState === 'function') {
+      await initializeAppState();
+      fs = await getFileSystemState();
+    } else {
+      // Fallback: use the default fileSystemState from manage_data.js if available
+      console.warn('initializeAppState not available, using default fileSystemState');
+      if (typeof window.fileSystemState !== 'undefined') {
+        console.log('Using window.fileSystemState');
+        fs = window.fileSystemState;
+      } else if (typeof fileSystemState !== 'undefined') {
+        console.log('Using global fileSystemState');
+        fs = fileSystemState;
+      } else {
+        console.error('No fileSystemState available, creating minimal fallback structure');
+        // Create minimal working structure as last resort
+        fs = {
+          folders: {
+            "C://": {
+              "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
+              "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {
+                  "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
+                }
+              },
+              "Music": { id: 'Music', name: 'Music', type: 'folder', fullPath: 'C://Music', contents: {} },
+            },
+            "A://": {},
+            "D://": {}
+          }
+        };
+        console.log('Created minimal fallback file system');
+      }
+      // Update the global file system state if possible
+      if (typeof setFileSystemState === 'function') {
+        try {
+          setFileSystemState(fs);
+          console.log('Updated global file system state');
+        } catch (error) {
+          console.warn('Failed to update global file system state:', error);
+        }
+      }
+    }
+  }
+
+  // Final validation to ensure fs has the required structure
+  if (!fs || !fs.folders || !fs.folders['C://'] || !fs.folders['C://']['Desktop']) {
+    console.error('File system structure is still invalid after initialization attempts:', fs);
+    return;
+  }
+
+  const desktopFolder = fs.folders['C://']['Desktop'];
+  if (!desktopFolder) {
+    console.error('Desktop folder still not available after initialization');
+    return;
+  }
 
   // Constants for grid layout
   const ICON_WIDTH = 96; // w-24 = 96px

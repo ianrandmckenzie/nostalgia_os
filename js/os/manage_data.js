@@ -692,6 +692,38 @@ async function testDataIntegrity() {
   }
 }
 
+// Test session persistence (for debugging login behavior)
+async function testSessionPersistence() {
+  console.log('=== Session Persistence Test ===');
+  try {
+    const appState = await storage.getItem('appState');
+    const explicitRestart = await storage.getItem('explicitRestart');
+
+    console.log('Current session state:');
+    console.log('- Has app state:', !!appState);
+    console.log('- Explicit restart flag:', !!explicitRestart);
+    console.log('- Should show login on reload:', !appState || !!explicitRestart);
+
+    if (appState) {
+      console.log('✓ Session should persist across page reloads');
+    } else {
+      console.log('⚠ No app state - will show login screen');
+    }
+
+    return !!appState;
+  } catch (error) {
+    console.error('✗ Session persistence test failed:', error);
+    return false;
+  }
+}
+
+// Simulate restart for testing
+async function simulateRestart() {
+  console.log('Simulating restart...');
+  await storage.setItem('explicitRestart', true);
+  console.log('Restart flag set. Reload the page to test login behavior.');
+}
+
 // Make debug functions globally available
 window.debugWindowStates = debugWindowStates;
 window.forceSaveState = forceSaveState;
@@ -699,8 +731,8 @@ window.testAppRestoration = testAppRestoration;
 window.testAppReinitialization = testAppReinitialization;
 window.testBombbroomerInit = testBombbroomerInit;
 window.testDataIntegrity = testDataIntegrity;
-
-// Add beforeunload handler to ensure data is saved before page closes
+window.testSessionPersistence = testSessionPersistence;
+window.simulateRestart = simulateRestart;// Add beforeunload handler to ensure data is saved before page closes
 window.addEventListener('beforeunload', async (event) => {
   try {
     console.log('Page unloading - performing emergency save...');

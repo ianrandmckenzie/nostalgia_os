@@ -52,14 +52,21 @@ class IndexedDBStorage {
       const transaction = this.db.transaction(['storage'], 'readonly');
       const store = transaction.objectStore('storage');
 
-      const request = store.getAll();
-      request.onsuccess = () => {
-        const results = request.result;
-        results.forEach(item => {
-          this.cache.set(item.key, item.value);
-        });
-        console.log(`Populated cache with ${results.length} items`);
-      };
+      return new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => {
+          const results = request.result;
+          results.forEach(item => {
+            this.cache.set(item.key, item.value);
+          });
+          console.log(`Populated cache with ${results.length} items`);
+          resolve();
+        };
+        request.onerror = () => {
+          console.warn('Failed to populate cache:', request.error);
+          reject(request.error);
+        };
+      });
     } catch (error) {
       console.warn('Failed to populate cache:', error);
     }
@@ -212,7 +219,12 @@ const idbStorage = new IndexedDBStorage();
 const storage = {
   // Ensure storage is ready
   async ensureReady() {
-    return await idbStorage.ensureDB();
+    await idbStorage.ensureDB();
+    // Ensure cache is populated for sync operations
+    if (idbStorage.cache.size === 0) {
+      await idbStorage.populateCache();
+    }
+    return idbStorage.db;
   },
 
   // Async methods (preferred)

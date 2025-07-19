@@ -6,13 +6,21 @@ async function initializeApp() {
   // Wait for storage to be ready
   await storage.ensureReady?.() || Promise.resolve();
 
-  let oldVersion = storage.getItemSync('version');
-  if (!oldVersion) storage.setItemSync('version', version);
+  let oldVersion = await storage.getItem('version');
+  if (!oldVersion) {
+    await storage.setItem('version', version);
+  }
+
   if (oldVersion !== version) {
-    storage.removeItemSync('appState');
-    storage.removeItemSync('splashScreen');
-    storage.removeItemSync('version');
-    storage.setItemSync('version', version);
+    // On version change, clear state but keep the explicit restart flag if it exists
+    const explicitRestart = await storage.getItem('explicitRestart');
+    await storage.removeItem('appState');
+    await storage.removeItem('version');
+    await storage.setItem('version', version);
+    // Restore explicit restart flag if it was set
+    if (explicitRestart) {
+      await storage.setItem('explicitRestart', explicitRestart);
+    }
   }
 }
 let highestZ = 100;
@@ -54,9 +62,19 @@ window.addEventListener('load', async function () {
   // Initialize app and storage first
   await initializeApp();
 
-  const splashShown = await storage.getItem("splashScreen");
-  if (!splashShown) {
+  // Check if we have existing app state (indicates user has been here before)
+  const existingAppState = await storage.getItem('appState');
+  const isExplicitRestart = await storage.getItem('explicitRestart');
+
+  // Only show splash screen if:
+  // 1. No existing app state (first time visit), OR
+  // 2. This is an explicit restart
+  if (!existingAppState || isExplicitRestart) {
     showSplash();
+    // Clear the restart flag after showing splash
+    if (isExplicitRestart) {
+      await storage.removeItem('explicitRestart');
+    }
   }
 
   await initializeAppState();

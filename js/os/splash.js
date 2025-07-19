@@ -32,17 +32,6 @@ function showSplash() {
     splashAudio.currentTime = 0;
     setTimeout(function () {
       splashDiv.remove();
-      storage.setItemSync("splashScreen", "true");
-    }, 3000);
-  });
-
-  document.getElementById("splash-login").addEventListener("click", function () {
-    splashAudio.play();
-    document.getElementById('splash-image').src = './image/loading.gif';
-    splashAudio.currentTime = 0;
-    setTimeout(function () {
-      splashDiv.remove();
-      storage.setItemSync("splashScreen", "true");
     }, 3000);
   });
 }

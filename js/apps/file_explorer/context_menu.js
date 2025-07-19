@@ -866,6 +866,19 @@ function createNewImage(e, fromFullPath, onCreated = null) {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (file) {
+      // Check file size limit (25MB for images)
+      const maxSizeInMB = 25;
+      const fileSizeInMB = file.size / (1024 * 1024);
+
+      if (fileSizeInMB > maxSizeInMB) {
+        showDialogBox(
+          `Image file "${file.name}" is too large (${fileSizeInMB.toFixed(2)}MB). Maximum allowed size is ${maxSizeInMB}MB.`,
+          'error'
+        );
+        document.body.removeChild(fileInput);
+        return;
+      }
+
       // Get file extension for content type
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
@@ -915,6 +928,19 @@ function createNewAudio(e, fromFullPath, onCreated = null) {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (file) {
+      // Check file size limit (50MB for audio)
+      const maxSizeInMB = 50;
+      const fileSizeInMB = file.size / (1024 * 1024);
+
+      if (fileSizeInMB > maxSizeInMB) {
+        showDialogBox(
+          `Audio file "${file.name}" is too large (${fileSizeInMB.toFixed(2)}MB). Maximum allowed size is ${maxSizeInMB}MB.`,
+          'error'
+        );
+        document.body.removeChild(fileInput);
+        return;
+      }
+
       // Get file extension for content type
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
@@ -964,6 +990,19 @@ function createNewVideo(e, fromFullPath, onCreated = null) {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (file) {
+      // Check file size limit (100MB for video)
+      const maxSizeInMB = 100;
+      const fileSizeInMB = file.size / (1024 * 1024);
+
+      if (fileSizeInMB > maxSizeInMB) {
+        showDialogBox(
+          `Video file "${file.name}" is too large (${fileSizeInMB.toFixed(2)}MB). Maximum allowed size is ${maxSizeInMB}MB.`,
+          'error'
+        );
+        document.body.removeChild(fileInput);
+        return;
+      }
+
       // Get file extension for content type
       const fileExtension = file.name.split('.').pop().toLowerCase();
 

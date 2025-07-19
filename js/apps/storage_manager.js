@@ -143,7 +143,6 @@ async function analyzeStoredData() {
     miscData: { count: 0, totalSize: 0, breakdown: [] }
   };
 
-  // Analyze storage (IndexedDB with localStorage fallback)
   await analyzeStorage(analysis);
 
   // Analyze IndexedDB

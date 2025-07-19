@@ -1,24 +1,44 @@
 // Function to initialize a single editor container
-function initializeLetterPad(container) {
+async function initializeLetterPad(container) {
   // Skip if already initialized
   if (container.dataset.initialized === "true") return;
   container.dataset.initialized = "true";
+
+  // Ensure storage is ready
+  try {
+    await storage.ensureReady();
+  } catch (error) {
+    console.warn('Storage not ready, falling back to sync methods:', error);
+  }
 
   // Get the editor's unique ID from data attribute
   const editorId = container.getAttribute('data-letterpad-editor-id');
   const storageKey = `letterpad_${editorId}`;
   let storedContent = null;
-  const storedData = storage.getItemSync(storageKey);
-  if (storedData) {
-    try {
-      const jsonData = JSON.parse(storedData);
-      storedContent = jsonData.content;
-    } catch (e) {
-      console.error('Error parsing stored markdown data for editor ' + editorId, e);
-    }
-  }
 
-  // Build the Editor UI
+  try {
+    const storedData = await storage.getItem(storageKey);
+    if (storedData) {
+      try {
+        const jsonData = JSON.parse(storedData);
+        storedContent = jsonData.content;
+      } catch (e) {
+        console.error('Error parsing stored markdown data for editor ' + editorId, e);
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load LetterPad content for editor ' + editorId + ', trying sync method:', error);
+    // Fallback to sync method
+    try {
+      const storedData = storage.getItemSync(storageKey);
+      if (storedData) {
+        const jsonData = JSON.parse(storedData);
+        storedContent = jsonData.content;
+      }
+    } catch (syncError) {
+      console.warn('Sync fallback also failed:', syncError);
+    }
+  }  // Build the Editor UI
   const editorWrapper = document.createElement('div');
   editorWrapper.className = "flex flex-col border rounded p-4 bg-white";
 
@@ -91,7 +111,7 @@ function initializeLetterPad(container) {
 
   // --- Initialization Based on Stored Data ---
   if (storedContent) {
-    // If content exists in localStorage, load it in preview mode.
+    // If content exists in IndexedDB, load it in preview mode.
     textarea.value = storedContent;
     previewArea.innerHTML = convertMarkdownToHTML(storedContent);
     textarea.classList.add('hidden');
@@ -149,7 +169,7 @@ function initializeLetterPad(container) {
   }
 
   // Toggle button event listener: switch between edit and preview modes.
-  toggleButton.addEventListener('click', function() {
+  toggleButton.addEventListener('click', async function() {
     if (textarea.classList.contains('hidden')) {
       // Switch to Edit mode.
       previewArea.classList.add('hidden');
@@ -160,7 +180,13 @@ function initializeLetterPad(container) {
       // Convert Markdown to HTML, save to IndexedDB, then switch to Preview mode.
       const markdownText = textarea.value;
       previewArea.innerHTML = convertMarkdownToHTML(markdownText);
-      storage.setItemSync(storageKey, JSON.stringify({ content: markdownText }));
+
+      try {
+        await storage.setItem(storageKey, JSON.stringify({ content: markdownText }));
+      } catch (error) {
+        console.warn('Failed to save LetterPad content for editor ' + editorId, error);
+      }
+
       textarea.classList.add('hidden');
       previewArea.classList.remove('hidden');
       toggleButton.textContent = "Edit";
@@ -170,10 +196,24 @@ function initializeLetterPad(container) {
 }
 
 // Initialize editors that exist at DOMContentLoaded.
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('.letterpad_editor').forEach(function(container) {
-    initializeLetterPad(container);
-  });
+document.addEventListener('DOMContentLoaded', async function () {
+  // First, ensure storage is ready
+  try {
+    await storage.ensureReady();
+  } catch (error) {
+    console.warn('Storage not ready during LetterPad initialization:', error);
+  }
+
+  const editors = document.querySelectorAll('.letterpad_editor');
+  console.log(`Found ${editors.length} LetterPad editors to initialize`);
+
+  for (const container of editors) {
+    try {
+      await initializeLetterPad(container);
+    } catch (error) {
+      console.error('Error initializing LetterPad editor during DOMContentLoaded:', error);
+    }
+  }
 
   // Use a MutationObserver to catch new editor elements added later.
   const observer = new MutationObserver((mutationsList) => {
@@ -183,11 +223,15 @@ document.addEventListener('DOMContentLoaded', function () {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // If the added node itself has the editor class, initialize it.
             if (node.classList.contains('letterpad_editor')) {
-              initializeLetterPad(node);
+              initializeLetterPad(node).catch(error => {
+                console.error('Error initializing LetterPad editor:', error);
+              });
             }
             // Also check its descendants.
             node.querySelectorAll && node.querySelectorAll('.letterpad_editor').forEach(child => {
-              initializeLetterPad(child);
+              initializeLetterPad(child).catch(error => {
+                console.error('Error initializing LetterPad editor:', error);
+              });
             });
           }
         });
@@ -197,6 +241,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   observer.observe(document.body, { childList: true, subtree: true });
 });
+
+// Global function to initialize any uninitialized LetterPad editors
+// This can be called during window restoration or other scenarios
+async function initializeAllLetterPadEditors() {
+  const editors = document.querySelectorAll('.letterpad_editor:not([data-initialized="true"])');
+  console.log(`Found ${editors.length} uninitialized LetterPad editors`);
+
+  for (const container of editors) {
+    try {
+      await initializeLetterPad(container);
+    } catch (error) {
+      console.error('Error initializing LetterPad editor:', error);
+    }
+  }
+}
+
+// Make the function available globally
+window.initializeAllLetterPadEditors = initializeAllLetterPadEditors;
 
 // Helper to apply formatting (bold, italic, etc.)
 function applyFormatting(symbol, textarea) {

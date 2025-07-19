@@ -16,7 +16,9 @@ function openExplorer(folderId) {
     explorerWindow.querySelector('.file-explorer-window').setAttribute('data-current-path', fullPath);
     setTimeout(setupFolderDrop, 100);
     // Save state after navigation
-    setTimeout(saveFileExplorerState, 150);
+    setTimeout(async () => {
+      await saveFileExplorerState();
+    }, 150);
   } else {
     explorerWindow = createWindow(
       fullPath,
@@ -29,7 +31,9 @@ function openExplorer(folderId) {
       "Explorer"
     );
     // Save state after initial creation
-    setTimeout(saveFileExplorerState, 150);
+    setTimeout(async () => {
+      await saveFileExplorerState();
+    }, 150);
   }
 }
 
@@ -355,32 +359,54 @@ function openFile(incoming_file, e) {
       windowType = 'editor';
 
       // Initialize the LetterPad editor with existing content after the window is created
-      setTimeout(() => {
+      setTimeout(async () => {
         // Store the file content in the expected storage format for the editor
         const storageKey = `letterpad_${file.id}`;
 
         // Check if there's already content in storage (from previous edits)
-        const existingData = storage.getItemSync(storageKey);
         let contentToStore = file.content || file.contents || '';
 
-        if (existingData) {
-          try {
-            const jsonData = JSON.parse(existingData);
-            // If there's existing content in storage, use that instead of file content
-            if (jsonData.content !== undefined) {
-              contentToStore = jsonData.content;
+        try {
+          const existingData = await storage.getItem(storageKey);
+          if (existingData) {
+            try {
+              const jsonData = JSON.parse(existingData);
+              // If there's existing content in storage, use that instead of file content
+              if (jsonData.content !== undefined) {
+                contentToStore = jsonData.content;
+              }
+            } catch (e) {
+              console.error('Error parsing existing storage data:', e);
             }
-          } catch (e) {
-            console.error('Error parsing existing storage data:', e);
           }
-        }
 
-        storage.setItemSync(storageKey, JSON.stringify({ content: contentToStore }));
+          await storage.setItem(storageKey, JSON.stringify({ content: contentToStore }));
 
-        // Initialize the editor
-        const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
-        if (editorContainer && typeof initializeLetterPad === 'function') {
-          initializeLetterPad(editorContainer);
+          // Initialize the editor
+          const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
+          if (editorContainer && typeof initializeLetterPad === 'function') {
+            await initializeLetterPad(editorContainer);
+          }
+        } catch (error) {
+          console.warn('Failed to initialize LetterPad editor:', error);
+          // Fallback to sync methods if async fails
+          try {
+            const existingData = storage.getItemSync(storageKey);
+            if (existingData) {
+              const jsonData = JSON.parse(existingData);
+              if (jsonData.content !== undefined) {
+                contentToStore = jsonData.content;
+              }
+            }
+            storage.setItemSync(storageKey, JSON.stringify({ content: contentToStore }));
+
+            const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
+            if (editorContainer && typeof initializeLetterPad === 'function') {
+              await initializeLetterPad(editorContainer);
+            }
+          } catch (fallbackError) {
+            console.error('Failed to initialize LetterPad editor with fallback:', fallbackError);
+          }
         }
       }, 100);
     } else if (file.content_type === 'html') {
@@ -758,8 +784,8 @@ function getCurrentPath() {
    Functions to save and restore file explorer state
 ====================== */
 
-// Save file explorer state to localStorage
-function saveFileExplorerState() {
+// Save file explorer state to IndexedDB
+async function saveFileExplorerState() {
   try {
     const explorerWindow = document.getElementById('explorer-window');
     if (explorerWindow) {
@@ -770,19 +796,37 @@ function saveFileExplorerState() {
           currentPath: currentPath,
           timestamp: Date.now()
         };
-        localStorage.setItem('fileExplorerState', JSON.stringify(state));
+        await storage.setItem('fileExplorerState', JSON.stringify(state));
         console.log('File explorer state saved:', state);
       }
     }
   } catch (error) {
     console.warn('Failed to save file explorer state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const explorerWindow = document.getElementById('explorer-window');
+      if (explorerWindow) {
+        const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
+        if (fileExplorerDiv) {
+          const currentPath = fileExplorerDiv.getAttribute('data-current-path') || 'C://';
+          const state = {
+            currentPath: currentPath,
+            timestamp: Date.now()
+          };
+          storage.setItemSync('fileExplorerState', JSON.stringify(state));
+          console.log('File explorer state saved with fallback:', state);
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Failed to save file explorer state with fallback:', fallbackError);
+    }
   }
 }
 
-// Load file explorer state from localStorage
-function loadFileExplorerState() {
+// Load file explorer state from IndexedDB
+async function loadFileExplorerState() {
   try {
-    const stateData = localStorage.getItem('fileExplorerState');
+    const stateData = await storage.getItem('fileExplorerState');
     if (stateData) {
       const state = JSON.parse(stateData);
       console.log('File explorer state loaded:', state);
@@ -790,6 +834,17 @@ function loadFileExplorerState() {
     }
   } catch (error) {
     console.warn('Failed to load file explorer state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const stateData = storage.getItemSync('fileExplorerState');
+      if (stateData) {
+        const state = JSON.parse(stateData);
+        console.log('File explorer state loaded with fallback:', state);
+        return state;
+      }
+    } catch (fallbackError) {
+      console.warn('Failed to load file explorer state with fallback:', fallbackError);
+    }
   }
   return {
     currentPath: 'C://',
@@ -798,12 +853,19 @@ function loadFileExplorerState() {
 }
 
 // Clear file explorer state
-function clearFileExplorerState() {
+async function clearFileExplorerState() {
   try {
-    localStorage.removeItem('fileExplorerState');
+    await storage.removeItem('fileExplorerState');
     console.log('File explorer state cleared');
   } catch (error) {
     console.warn('Failed to clear file explorer state:', error);
+    // Fallback to sync method if async fails
+    try {
+      storage.removeItemSync('fileExplorerState');
+      console.log('File explorer state cleared with fallback');
+    } catch (fallbackError) {
+      console.error('Failed to clear file explorer state with fallback:', fallbackError);
+    }
   }
 }
 
@@ -812,14 +874,14 @@ function initializeFileExplorerUI(win) {
   console.log('Initializing File Explorer UI, window:', win);
 
   // Restore the saved state
-  setTimeout(() => {
-    restoreFileExplorerState();
+  setTimeout(async () => {
+    await restoreFileExplorerState();
   }, 50);
 }
 
 // Restore file explorer state
-function restoreFileExplorerState() {
-  const state = loadFileExplorerState();
+async function restoreFileExplorerState() {
+  const state = await loadFileExplorerState();
   const explorerWindow = document.getElementById('explorer-window');
 
   if (explorerWindow && state.currentPath) {

@@ -1,7 +1,12 @@
 /* =====================
    IndexedDB Storage Wrapper
-   Provides a localStorage-like interface but uses IndexedDB for better performance
-   and larger storage capacity
+
+   Provides async storage using IndexedDB with sync methods backed by in-memory cache.
+
+   - Async methods (setItem, getItem, removeItem, clear) use IndexedDB directly
+   - Sync methods (setItemSync, getItemSync, etc.) use an in-memory cache for immediate access
+   - Cache is populated on initialization and kept in sync with IndexedDB operations
+   - No localStorage fallback - pure IndexedDB implementation for better performance and capacity
 ====================== */
 
 class IndexedDBStorage {
@@ -22,8 +27,10 @@ class IndexedDBStorage {
         reject(request.error);
       };
 
-      request.onsuccess = () => {
+      request.onsuccess = async () => {
         this.db = request.result;
+        // Populate cache with existing data for sync access
+        await this.populateCache();
         resolve(this.db);
       };
 
@@ -36,6 +43,26 @@ class IndexedDBStorage {
         }
       };
     });
+  }
+
+  async populateCache() {
+    try {
+      if (!this.db) return;
+
+      const transaction = this.db.transaction(['storage'], 'readonly');
+      const store = transaction.objectStore('storage');
+
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const results = request.result;
+        results.forEach(item => {
+          this.cache.set(item.key, item.value);
+        });
+        console.log(`Populated cache with ${results.length} items`);
+      };
+    } catch (error) {
+      console.warn('Failed to populate cache:', error);
+    }
   }
 
   async ensureDB() {
@@ -127,30 +154,34 @@ class IndexedDBStorage {
     });
   }
 
-  // Synchronous methods with async fallback for compatibility
+  // Synchronous methods using cache with async IndexedDB updates
   setItemSync(key, value) {
-    // Set in localStorage immediately for sync access
-    localStorage.setItem(key, value);
-    // Also update cache for consistency
+    // Update cache immediately for sync access
     this.cache.set(key, value);
     // Async update IndexedDB in background
     this.setItem(key, value).catch(error => {
-      console.warn('Failed to save to IndexedDB, using localStorage fallback:', error);
+      console.warn('Failed to save to IndexedDB:', error);
     });
   }
 
   getItemSync(key) {
-    // Try localStorage first for immediate response
-    return localStorage.getItem(key);
+    // Try cache first for immediate response
+    if (this.cache.has(key)) {
+      return this.cache.get(key);
+    }
+    // If not in cache, try to preload it asynchronously for next time
+    this.getItem(key).catch(console.warn);
+    // Return null for immediate sync response (can't wait for async operations)
+    return null;
   }
 
   removeItemSync(key) {
-    localStorage.removeItem(key);
+    this.cache.delete(key);
     this.removeItem(key).catch(console.error);
   }
 
   clearSync() {
-    localStorage.clear();
+    this.cache.clear();
     this.clear().catch(console.error);
   }
 }
@@ -186,6 +217,17 @@ const storage = {
     return await idbStorage.getAllKeys();
   },
 
+  // Preload specific keys into cache for sync access
+  async preloadKeys(keys) {
+    for (const key of keys) {
+      try {
+        await this.getItem(key); // This will populate the cache
+      } catch (error) {
+        console.warn(`Failed to preload key ${key}:`, error);
+      }
+    }
+  },
+
   // Sync methods for backward compatibility
   setItemSync(key, value) {
     return idbStorage.setItemSync(key, value);
@@ -201,34 +243,15 @@ const storage = {
 
   clearSync() {
     return idbStorage.clearSync();
-  },
-
-  // Migration helper
-  async migrateFromLocalStorage() {
-    console.log('Migrating data from localStorage to IndexedDB...');
-    const keys = Object.keys(localStorage);
-
-    for (const key of keys) {
-      const value = localStorage.getItem(key);
-      if (value !== null) {
-        await this.setItem(key, value);
-      }
-    }
-
-    console.log(`Migrated ${keys.length} items from localStorage to IndexedDB`);
   }
 };
-
-// Initialize and migrate data
-storage.migrateFromLocalStorage().catch(console.error);
 
 // Make storage available globally for iframe access immediately
 window.globalStorage = storage;
 console.log('Global storage made available for iframes');
 
 async function clearStorage() {
-    // Clear localStorage
-    localStorage.clear();
+    // Clear sessionStorage (keeping this as it might still be used elsewhere)
     sessionStorage.clear();
 
     // Clear IndexedDB
@@ -247,7 +270,7 @@ async function clearStorage() {
         document.getElementById('status').innerHTML = '<p style="color: green;">All storage cleared successfully!</p>';
     } catch (error) {
         console.error('Error clearing IndexedDB:', error);
-        document.getElementById('status').innerHTML = '<p style="color: orange;">LocalStorage cleared, but there was an issue with IndexedDB: ' + error.message + '</p>';
+        document.getElementById('status').innerHTML = '<p style="color: red;">Error clearing storage: ' + error.message + '</p>';
     }
 
     // Also clear any cached file system state
@@ -258,6 +281,5 @@ async function clearStorage() {
     console.log('All storage cleared');
 }
 
-// Show current storage contents
-console.log('Current localStorage keys:', Object.keys(localStorage));
+// Show current sessionStorage contents for debugging
 console.log('Current sessionStorage keys:', Object.keys(sessionStorage));

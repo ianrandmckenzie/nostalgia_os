@@ -133,49 +133,26 @@ function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentTyp
       const dataURL = e.target.result;
       const fileSizeInMB = (dataURL.length * 0.75) / (1024 * 1024); // Approximate size after base64 encoding
 
-      // If file is larger than 1MB, store in IndexedDB instead of localStorage
-      if (fileSizeInMB > 1) {
-        try {
-          // Store large file in IndexedDB
-          await storage.setItem(`file_data_${fileId}`, dataURL);
-          newFile.isLargeFile = true;
-          newFile.storageLocation = 'indexeddb';
-          console.log(`Large file (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
-        } catch (error) {
-          console.error('Failed to store large file in IndexedDB:', error);
-          // Fallback: don't store the file data, just the metadata
-          newFile.isLargeFile = true;
-          newFile.storageLocation = 'failed';
-          showDialogBox(`File "${fileName}" is too large to store (${fileSizeInMB.toFixed(2)}MB). Consider using smaller files.`, 'error');
-        }
-      } else {
-        // Store small file in localStorage as before
-        newFile.dataURL = dataURL;
-        console.log(`Small file (${fileSizeInMB.toFixed(2)}MB) stored in localStorage:`, fileName);
+      // Store all files in IndexedDB for consistency
+      try {
+        await storage.setItem(`file_data_${fileId}`, dataURL);
+        newFile.isLargeFile = fileSizeInMB > 1;
+        newFile.storageLocation = 'indexeddb';
+        console.log(`File (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
+      } catch (error) {
+        console.error('Failed to store file in IndexedDB:', error);
+        // Fallback: don't store the file data, just the metadata
+        newFile.isLargeFile = true;
+        newFile.storageLocation = 'failed';
+        showDialogBox(`File "${fileName}" could not be stored (${fileSizeInMB.toFixed(2)}MB). Storage error: ${error.message}`, 'error');
       }
 
       // Remove the File object since we have the data stored
       newFile.file = null;
       setFileSystemState(fs);
 
-      // Save state with try-catch to handle quota errors
-      try {
-        saveState();
-      } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-          console.error('Storage quota exceeded. Moving file to IndexedDB.');
-          // Move the file data to IndexedDB and retry
-          if (newFile.dataURL) {
-            await storage.setItem(`file_data_${fileId}`, newFile.dataURL);
-            delete newFile.dataURL;
-            newFile.isLargeFile = true;
-            newFile.storageLocation = 'indexeddb';
-            saveState(); // Retry saving
-          }
-        } else {
-          throw error;
-        }
-      }
+      // Save state
+      saveState();
 
       // Refresh views after async operation
       if (typeof refreshExplorerViews === 'function') {
@@ -290,6 +267,15 @@ async function restoreWindows() {
 
       // Initialize app-specific functionality for restored windows
       await initializeRestoredApp(state.id);
+    }
+
+    // Also initialize any LetterPad editors that might have been missed
+    if (typeof window.initializeAllLetterPadEditors === 'function') {
+      try {
+        await window.initializeAllLetterPadEditors();
+      } catch (error) {
+        console.warn('Error during global LetterPad initialization:', error);
+      }
     }
   }
 }
@@ -446,6 +432,24 @@ async function initializeRestoredApp(windowId) {
       appInitializers[windowId]();
     } catch (error) {
       console.warn(`Failed to initialize restored app ${windowId}:`, error);
+    }
+  } else {
+    // Check if this is a file window that might contain a LetterPad editor
+    const windowElement = document.getElementById(windowId);
+    if (windowElement) {
+      const letterpadEditor = windowElement.querySelector('.letterpad_editor');
+      if (letterpadEditor) {
+        console.log('Found LetterPad editor in window', windowId, 'reinitializing...');
+        try {
+          if (typeof initializeLetterPad === 'function') {
+            await initializeLetterPad(letterpadEditor);
+          } else {
+            console.warn('initializeLetterPad function not available');
+          }
+        } catch (error) {
+          console.warn(`Failed to initialize LetterPad editor in window ${windowId}:`, error);
+        }
+      }
     }
   }
 }

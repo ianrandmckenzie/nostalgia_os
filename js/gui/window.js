@@ -509,6 +509,13 @@ function showDialogBox(message, dialogType, onConfirm = null, onCancel = null) {
 
   const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 350, height: 180 }, "default");
 
+  // Ensure dialog is always on top by bringing it to front immediately
+  // Use both immediate call and a slight delay to handle any race conditions
+  bringToFront(dialogWindow);
+  setTimeout(() => {
+    bringToFront(dialogWindow);
+  }, 10);
+
   // Add event listeners after the window is created
   setTimeout(() => {
     if (isConfirmationDialog) {

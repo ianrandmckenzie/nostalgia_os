@@ -578,6 +578,16 @@ function openFile(incoming_file, e) {
             <source src="${file.dataURL}" type="video/mp4">
             Your browser does not support the video tag.
           </video>`;
+      } else if (file.tempObjectURL) {
+        // Handle files with temporary object URLs (uploaded files being processed)
+        console.log('🔍 VIDEO: Using tempObjectURL:', file.tempObjectURL);
+        content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;"
+                     onloadstart="console.log('🔍 VIDEO: Video element started loading')"
+                     oncanplay="console.log('🔍 VIDEO: Video can start playing')"
+                     onerror="console.error('🔍 VIDEO: Video element error:', event.target.error)">
+            <source src="${file.tempObjectURL}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>`;
       } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
         content = `<div style="padding:10px; text-align:center;">Loading video...</div>`;
         windowType = 'video';

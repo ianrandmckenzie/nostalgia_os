@@ -6,7 +6,7 @@ let fileSystemState = {
           "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
         }
       },
-      "Music": { id: 'Music', name: 'Music', type: 'folder', fullPath: 'C://Music', contents: {} },
+      "Media": { id: 'Media', name: 'Media', type: 'folder', fullPath: 'C://Media', contents: {} },
     },
     "A://": {
       "folder-34862398": { id: 'folder-34862398', name: 'example folder', type: 'folder', fullPath: 'A://folder-34862398', contents: {
@@ -83,7 +83,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
         "C://": {
           "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
           "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {}},
-          "Music": { id: 'Music', name: 'Music', type: 'folder', fullPath: 'C://Music', contents: {} },
+          "Media": { id: 'Media', name: 'Media', type: 'folder', fullPath: 'C://Media', contents: {} },
         },
         "A://": {},
         "D://": {}
@@ -200,7 +200,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
         }
 
         if (fileEntry) {
-          fileEntry.isLargeFile = fileSizeInMB > 1;
+          fileEntry.isLargeFile = true; // Always true for IndexedDB stored binary files
           fileEntry.storageLocation = 'indexeddb';
           fileEntry.dataURL = dataURL; // Store the data URL for immediate access
 
@@ -318,9 +318,9 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     }
   }
 
-  // If a music file was added to C://Music, refresh the media player playlist
-  if (targetFolderPath === 'C://Music' && ['mp3', 'wav', 'ogg', 'audio'].includes(contentType)) {
-    console.log('Music file added to C://Music, refreshing media player playlist');
+  // If a media file was added to C://Media, refresh the media player playlist
+  if (targetFolderPath === 'C://Media' && ['mp3', 'wav', 'ogg', 'audio', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    console.log('Media file added to C://Media, refreshing media player playlist');
     if (typeof window.refreshMediaPlayerPlaylist === 'function') {
       // Delay the refresh to ensure the file system state is fully updated
       setTimeout(() => {
@@ -387,7 +387,7 @@ function migrateFileSystemToUnifiedStructure(fs) {
   }
 
   // Ensure essential folders exist in unified structure (even if not migrated)
-  const essentialFolders = ['C://Desktop', 'C://Documents', 'C://Music'];
+  const essentialFolders = ['C://Desktop', 'C://Documents', 'C://Media'];
   for (const folderPath of essentialFolders) {
     if (!fs.folders[folderPath]) {
       console.log(`Creating missing essential folder: ${folderPath}`);
@@ -462,16 +462,16 @@ async function initializeAppState() {
       console.error('Failed to save initial app state:', error);
     }
 
-    // Add the default song to the Music folder on first load
+    // Add the default song to the Media folder on first load
     setTimeout(async () => {
-      console.log('🎵 DEBUGGING: Adding default song to Music folder...');
+      console.log('🎵 DEBUGGING: Adding default song to Media folder...');
       // For the default song, create a file entry that references the static media file
       const fs = await getFileSystemState();
       console.log('🎵 DEBUGGING: Current file system state:', fs);
-      console.log('🎵 DEBUGGING: C://Music contents:', fs.folders['C://Music']);
-      if (fs.folders['C://Music']) {
+      console.log('🎵 DEBUGGING: C://Media contents:', fs.folders['C://Media']);
+      if (fs.folders['C://Media']) {
         // Check if the default song is already there
-        const hasDefaultSong = Object.values(fs.folders['C://Music']).some(file =>
+        const hasDefaultSong = Object.values(fs.folders['C://Media']).some(file =>
           file.name === 'too_many_screws_final.mp3'
         );
         console.log('🎵 DEBUGGING: Has default song already?', hasDefaultSong);
@@ -480,7 +480,7 @@ async function initializeAppState() {
             id: 'default-music-file',
             name: 'too_many_screws_final.mp3',
             type: 'ugc-file',
-            fullPath: 'C://Music/too_many_screws_final.mp3',
+            fullPath: 'C://Media/too_many_screws_final.mp3',
             content_type: 'mp3',
             icon: 'image/audio.png',
             contents: '',
@@ -489,16 +489,16 @@ async function initializeAppState() {
             path: 'media/too_many_screws_final.mp3', // Reference to static file
             isSystemFile: true // Mark as system file for proper handling
           };
-          fs.folders['C://Music']['default-music-file'] = defaultSongFile;
+          fs.folders['C://Media']['default-music-file'] = defaultSongFile;
           setFileSystemState(fs);
           await saveState();
-          console.log('🎵 DEBUGGING: Default song added to C://Music');
-          console.log('🎵 DEBUGGING: Updated C://Music contents:', fs.folders['C://Music']);
+          console.log('🎵 DEBUGGING: Default song added to C://Media');
+          console.log('🎵 DEBUGGING: Updated C://Media contents:', fs.folders['C://Media']);
         } else {
-          console.log('🎵 DEBUGGING: Default song already exists in C://Music');
+          console.log('🎵 DEBUGGING: Default song already exists in C://Media');
         }
       } else {
-        console.log('🎵 DEBUGGING: C://Music folder does not exist!');
+        console.log('🎵 DEBUGGING: C://Media folder does not exist!');
       }
     }, 100);
 
@@ -550,22 +550,22 @@ async function initializeAppState() {
     // Apply desktop settings after loading them
     applyDesktopSettings();
 
-    // Check if default song exists in Music folder, add if not (for migration)
+    // Check if default song exists in Media folder, add if not (for migration)
     setTimeout(async () => {
       const fs = await getFileSystemState();
-      if (fs && fs.folders && fs.folders['C://Music']) {
-        const musicFolder = fs.folders['C://Music'];
+      if (fs && fs.folders && fs.folders['C://Media']) {
+        const musicFolder = fs.folders['C://Media'];
         if (musicFolder) {
           const hasDefaultSong = Object.values(musicFolder).some(file =>
             file.name === 'too_many_screws_final.mp3'
           );
           if (!hasDefaultSong) {
-            console.log('Adding default song to Music folder during migration...');
+            console.log('Adding default song to Media folder during migration...');
             const defaultSongFile = {
               id: 'default-music-file',
               name: 'too_many_screws_final.mp3',
               type: 'ugc-file',
-              fullPath: 'C://Music/too_many_screws_final.mp3',
+              fullPath: 'C://Media/too_many_screws_final.mp3',
               content_type: 'mp3',
               icon: 'image/audio.png',
               contents: '',
@@ -574,10 +574,10 @@ async function initializeAppState() {
               path: 'media/too_many_screws_final.mp3', // Reference to static file
               isSystemFile: true // Mark as system file for proper handling
             };
-            fs.folders['C://Music']['default-music-file'] = defaultSongFile;
+            fs.folders['C://Media']['default-music-file'] = defaultSongFile;
             setFileSystemState(fs);
             await saveState();
-            console.log('Default song added to C://Music during migration');
+            console.log('Default song added to C://Media during migration');
           }
         }
       }

@@ -433,8 +433,8 @@ async function clearMediaPlayer() {
 
     // Also clear media files from file system
     const fs = getFileSystemStateSync();
-    if (fs.folders['C://Music']) {
-      fs.folders['C://Music'] = {};
+    if (fs.folders['C://Media']) {
+      fs.folders['C://Media'] = {};
       setFileSystemState(fs);
       saveState();
     }

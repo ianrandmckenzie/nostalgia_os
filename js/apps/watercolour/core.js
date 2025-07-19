@@ -4,23 +4,23 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 console.log('Watercolour Core.js loaded - VERSION 3.0 - Direct integration');
 
-// Try to load saved watercolour state
-let watercolourState = loadWatercolourState();
+// Initialize with default state - will be updated when restored
+let watercolourState = null;
 
-// Global state variables
+// Global state variables (use defaults, will be updated by restore)
 let painting = false;
-let currentTool = watercolourState?.currentTool || 'brush';
+let currentTool = 'brush';
 let startX, startY;
-let activeColor = watercolourState?.activeColor || '#000000';
-let strokeSize = watercolourState?.strokeSize || 5;
-let savedImage = watercolourState?.canvasData || null; // Holds the committed canvas state (data URL)
+let activeColor = '#000000';
+let strokeSize = 5;
+let savedImage = null; // Will be set when state is restored
 let backupCanvas = null; // Offscreen canvas for shape previews
-let currentFile = watercolourState?.currentFile || null; // Track the currently opened/saved file {name, path, data}
+let currentFile = null; // Track the currently opened/saved file {name, path, data}
 const textInput = document.getElementById('textInput');
 const strokeSizeInput = document.getElementById('strokeSize');
 const colorPicker = document.getElementById('colorPicker');
-let undoStack = watercolourState?.undoStack || [];
-let redoStack = watercolourState?.redoStack || [];
+let undoStack = [];
+let redoStack = [];
 
 strokeSizeInput.addEventListener('input', (e) => {
   strokeSize = e.target.value;
@@ -28,7 +28,7 @@ strokeSizeInput.addEventListener('input', (e) => {
   if (currentTool === 'text' && textInput.style.display === 'block') {
     textInput.style.fontSize = `${strokeSize * 4}px`;
   }
-  saveWatercolourState(); // Save state after stroke size change
+  saveWatercolourState().catch(console.error); // Save state after stroke size change
 });
 
 // Whenever the color changes, update the canvas styles and, if the text tool is active, update the input color.
@@ -39,7 +39,7 @@ colorPicker.addEventListener('change', (e) => {
   if (currentTool === 'text' && textInput.style.display === 'block') {
     textInput.style.color = activeColor;
   }
-  saveWatercolourState(); // Save state after color change
+  saveWatercolourState().catch(console.error); // Save state after color change
 });
 
 window.addEventListener('resize', resizeCanvas);
@@ -64,7 +64,7 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
     currentTool = btn.getAttribute('data-tool');
     // Set canvas cursor with hotspot at 12,12 (assuming 24x24 icon)
     canvas.style.cursor = `url("./icons/resized_${currentTool}.png"), auto`;
-    saveWatercolourState(); // Save state after tool change
+    saveWatercolourState().catch(console.error); // Save state after tool change
   });
 });
 
@@ -88,7 +88,7 @@ document.querySelectorAll('[data-color]').forEach(el => {
     ctx.strokeStyle = activeColor;
     ctx.fillStyle = activeColor;
     document.getElementById('colorPicker').value = activeColor;
-    saveWatercolourState(); // Save state after color selection
+    saveWatercolourState().catch(console.error); // Save state after color selection
   });
 });
 
@@ -378,7 +378,7 @@ canvas.addEventListener('click', (e) => {
     ctx.strokeStyle = activeColor;
     ctx.fillStyle = activeColor;
     document.getElementById('colorPicker').value = activeColor;
-    saveWatercolourState(); // Save state after color picking
+    saveWatercolourState().catch(console.error); // Save state after color picking
   }
 });
 
@@ -391,7 +391,7 @@ document.getElementById('undoBtn').addEventListener('click', () => {
     const previousState = undoStack[undoStack.length - 1];
     restoreState(previousState);
     savedImage = previousState;
-    saveWatercolourState(); // Save state after undo
+    saveWatercolourState().catch(console.error); // Save state after undo
   }
 });
 
@@ -402,7 +402,7 @@ document.getElementById('redoBtn').addEventListener('click', () => {
     undoStack.push(state);
     restoreState(state);
     savedImage = state;
-    saveWatercolourState(); // Save state after redo
+    saveWatercolourState().catch(console.error); // Save state after redo
   }
 });
 
@@ -415,7 +415,7 @@ function commitState() {
   // Clear redo stack on new action
   redoStack = [];
   // Save the overall watercolour state
-  saveWatercolourState();
+  saveWatercolourState().catch(console.error);
 }
 
 // Restore a state from a data URL
@@ -969,7 +969,7 @@ function getCurrentFolderPath() {
 }
 
 // State Management Functions
-function saveWatercolourState() {
+async function saveWatercolourState() {
   try {
     const state = {
       currentTool: currentTool,
@@ -980,37 +980,83 @@ function saveWatercolourState() {
       undoStack: undoStack.slice(-10), // Keep only last 10 undo states to avoid storage overflow
       redoStack: redoStack.slice(-10)
     };
-    localStorage.setItem('watercolour_state', JSON.stringify(state));
+    await storage.setItem('watercolour_state', JSON.stringify(state));
     console.log('Watercolour state saved');
   } catch (error) {
     console.warn('Failed to save Watercolour state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const state = {
+        currentTool: currentTool,
+        activeColor: activeColor,
+        strokeSize: strokeSize,
+        canvasData: canvas.toDataURL(),
+        currentFile: currentFile,
+        undoStack: undoStack.slice(-10),
+        redoStack: redoStack.slice(-10)
+      };
+      storage.setItemSync('watercolour_state', JSON.stringify(state));
+      console.log('Watercolour state saved with fallback');
+    } catch (fallbackError) {
+      console.error('Failed to save Watercolour state with fallback:', fallbackError);
+    }
   }
 }
 
-function loadWatercolourState() {
+async function loadWatercolourState() {
   try {
-    const savedState = localStorage.getItem('watercolour_state');
+    const savedState = await storage.getItem('watercolour_state');
     if (savedState) {
       console.log('Loading Watercolour state');
       return JSON.parse(savedState);
     }
   } catch (error) {
     console.warn('Failed to load Watercolour state:', error);
+    // Fallback to sync method if async fails
+    try {
+      const savedState = storage.getItemSync('watercolour_state');
+      if (savedState) {
+        console.log('Loading Watercolour state with fallback');
+        return JSON.parse(savedState);
+      }
+    } catch (fallbackError) {
+      console.warn('Failed to load Watercolour state with fallback:', fallbackError);
+    }
   }
   return null;
 }
 
-function clearWatercolourState() {
+async function clearWatercolourState() {
   try {
-    localStorage.removeItem('watercolour_state');
+    await storage.removeItem('watercolour_state');
     console.log('Watercolour state cleared');
   } catch (error) {
     console.warn('Failed to clear Watercolour state:', error);
+    // Fallback to sync method if async fails
+    try {
+      storage.removeItemSync('watercolour_state');
+      console.log('Watercolour state cleared with fallback');
+    } catch (fallbackError) {
+      console.error('Failed to clear Watercolour state with fallback:', fallbackError);
+    }
   }
 }
 
 // Restore canvas and UI state
-function restoreWatercolourState() {
+async function restoreWatercolourState() {
+  // Load saved state first
+  watercolourState = await loadWatercolourState();
+
+  // Update global variables from saved state
+  if (watercolourState) {
+    currentTool = watercolourState.currentTool || 'brush';
+    activeColor = watercolourState.activeColor || '#000000';
+    strokeSize = watercolourState.strokeSize || 5;
+    currentFile = watercolourState.currentFile || null;
+    undoStack = watercolourState.undoStack || [];
+    redoStack = watercolourState.redoStack || [];
+  }
+
   // First, properly initialize the canvas dimensions
   const ratio = window.devicePixelRatio || 1;
   const cssWidth = canvas.offsetWidth;
@@ -1043,6 +1089,7 @@ function restoreWatercolourState() {
   });
 
   // Restore canvas content if available
+  const savedImage = watercolourState?.canvasData;
   if (savedImage) {
     const img = new Image();
     img.onload = function() {

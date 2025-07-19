@@ -174,9 +174,9 @@ async function initializeWatercolour() {
     eval(coreScript);
 
     // Restore the saved state after initialization
-    setTimeout(() => {
+    setTimeout(async () => {
       if (typeof restoreWatercolourState === 'function') {
-        restoreWatercolourState();
+        await restoreWatercolourState();
       }
     }, 50);
 

@@ -368,19 +368,12 @@ function openFile(incoming_file, e) {
 
         try {
           const existingData = await storage.getItem(storageKey);
-          if (existingData) {
-            try {
-              const jsonData = JSON.parse(existingData);
-              // If there's existing content in storage, use that instead of file content
-              if (jsonData.content !== undefined) {
-                contentToStore = jsonData.content;
-              }
-            } catch (e) {
-              console.error('Error parsing existing storage data:', e);
-            }
+          if (existingData && existingData.content !== undefined) {
+            // If there's existing content in storage, use that instead of file content
+            contentToStore = existingData.content;
           }
 
-          await storage.setItem(storageKey, JSON.stringify({ content: contentToStore }));
+          await storage.setItem(storageKey, { content: contentToStore });
 
           // Initialize the editor
           const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
@@ -392,13 +385,10 @@ function openFile(incoming_file, e) {
           // Fallback to sync methods if async fails
           try {
             const existingData = storage.getItemSync(storageKey);
-            if (existingData) {
-              const jsonData = JSON.parse(existingData);
-              if (jsonData.content !== undefined) {
-                contentToStore = jsonData.content;
-              }
+            if (existingData && existingData.content !== undefined) {
+              contentToStore = existingData.content;
             }
-            storage.setItemSync(storageKey, JSON.stringify({ content: contentToStore }));
+            storage.setItemSync(storageKey, { content: contentToStore });
 
             const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
             if (editorContainer && typeof initializeLetterPad === 'function') {
@@ -796,7 +786,7 @@ async function saveFileExplorerState() {
           currentPath: currentPath,
           timestamp: Date.now()
         };
-        await storage.setItem('fileExplorerState', JSON.stringify(state));
+        await storage.setItem('fileExplorerState', state);
         console.log('File explorer state saved:', state);
       }
     }
@@ -813,7 +803,7 @@ async function saveFileExplorerState() {
             currentPath: currentPath,
             timestamp: Date.now()
           };
-          storage.setItemSync('fileExplorerState', JSON.stringify(state));
+          storage.setItemSync('fileExplorerState', state);
           console.log('File explorer state saved with fallback:', state);
         }
       }
@@ -826,9 +816,8 @@ async function saveFileExplorerState() {
 // Load file explorer state from IndexedDB
 async function loadFileExplorerState() {
   try {
-    const stateData = await storage.getItem('fileExplorerState');
-    if (stateData) {
-      const state = JSON.parse(stateData);
+    const state = await storage.getItem('fileExplorerState');
+    if (state) {
       console.log('File explorer state loaded:', state);
       return state;
     }
@@ -836,9 +825,8 @@ async function loadFileExplorerState() {
     console.warn('Failed to load file explorer state:', error);
     // Fallback to sync method if async fails
     try {
-      const stateData = storage.getItemSync('fileExplorerState');
-      if (stateData) {
-        const state = JSON.parse(stateData);
+      const state = storage.getItemSync('fileExplorerState');
+      if (state) {
         console.log('File explorer state loaded with fallback:', state);
         return state;
       }

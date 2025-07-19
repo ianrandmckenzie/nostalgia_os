@@ -1,22 +1,59 @@
 /* =====================
    Getter & Setter for fileSystemState
-   Always retrieve and update state from localStorage.
+   Always retrieve and update state from IndexedDB.
 ====================== */
-function getFileSystemState() {
-  const appStateStr = localStorage.getItem('appState');
-  if (appStateStr) {
-    const appState = JSON.parse(appStateStr);
-    return appState.fileSystemState;
+async function getFileSystemState() {
+  try {
+    const appState = await storage.getItem('appState');
+    if (appState && appState.fileSystemState) {
+      return appState.fileSystemState;
+    }
+  } catch (error) {
+    console.warn('Failed to get file system state from IndexedDB:', error);
+    // Fallback to sync method
+    try {
+      const appState = storage.getItemSync('appState');
+      if (appState && appState.fileSystemState) {
+        return appState.fileSystemState;
+      }
+    } catch (fallbackError) {
+      console.warn('Failed to get file system state with fallback:', fallbackError);
+    }
   }
   return fileSystemState;
 }
 
-function setFileSystemState(newFS) {
-  const appStateStr = localStorage.getItem('appState');
-  let appState = appStateStr ? JSON.parse(appStateStr) : {};
-  appState.fileSystemState = newFS;
-  localStorage.setItem('appState', JSON.stringify(appState));
-  fileSystemState = newFS; // update global variable for consistency
+async function setFileSystemState(newFS) {
+  try {
+    const appState = await storage.getItem('appState') || {};
+    appState.fileSystemState = newFS;
+    await storage.setItem('appState', appState);
+    fileSystemState = newFS; // update global variable for consistency
+  } catch (error) {
+    console.warn('Failed to set file system state in IndexedDB:', error);
+    // Fallback to sync method
+    try {
+      const appState = storage.getItemSync('appState') || {};
+      appState.fileSystemState = newFS;
+      storage.setItemSync('appState', appState);
+      fileSystemState = newFS;
+    } catch (fallbackError) {
+      console.error('Failed to set file system state with fallback:', fallbackError);
+    }
+  }
+}
+
+function getFileSystemStateSync() {
+  try {
+    const appState = storage.getItemSync('appState');
+    if (appState && appState.fileSystemState) {
+      return appState.fileSystemState;
+    }
+  } catch (error) {
+    console.warn('Failed to get file system state sync:', error);
+  }
+  // Return global variable as fallback
+  return fileSystemState;
 }
 
 /* =====================
@@ -26,8 +63,8 @@ function setFileSystemState(newFS) {
 ====================== */
 function getItemsForPath(fullPath) {
   fullPath = normalizePath(fullPath);
-  const fs = getFileSystemState();
-  if (fs.initialized !== true) fetchDocuments();
+  const fs = getFileSystemStateSync();
+  if (fs.initialized !== true) fetchDocumentsSync();
 
   let current = fs.folders;
   if (fullPath.substring(1, 4) === '://' && fullPath.length === 4) {
@@ -113,7 +150,7 @@ const myDocuments = {
   ]
 };
 
-function fetchDocuments() {
+async function fetchDocuments() {
   try {
     const data = myDocuments;
     const files = data.files;
@@ -153,13 +190,72 @@ function fetchDocuments() {
       fs.folders['C://']['Documents'].contents = fileItemsObj;
     }
     fs.initialized = true;
-    setFileSystemState(fs);
+    await setFileSystemState(fs);
   } catch (error) {
     console.error("Error loading documents:", error);
     const container = document.getElementById('files-area');
     if (container) {
       container.innerHTML = '<p>Error loading files.</p>';
     }
+  }
+}
+
+function fetchDocumentsSync() {
+  try {
+    const fs = getFileSystemStateSync();
+    if (!fs.folders || !fs.folders['C://']) {
+      console.warn('File system structure not properly initialized for sync document fetch');
+      return;
+    }
+
+    const fileItems = myDocuments.files.map(file => {
+      const content_type = file.url.split('.').pop().toLowerCase();
+      let icon_url = 'image/file.png';
+      if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
+        icon_url = 'image/image.png';
+      } else if (['mp4', 'webm'].includes(content_type)) {
+        icon_url = 'image/video.png';
+      } else if (['mp3', 'wav'].includes(content_type)) {
+        icon_url = 'image/audio.png';
+      } else if (content_type === 'html') {
+        icon_url = 'image/html.png';
+      } else if (['md', 'txt'].includes(content_type)) {
+        icon_url = 'image/doc.png';
+      }
+
+      return {
+        id: file.id,
+        name: file.url,
+        type: "file",
+        content: "",
+        fullPath: `C://Documents/${file.id}`,
+        content_type: content_type,
+        icon_url: icon_url,
+        url: file.url
+      };
+    });
+
+    if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
+      const fileItemsObj = {};
+      fileItems.forEach(file => {
+        fileItemsObj[file.id] = file;
+      });
+      fs.folders['C://']['Documents'].contents = fileItemsObj;
+    }
+    fs.initialized = true;
+    // Use sync setFileSystemState by calling the sync storage directly
+    try {
+      const appState = storage.getItemSync('appState') || {};
+      appState.fileSystemState = fs;
+      storage.setItemSync('appState', appState);
+      fileSystemState = fs;
+    } catch (error) {
+      console.warn('Failed to save file system state sync:', error);
+      // At least update the global variable
+      fileSystemState = fs;
+    }
+  } catch (error) {
+    console.error("Error loading documents sync:", error);
   }
 }
 

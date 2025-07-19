@@ -29,7 +29,7 @@ function saveState() {
     desktopSettings: desktopSettings,
     navWindows: navWindows
   };
-  storage.setItemSync('appState', JSON.stringify(appState));
+  storage.setItemSync('appState', appState);
 }
 
 function getFileSystemState() {
@@ -196,7 +196,7 @@ async function initializeAppState() {
       desktopSettings: desktopSettings,
       navWindows: navWindows
     };
-    await storage.setItem('appState', JSON.stringify(initialState));
+    await storage.setItem('appState', initialState);
 
     // Add the default song to the Music folder on first load
     setTimeout(() => {
@@ -204,7 +204,7 @@ async function initializeAppState() {
     }, 100);
   } else {
     // Load state from IndexedDB
-    const storedState = JSON.parse(appStateData);
+    const storedState = appStateData;
     setFileSystemState(storedState.fileSystemState);
     windowStates = storedState.windowStates || {};
     desktopIconsState = storedState.desktopIconsState || {};
@@ -242,7 +242,7 @@ async function initializeAppState() {
 async function restoreFileSystemState() {
   const saved = await storage.getItem('fileSystemState');
   if (saved) {
-    fileSystemState = JSON.parse(saved);
+    fileSystemState = saved;
   }
 }
 
@@ -601,7 +601,7 @@ async function restoreDesktopIcons() {
 async function restoreDesktopSettings() {
   const appStateData = await storage.getItem('appState');
   if (appStateData) {
-    const storedState = JSON.parse(appStateData);
+    const storedState = appStateData;
     if (storedState.desktopSettings) {
       desktopSettings = storedState.desktopSettings;
       applyDesktopSettings();

@@ -765,7 +765,7 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   // Initialize the editor with the default content
   setTimeout(() => {
     const storageKey = `letterpad_${fileId}`;
-    storage.setItemSync(storageKey, JSON.stringify({ content: defaultContent }));
+    storage.setItemSync(storageKey, { content: defaultContent });
 
     const editorContainer = document.querySelector(`[data-letterpad-editor-id="${fileId}"]`);
     if (editorContainer && typeof initializeLetterPad === 'function') {

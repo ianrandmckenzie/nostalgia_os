@@ -256,6 +256,9 @@ async function initializeMediaPlayerUI(win) {
                 } else if (file.dataURL) {
                   // Songs with stored data URLs
                   playlistEntry.dataURL = file.dataURL;
+                } else if (file.tempObjectURL) {
+                  // Songs with temporary object URLs (uploaded files being processed)
+                  playlistEntry.tempObjectURL = file.tempObjectURL;
                 } else {
                   // Fallback for songs that might reference media folder
                   playlistEntry.path = `media/${file.name}`;

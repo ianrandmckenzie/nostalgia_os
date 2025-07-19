@@ -147,7 +147,9 @@ function showContextMenu(e, target, fromFullPath) {
     const newFileItem = addItem('New File', false, null, true);
     addSubmenu(newFileItem, [
       { text: 'LetterPad', disabled: false, onclick: ev => createNewLetterpad(ev, fromFullPath) },
-      { text: 'Image', disabled: false, onclick: ev => createNewImage(ev, fromFullPath) }
+      { text: 'Image', disabled: false, onclick: ev => createNewImage(ev, fromFullPath) },
+      { text: 'Audio', disabled: false, onclick: ev => createNewAudio(ev, fromFullPath) },
+      { text: 'Video', disabled: false, onclick: ev => createNewVideo(ev, fromFullPath) }
     ]);
 
     addItem('New Shortcut', false, ev => createNewShortcut(ev, fromFullPath));
@@ -895,6 +897,104 @@ function createNewImage(e, fromFullPath, onCreated = null) {
   fileInput.click();
 }
 
+/* =========================
+   Create a new Audio file (upload from computer)
+   ========================= */
+function createNewAudio(e, fromFullPath, onCreated = null) {
+  if (e) e.stopPropagation();
+  hideContextMenu();
+
+  const parentPath = fromFullPath || 'C://';
+
+  // Create hidden file input for audio selection
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'audio/*';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Get file extension for content type
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+
+      // Use our unified binary file creation helper
+      const newFile = await addBinaryFileToFileSystem(file.name, parentPath, fileExtension, file);
+
+      if (newFile && typeof onCreated === 'function') {
+        onCreated(newFile.id, newFile);
+      }
+
+      // Refresh views using our unified approach
+      if (fromFullPath === 'C://Desktop') {
+        if (typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        }
+      } else {
+        if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(parentPath);
+        }
+      }
+    }
+
+    // Clean up
+    document.body.removeChild(fileInput);
+  });
+
+  // Add to document and trigger click
+  document.body.appendChild(fileInput);
+  fileInput.click();
+}
+
+/* =========================
+   Create a new Video file (upload from computer)
+   ========================= */
+function createNewVideo(e, fromFullPath, onCreated = null) {
+  if (e) e.stopPropagation();
+  hideContextMenu();
+
+  const parentPath = fromFullPath || 'C://';
+
+  // Create hidden file input for video selection
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'video/*';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Get file extension for content type
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+
+      // Use our unified binary file creation helper
+      const newFile = await addBinaryFileToFileSystem(file.name, parentPath, fileExtension, file);
+
+      if (newFile && typeof onCreated === 'function') {
+        onCreated(newFile.id, newFile);
+      }
+
+      // Refresh views using our unified approach
+      if (fromFullPath === 'C://Desktop') {
+        if (typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        }
+      } else {
+        if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(parentPath);
+        }
+      }
+    }
+
+    // Clean up
+    document.body.removeChild(fileInput);
+  });
+
+  // Add to document and trigger click
+  document.body.appendChild(fileInput);
+  fileInput.click();
+}
+
 // Create a menu/form button with Win-95 raised edges
 function makeWin95Button(label) {
   const btn  = document.createElement('button');
@@ -1039,6 +1139,19 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
 
   // Handle binary file data conversion and storage
   if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    // Create immediate object URL for instant access while async processing happens
+    const tempObjectURL = URL.createObjectURL(fileObj);
+
+    // Update the file entry with the temporary URL before async processing
+    const fs = getFileSystemStateSync();
+    const destination = fs.folders[targetPath];
+    if (destination && destination[fileId]) {
+      destination[fileId].tempObjectURL = tempObjectURL;
+      destination[fileId].file = fileObj; // Keep the file object temporarily
+      setFileSystemState(fs);
+      console.log('🎵 BINARY: Created temporary object URL for immediate access:', tempObjectURL);
+    }
+
     try {
       const dataURL = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1053,18 +1166,23 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
       await storage.setItem(`file_data_${fileId}`, dataURL);
 
       // Update file metadata - all IndexedDB files should be treated as "large" for loading purposes
-      const fs = getFileSystemStateSync();
-      const destination = fs.folders[targetPath];
+      const currentFS = getFileSystemStateSync();
+      const destination = currentFS.folders[targetPath];
       if (destination && destination[fileId]) {
         destination[fileId].isLargeFile = true; // Always true for IndexedDB stored files
         destination[fileId].storageLocation = 'indexeddb';
         destination[fileId].content = ''; // Keep content empty for binary files
         destination[fileId].fileSizeInMB = fileSizeInMB; // Add size info for debugging
         destination[fileId].actualSizeInMB = fileSizeInMB; // Track actual size separately
+        destination[fileId].dataURL = dataURL; // Store the data URL for permanent access
+        destination[fileId].file = null; // Clear the file object after processing
+
+        // Keep the tempObjectURL as backup until dataURL is confirmed working
+        console.log('🎵 BINARY: DataURL stored, keeping tempObjectURL as backup');
       }
 
       // Save updated file system state
-      setFileSystemState(fs);
+      setFileSystemState(currentFS);
       await saveState();
 
       console.log(`File (${fileSizeInMB.toFixed(2)}MB) stored successfully:`, fileName);
@@ -1090,13 +1208,15 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
     } catch (error) {
       console.error('Failed to store binary file:', error);
 
-      // Update file to indicate storage failure
-      const fs = getFileSystemStateSync();
-      const destination = fs.folders[targetPath];
+      // Update file to indicate storage failure but keep tempObjectURL for immediate access
+      const currentFS = getFileSystemStateSync();
+      const destination = currentFS.folders[targetPath];
       if (destination && destination[fileId]) {
         destination[fileId].isLargeFile = true;
         destination[fileId].storageLocation = 'failed';
-        setFileSystemState(fs);
+        // Keep tempObjectURL so the file is still accessible even if storage failed
+        console.log('🎵 BINARY: Storage failed but keeping tempObjectURL for access');
+        setFileSystemState(currentFS);
       }
 
       showDialogBox(`File "${fileName}" could not be stored. Storage error: ${error.message}`, 'error');

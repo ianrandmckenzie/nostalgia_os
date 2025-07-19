@@ -130,10 +130,16 @@ function getExplorerWindowContent(currentPath = 'C://') {
         `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
       );
     } else {
+      console.log('🔍 EXPLORER: Rendering file:', item.name, 'ID:', item.id, 'Full item:', item);
+      // Validate that the item has a proper name property
+      const displayName = item.name || item.id || 'Unknown File';
+      if (!item.name) {
+        console.warn('🔍 EXPLORER: File missing name property, using fallback:', displayName, 'Item:', item);
+      }
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
-        `data-open-file="${item.id}" title="${item.name}${extraDesc}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
+        `data-open-file="${item.id}" title="${displayName}${extraDesc}">` +
+        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${displayName}${extraDesc}</li>`
       );
     }
   });
@@ -475,7 +481,23 @@ function openFile(incoming_file, e) {
       }
     } else if (['mp3', 'wav', 'ogg'].includes(file.content_type)) {
       // Handle UGC audio files
+      console.log('🔍 AUDIO: Opening audio file:', {
+        name: file.name,
+        id: file.id,
+        dataURL: !!file.dataURL,
+        tempObjectURL: file.tempObjectURL ? 'EXISTS' : 'MISSING',
+        tempObjectURLValue: file.tempObjectURL,
+        isLargeFile: file.isLargeFile,
+        storageLocation: file.storageLocation,
+        fileObj: !!file.file,
+        isDefault: file.isDefault,
+        isSystemFile: file.isSystemFile,
+        path: file.path,
+        contentType: file.content_type
+      });
+
       if (file.dataURL) {
+        console.log('🔍 AUDIO: Using dataURL (permanent storage)');
         content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
               <source src="${file.dataURL}" type="audio/mpeg">
               Your browser does not support the audio element.
@@ -499,6 +521,8 @@ function openFile(incoming_file, e) {
                   contentDiv.innerHTML = audio;
                 }
               }
+            } else {
+              throw new Error('Audio data not found in IndexedDB');
             }
           } catch (error) {
             console.error('Error loading large audio file:', error);
@@ -517,8 +541,35 @@ function openFile(incoming_file, e) {
               <source src="${audioURL}" type="audio/mpeg">
               Your browser does not support the audio element.
             </audio>`;
+      } else if (file.tempObjectURL) {
+        // Handle files with temporary object URLs (uploaded files being processed)
+        console.log('🔍 AUDIO: Using tempObjectURL:', file.tempObjectURL);
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;"
+                     onloadstart="console.log('🔍 AUDIO: Audio element started loading')"
+                     oncanplay="console.log('🔍 AUDIO: Audio can start playing')"
+                     onerror="console.error('🔍 AUDIO: Audio element error:', event.target.error)">
+              <source src="${file.tempObjectURL}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
+      } else if (file.isDefault || file.isSystemFile || file.path) {
+        // Handle default/system audio files that reference static media files
+        const audioPath = file.path || `media/${file.name}`;
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="${audioPath}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
       } else {
-        content = `<p style="padding:10px;">Audio file not found or invalid.</p>`;
+        console.error('Audio file missing required properties:', {
+          name: file.name,
+          id: file.id,
+          dataURL: !!file.dataURL,
+          tempObjectURL: file.tempObjectURL,
+          isLargeFile: file.isLargeFile,
+          storageLocation: file.storageLocation,
+          fileObj: !!file.file,
+          contentType: file.content_type
+        });
+        content = `<p style="padding:10px;">Audio file not found or invalid.<br>Debug: Missing required properties for audio playback.</p>`;
       }
     } else if (['mp4', 'webm', 'avi', 'mov'].includes(file.content_type)) {
       // Handle UGC video files
@@ -594,8 +645,15 @@ function openFile(incoming_file, e) {
               <source src="${audioURL}" type="audio/mpeg">
               Your browser does not support the audio element.
             </audio>`;
+      } else if (file.isDefault || file.isSystemFile || file.path) {
+        // Handle default/system audio files that reference static media files
+        const audioPath = file.path || `media/${file.name}`;
+        content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+              <source src="${audioPath}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>`;
       } else {
-        // Handle audio files from the media folder
+        // Handle audio files from the media folder (fallback)
         content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
               <source src="./media/${file.name}" type="audio/mpeg">
               Your browser does not support the audio element.

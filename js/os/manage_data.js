@@ -133,11 +133,8 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   // Check if we're targeting a root drive
   const isRootDrive = pathParts.length === 0;
 
-  // Ensure the target folder has a contents object (unless it's a root drive)
-  if (!isRootDrive && !targetFolder.contents) {
-    console.log('Creating contents object for folder:', targetFolder.name);
-    targetFolder.contents = {};
-  }
+  // Note: In unified structure, we don't use a separate contents object
+  // Files are stored directly in the folder
 
   // Determine appropriate icon based on content type
   let icon_url = 'image/file.png';
@@ -166,8 +163,23 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     file: fileObj || null // Store the actual file object if provided
   };
 
+  console.log('🎵 ADDFILE: Creating new file:', {
+    fileName,
+    fileId,
+    targetFolderPath,
+    contentType,
+    hasFileObj: !!fileObj
+  });
+
   // Convert File object to data URL for persistence if it's a binary file
   if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    console.log('🎵 ADDFILE: Processing binary file for storage...');
+
+    // Create immediate object URL for instant playback while async processing happens
+    const tempObjectURL = URL.createObjectURL(fileObj);
+    newFile.tempObjectURL = tempObjectURL;
+    console.log('🎵 ADDFILE: Created temporary object URL for immediate access');
+
     const reader = new FileReader();
     reader.onload = async function(e) {
       const dataURL = e.target.result;
@@ -176,20 +188,70 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
       // Store all files in IndexedDB for consistency
       try {
         await storage.setItem(`file_data_${fileId}`, dataURL);
-        newFile.isLargeFile = fileSizeInMB > 1;
-        newFile.storageLocation = 'indexeddb';
-        console.log(`File (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
+
+        // Update the file entry with storage information
+        const currentFS = await getFileSystemState();
+        let fileEntry;
+
+        if (isRootDrive) {
+          fileEntry = currentFS.folders[drive][fileId];
+        } else {
+          fileEntry = currentFS.folders[targetFolderPath][fileId];
+        }
+
+        if (fileEntry) {
+          fileEntry.isLargeFile = fileSizeInMB > 1;
+          fileEntry.storageLocation = 'indexeddb';
+          fileEntry.dataURL = dataURL; // Store the data URL for immediate access
+
+          // Keep the tempObjectURL as backup - don't clean it up immediately
+          // The file explorer will prefer dataURL when available
+          console.log('🎵 ADDFILE: DataURL stored, keeping tempObjectURL as backup');
+
+          console.log(`🎵 ADDFILE: File (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
+        } else {
+          console.error('🎵 ADDFILE: File entry not found after creation:', fileId);
+          console.error('🎵 ADDFILE: Looking in:', isRootDrive ? drive : targetFolderPath);
+          console.error('🎵 ADDFILE: Available keys:', isRootDrive ? Object.keys(currentFS.folders[drive] || {}) : Object.keys(currentFS.folders[targetFolderPath] || {}));
+        }
       } catch (error) {
         console.error('Failed to store file in IndexedDB:', error);
-        // Fallback: don't store the file data, just the metadata
-        newFile.isLargeFile = true;
-        newFile.storageLocation = 'failed';
+
+        // Update the file entry with failure information
+        const currentFS = await getFileSystemState();
+        let fileEntry;
+
+        if (isRootDrive) {
+          fileEntry = currentFS.folders[drive][fileId];
+        } else {
+          fileEntry = currentFS.folders[targetFolderPath][fileId];
+        }
+
+        if (fileEntry) {
+          fileEntry.isLargeFile = true;
+          fileEntry.storageLocation = 'failed';
+        }
         showDialogBox(`File "${fileName}" could not be stored (${fileSizeInMB.toFixed(2)}MB). Storage error: ${error.message}`, 'error');
       }
 
       // Remove the File object since we have the data stored
-      newFile.file = null;
-      setFileSystemState(fs);
+      const currentFS = await getFileSystemState();
+      let fileEntry;
+
+      if (isRootDrive) {
+        fileEntry = currentFS.folders[drive][fileId];
+      } else {
+        fileEntry = currentFS.folders[targetFolderPath][fileId];
+      }
+
+      if (fileEntry) {
+        fileEntry.file = null;
+        console.log('🎵 ADDFILE: Removed File object from file entry:', fileId);
+      } else {
+        console.error('🎵 ADDFILE: Could not find file entry to remove File object:', fileId);
+      }
+
+      setFileSystemState(currentFS);
 
       // Save state - wait for completion to ensure data integrity
       try {
@@ -213,10 +275,16 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   if (isRootDrive) {
     // For root drives, add directly to the drive folder
     targetFolder[fileId] = newFile;
+    console.log('🎵 ADDFILE: Added to root drive:', drive, 'File ID:', fileId, 'File name:', newFile.name);
   } else {
-    // For regular folders, add to contents
-    targetFolder.contents[fileId] = newFile;
+    // For regular folders in unified structure, add directly to the folder, NOT to contents
+    targetFolder[fileId] = newFile;
+    console.log('🎵 ADDFILE: Added directly to folder:', targetFolderPath, 'File ID:', fileId, 'File name:', newFile.name);
   }
+
+  console.log('🎵 ADDFILE: File added to file system. Checking folder contents...');
+  console.log('🎵 ADDFILE: Folder contents:', Object.keys(targetFolder));
+  console.log('🎵 ADDFILE: Added file object:', targetFolder[fileId]);
 
   // Save changes (for non-binary files or immediate save)
   setFileSystemState(fs);
@@ -249,6 +317,19 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
       console.warn('refreshAllExplorerWindows function not found');
     }
   }
+
+  // If a music file was added to C://Music, refresh the media player playlist
+  if (targetFolderPath === 'C://Music' && ['mp3', 'wav', 'ogg', 'audio'].includes(contentType)) {
+    console.log('Music file added to C://Music, refreshing media player playlist');
+    if (typeof window.refreshMediaPlayerPlaylist === 'function') {
+      // Delay the refresh to ensure the file system state is fully updated
+      setTimeout(() => {
+        window.refreshMediaPlayerPlaylist();
+      }, 100);
+    } else {
+      console.log('Media player playlist refresh function not available yet');
+    }
+  }
   // Note: refreshExplorerViews() is broken, so we handle refresh above
 
   return newFile;
@@ -266,52 +347,78 @@ function migrateFileSystemToUnifiedStructure(fs) {
   console.log('Migrating file system to unified structure...');
   console.log('Original file system structure:', JSON.stringify(fs, null, 2));
 
-  // Check if migration is needed (if Desktop has nested contents but no C://Desktop key)
-  if (fs.folders && fs.folders['C://'] && fs.folders['C://']['Desktop'] &&
-      fs.folders['C://']['Desktop'].contents && !fs.folders['C://Desktop']) {
+  // Ensure the unified structure exists
+  if (!fs.folders) {
+    fs.folders = {};
+  }
 
-    console.log('Migration needed: Moving Desktop contents to unified structure');
+  // Check if migration is needed or if we need to ensure default folders exist
+  let migrationNeeded = false;
 
-    // Move Desktop contents to the unified location
-    const desktopContents = fs.folders['C://']['Desktop'].contents;
-    fs.folders['C://Desktop'] = desktopContents;
+  // Check for old nested structure
+  if (fs.folders['C://'] && typeof fs.folders['C://'] === 'object') {
+    console.log('Found old nested structure in C:// drive');
 
-    console.log('Migrated desktop items:', Object.keys(desktopContents));
+    // Migrate all default folders from nested to unified structure
+    const driveContents = fs.folders['C://'];
+    for (const [folderName, folderObj] of Object.entries(driveContents)) {
+      if (folderObj && typeof folderObj === 'object' && folderObj.type === 'folder') {
+        const unifiedPath = `C://${folderName}`;
 
-    // Also migrate any other nested folder contents to the unified structure
-    function migrateNestedContents(folderPath, folderObj) {
-      if (folderObj.contents && Object.keys(folderObj.contents).length > 0) {
-        // Move contents to the unified location
-        if (!fs.folders[folderPath]) {
-          fs.folders[folderPath] = {};
-        }
-        Object.assign(fs.folders[folderPath], folderObj.contents);
+        // If this folder doesn't exist in unified structure, migrate it
+        if (!fs.folders[unifiedPath]) {
+          console.log(`Migrating ${folderName} to unified structure at ${unifiedPath}`);
 
-        // Recursively migrate nested folders
-        Object.values(folderObj.contents).forEach(item => {
-          if (item.type === 'folder' && item.fullPath) {
-            migrateNestedContents(item.fullPath, item);
+          // Create the folder in unified structure with its contents
+          fs.folders[unifiedPath] = folderObj.contents || {};
+          migrationNeeded = true;
+
+          // Also recursively migrate any nested folder contents
+          if (folderObj.contents) {
+            Object.values(folderObj.contents).forEach(item => {
+              if (item.type === 'folder' && item.fullPath) {
+                migrateNestedContents(item.fullPath, item, fs);
+              }
+            });
           }
-        });
+        }
       }
     }
+  }
 
-    // Migrate all folders in the file system
-    Object.values(fs.folders).forEach(drive => {
-      if (typeof drive === 'object') {
-        Object.values(drive).forEach(folder => {
-          if (folder.type === 'folder' && folder.fullPath && folder.contents) {
-            migrateNestedContents(folder.fullPath, folder);
-          }
-        });
+  // Ensure essential folders exist in unified structure (even if not migrated)
+  const essentialFolders = ['C://Desktop', 'C://Documents', 'C://Music'];
+  for (const folderPath of essentialFolders) {
+    if (!fs.folders[folderPath]) {
+      console.log(`Creating missing essential folder: ${folderPath}`);
+      fs.folders[folderPath] = {};
+      migrationNeeded = true;
+    }
+  }
+
+  // Helper function to migrate nested contents recursively
+  function migrateNestedContents(folderPath, folderObj, fileSystem) {
+    if (folderObj.contents && Object.keys(folderObj.contents).length > 0) {
+      // Move contents to the unified location
+      if (!fileSystem.folders[folderPath]) {
+        fileSystem.folders[folderPath] = {};
       }
-    });
+      Object.assign(fileSystem.folders[folderPath], folderObj.contents);
 
-    console.log('File system migration completed');
-    console.log('Migrated file system structure:', JSON.stringify(fs, null, 2));
+      // Recursively migrate nested folders
+      Object.values(folderObj.contents).forEach(item => {
+        if (item.type === 'folder' && item.fullPath) {
+          migrateNestedContents(item.fullPath, item, fileSystem);
+        }
+      });
+    }
+  }
+
+  if (migrationNeeded) {
+    console.log('Migration completed. Updated file system structure.');
+    console.log('Available folders after migration:', Object.keys(fs.folders));
   } else {
-    console.log('File system already uses unified structure or no migration needed');
-    console.log('Current Desktop contents in unified location:', fs.folders['C://Desktop']);
+    console.log('No migration needed.');
   }
 
   return fs;
@@ -357,7 +464,42 @@ async function initializeAppState() {
 
     // Add the default song to the Music folder on first load
     setTimeout(async () => {
-      await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
+      console.log('🎵 DEBUGGING: Adding default song to Music folder...');
+      // For the default song, create a file entry that references the static media file
+      const fs = await getFileSystemState();
+      console.log('🎵 DEBUGGING: Current file system state:', fs);
+      console.log('🎵 DEBUGGING: C://Music contents:', fs.folders['C://Music']);
+      if (fs.folders['C://Music']) {
+        // Check if the default song is already there
+        const hasDefaultSong = Object.values(fs.folders['C://Music']).some(file =>
+          file.name === 'too_many_screws_final.mp3'
+        );
+        console.log('🎵 DEBUGGING: Has default song already?', hasDefaultSong);
+        if (!hasDefaultSong) {
+          const defaultSongFile = {
+            id: 'default-music-file',
+            name: 'too_many_screws_final.mp3',
+            type: 'ugc-file',
+            fullPath: 'C://Music/too_many_screws_final.mp3',
+            content_type: 'mp3',
+            icon: 'image/audio.png',
+            contents: '',
+            file: null,
+            isDefault: true,
+            path: 'media/too_many_screws_final.mp3', // Reference to static file
+            isSystemFile: true // Mark as system file for proper handling
+          };
+          fs.folders['C://Music']['default-music-file'] = defaultSongFile;
+          setFileSystemState(fs);
+          await saveState();
+          console.log('🎵 DEBUGGING: Default song added to C://Music');
+          console.log('🎵 DEBUGGING: Updated C://Music contents:', fs.folders['C://Music']);
+        } else {
+          console.log('🎵 DEBUGGING: Default song already exists in C://Music');
+        }
+      } else {
+        console.log('🎵 DEBUGGING: C://Music folder does not exist!');
+      }
     }, 100);
 
     // Initialize Documents folder with default files
@@ -411,14 +553,31 @@ async function initializeAppState() {
     // Check if default song exists in Music folder, add if not (for migration)
     setTimeout(async () => {
       const fs = await getFileSystemState();
-      if (fs && fs.folders && fs.folders['C://'] && fs.folders['C://'].Music) {
-        const musicFolder = fs.folders['C://'].Music;
-        if (musicFolder && musicFolder.contents) {
-          const hasDefaultSong = Object.values(musicFolder.contents).some(file =>
+      if (fs && fs.folders && fs.folders['C://Music']) {
+        const musicFolder = fs.folders['C://Music'];
+        if (musicFolder) {
+          const hasDefaultSong = Object.values(musicFolder).some(file =>
             file.name === 'too_many_screws_final.mp3'
           );
           if (!hasDefaultSong) {
-            await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
+            console.log('Adding default song to Music folder during migration...');
+            const defaultSongFile = {
+              id: 'default-music-file',
+              name: 'too_many_screws_final.mp3',
+              type: 'ugc-file',
+              fullPath: 'C://Music/too_many_screws_final.mp3',
+              content_type: 'mp3',
+              icon: 'image/audio.png',
+              contents: '',
+              file: null,
+              isDefault: true,
+              path: 'media/too_many_screws_final.mp3', // Reference to static file
+              isSystemFile: true // Mark as system file for proper handling
+            };
+            fs.folders['C://Music']['default-music-file'] = defaultSongFile;
+            setFileSystemState(fs);
+            await saveState();
+            console.log('Default song added to C://Music during migration');
           }
         }
       }

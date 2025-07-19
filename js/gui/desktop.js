@@ -178,7 +178,7 @@ async function renderDesktopIcons() {
   let fs = await getFileSystemState();
 
   // If file system is not initialized, initialize it with default state
-  if (!fs || !fs.folders || !fs.folders['C://'] || !fs.folders['C://']['Desktop']) {
+  if (!fs || !fs.folders || !fs.folders['C://Desktop']) {
     console.log('File system not initialized, initializing with default state...');
     // Call initializeAppState to set up the default file system
     if (typeof initializeAppState === 'function') {
@@ -225,7 +225,7 @@ async function renderDesktopIcons() {
   }
 
   // Final validation to ensure fs has the required structure
-  if (!fs || !fs.folders || !fs.folders['C://'] || !fs.folders['C://']['Desktop']) {
+  if (!fs || !fs.folders || !fs.folders['C://Desktop']) {
     console.error('File system structure is still invalid after initialization attempts:', fs);
     return;
   }
@@ -391,22 +391,22 @@ function constrainIconPosition(icon) {
 // Helper function to get an item from the file system by its ID
 function getItemFromFileSystem(itemId) {
   const fs = getFileSystemStateSync();
-  
+
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
-    
+
     // Check if the item is directly in this folder
     if (folder[itemId]) {
       return folder[itemId];
     }
-    
+
     // Check if the item is in the folder's contents
     if (folder.contents && folder.contents[itemId]) {
       return folder.contents[itemId];
     }
   }
-  
+
   return null;
 }
 

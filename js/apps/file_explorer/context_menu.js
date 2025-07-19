@@ -1076,6 +1076,17 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
         actualSizeInMB: fileSizeInMB
       });
 
+      // If a music file was added to C://Music, refresh the media player playlist
+      if (targetPath === 'C://Music' && ['mp3', 'wav', 'ogg'].includes(contentType)) {
+        console.log('Music file added to C://Music via file upload, refreshing media player playlist');
+        if (typeof window.refreshMediaPlayerPlaylist === 'function') {
+          // Delay the refresh to ensure the file system state is fully updated
+          setTimeout(() => {
+            window.refreshMediaPlayerPlaylist();
+          }, 200);
+        }
+      }
+
     } catch (error) {
       console.error('Failed to store binary file:', error);
 

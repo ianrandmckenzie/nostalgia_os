@@ -179,9 +179,16 @@ async function initializeMediaPlayerUI(win) {
     const request = objectStore.add(song);
 
     request.onsuccess = async () => {
+      console.log('Song added to IndexedDB:', songFile.name);
       // Also add the song to the file system Music folder
       const fileExtension = songFile.name.split('.').pop().toLowerCase();
-      await addFileToFileSystem(songFile.name, '', 'C://Music', fileExtension, songFile);
+      try {
+        await addFileToFileSystem(songFile.name, '', 'C://Music', fileExtension, songFile);
+        console.log('Song added to file system C://Music:', songFile.name);
+      } catch (error) {
+        console.error('Failed to add song to file system:', error);
+      }
+      // Reload the playlist to include the new song
       loadPlaylist();
     };
 
@@ -197,49 +204,92 @@ async function initializeMediaPlayerUI(win) {
 
     request.onsuccess = () => {
       const dbSongs = request.result;
-      // Start with the default track
+      console.log('Loading playlist - IndexedDB songs:', dbSongs.length);
+
+      // Start with an empty playlist
       playlist = [];
 
-      // Add the default song first
-      playlist.push({
-        name: 'too_many_screws_final.mp3',
-        path: 'media/too_many_screws_final.mp3',
-        isDefault: true,
-        id: 'default-song'
-      });
-
-      // Add songs from IndexedDB
+      // Add songs from IndexedDB that are not already in file system
       dbSongs.forEach(song => {
-        playlist.push({ name: song.name, file: song.file, id: song.id });
+        playlist.push({ name: song.name, file: song.file, id: song.id, source: 'indexeddb' });
       });
 
-      // Also load songs from the Music folder in the file system
+      // Load songs from the Music folder in the file system
       try {
-        const fs = getFileSystemState();
-        const musicFolder = fs.folders['C://'].Music;
-        if (musicFolder && musicFolder.contents) {
-          Object.values(musicFolder.contents).forEach(file => {
+        const fs = getFileSystemStateSync();
+        console.log('🎵 MEDIAPLAYER: File system state:', fs);
+        const musicFolder = fs.folders['C://Music'];
+        console.log('🎵 MEDIAPLAYER: Music folder contents:', musicFolder);
+
+        if (musicFolder) {
+          // Get all files from the Music folder, excluding the 'contents' object
+          const musicFiles = Object.entries(musicFolder)
+            .filter(([key, value]) => key !== 'contents' && value && typeof value === 'object' && value.type)
+            .map(([key, value]) => value);
+
+          console.log('🎵 MEDIAPLAYER: Music files found (excluding contents):', musicFiles);
+          musicFiles.forEach(file => {
+            console.log('🎵 MEDIAPLAYER: Checking file:', file);
             if (file.content_type && ['mp3', 'wav', 'audio'].includes(file.content_type)) {
               // Check if this song is already in the playlist (avoid duplicates)
               const existsInPlaylist = playlist.some(track => track.name === file.name);
+              console.log('🎵 MEDIAPLAYER: File', file.name, 'exists in playlist?', existsInPlaylist);
               if (!existsInPlaylist) {
+                console.log('🎵 MEDIAPLAYER: Adding file system song to playlist:', file.name);
                 // For file system songs, we need to handle them differently
-                playlist.push({
+                const playlistEntry = {
                   name: file.name,
                   file: file.file,
                   id: file.id,
                   isFileSystem: true,
-                  path: file.file ? null : `media/${file.name}` // fallback for default songs
-                });
+                  source: 'filesystem'
+                };
+
+                // Determine the correct path/source for the song
+                if (file.isDefault && file.path) {
+                  // Default songs that reference static files
+                  playlistEntry.path = file.path;
+                  playlistEntry.isDefault = true;
+                } else if (file.file) {
+                  // Songs with actual file objects
+                  playlistEntry.file = file.file;
+                } else if (file.dataURL) {
+                  // Songs with stored data URLs
+                  playlistEntry.dataURL = file.dataURL;
+                } else {
+                  // Fallback for songs that might reference media folder
+                  playlistEntry.path = `media/${file.name}`;
+                }
+
+                playlist.push(playlistEntry);
+              } else {
+                console.log('Song already in playlist, skipping:', file.name);
               }
             }
           });
+        } else {
+          console.log('Music folder not found in file system');
         }
       } catch (error) {
-        console.log('Could not load songs from file system:', error);
+        console.error('Could not load songs from file system:', error);
       }
 
+      // If no default song was found in the file system, add the fallback default song
+      const hasDefaultSong = playlist.some(track => track.name === 'too_many_screws_final.mp3');
+      if (!hasDefaultSong) {
+        console.log('No default song found in file system, adding fallback');
+        playlist.unshift({
+          name: 'too_many_screws_final.mp3',
+          path: 'media/too_many_screws_final.mp3',
+          isDefault: true,
+          id: 'fallback-default-song',
+          source: 'fallback'
+        });
+      }
+
+      console.log('Final playlist:', playlist);
       renderPlaylist();
+
       if (playlist.length > 0) {
         // Restore saved state if available
         if (playerState.currentTrackIndex >= 0 && playerState.currentTrackIndex < playlist.length) {
@@ -258,10 +308,17 @@ async function initializeMediaPlayerUI(win) {
   function renderPlaylist() {
     const container = content.querySelector('#playlist-container');
     container.innerHTML = '';
+    console.log('🎵 MEDIAPLAYER: Rendering playlist with', playlist.length, 'tracks');
     playlist.forEach((track, index) => {
+      console.log('🎵 MEDIAPLAYER: Rendering track', index, ':', track.name, 'Full track:', track);
       const trackEl = document.createElement('div');
       trackEl.className = 'text-xs cursor-pointer hover:bg-gray-100 p-1 rounded';
-      trackEl.textContent = track.name;
+      // Validate track name
+      const trackName = track.name || track.id || 'Unknown Track';
+      if (!track.name) {
+        console.warn('🎵 MEDIAPLAYER: Track missing name property, using fallback:', trackName, 'Track:', track);
+      }
+      trackEl.textContent = trackName;
       trackEl.dataset.index = index;
       trackEl.addEventListener('click', () => {
         loadTrack(index);
@@ -278,20 +335,29 @@ async function initializeMediaPlayerUI(win) {
     playerState.currentTrackIndex = currentTrackIndex;
     const track = playlist[index];
 
-    if (track.isDefault) {
+    console.log('Loading track:', track);
+
+    if (track.isDefault || (track.path && !track.file && !track.dataURL)) {
+      // For default songs or file system songs that reference static files
       audio.src = track.path;
-    } else if (track.isFileSystem && track.path) {
-      // For file system songs that reference media folder
-      audio.src = track.path;
+    } else if (track.dataURL) {
+      // For songs with stored data URLs (uploaded files)
+      audio.src = track.dataURL;
+    } else if (track.tempObjectURL) {
+      // For files with temporary object URLs (uploaded files being processed)
+      audio.src = track.tempObjectURL;
+    } else if (track.isFileSystem && track.file) {
+      // For file system songs with actual file objects
+      audio.src = URL.createObjectURL(track.file);
     } else if (track.file) {
-      // For uploaded files (both IndexedDB and file system with file objects)
+      // For uploaded files from IndexedDB
       audio.src = URL.createObjectURL(track.file);
     } else {
-      console.error('Unable to load track:', track);
+      console.error('Unable to load track - no valid source:', track);
       return;
     }
 
-    content.querySelector('#current-track-name').textContent = track.name;
+    content.querySelector('#current-track-name').textContent = track.name || track.id || 'Unknown Track';
     updatePlaylistUI();
     saveMediaPlayerState(playerState).catch(console.error); // Save state after loading track
   }
@@ -446,6 +512,54 @@ async function initializeMediaPlayerUI(win) {
       await restoreMediaPlayerSession();
     }, 500); // Wait for playlist to load
   }
+
+  // Expose a global function to refresh the media player playlist
+  // This allows other parts of the system to notify the media player when files are added to C://Music
+  window.refreshMediaPlayerPlaylist = function() {
+    console.log('Refreshing media player playlist from external trigger');
+    if (db) {
+      loadPlaylist();
+    }
+  };
+
+  // Set up a periodic check for changes in C://Music (every 10 seconds when media player is open)
+  const musicFolderWatcher = setInterval(() => {
+    try {
+      const fs = getFileSystemStateSync();
+      const musicFolder = fs.folders['C://Music'];
+      if (musicFolder) {
+        const currentMusicFiles = Object.values(musicFolder)
+          .filter(file => file.content_type && ['mp3', 'wav', 'audio'].includes(file.content_type))
+          .map(file => file.name);
+
+        const playlistFileNames = playlist
+          .filter(track => track.source === 'filesystem' || track.isFileSystem)
+          .map(track => track.name);
+
+        // Check if there are new files in C://Music that aren't in the playlist
+        const newFiles = currentMusicFiles.filter(fileName => !playlistFileNames.includes(fileName));
+
+        if (newFiles.length > 0) {
+          console.log('Detected new music files in C://Music:', newFiles);
+          loadPlaylist(); // Reload the playlist to include new files
+        }
+      }
+    } catch (error) {
+      console.log('Error checking for music folder changes:', error);
+    }
+  }, 10000); // Check every 10 seconds
+
+  // Clean up the watcher when the media player window is closed
+  const mediaPlayerWindow = win;
+  const originalRemove = mediaPlayerWindow.remove;
+  mediaPlayerWindow.remove = function() {
+    console.log('Media player closing, cleaning up music folder watcher');
+    clearInterval(musicFolderWatcher);
+    if (window.refreshMediaPlayerPlaylist === window.refreshMediaPlayerPlaylist) {
+      delete window.refreshMediaPlayerPlaylist;
+    }
+    return originalRemove.call(this);
+  };
 }
 
 // Restore the media player session (track, position, etc.)

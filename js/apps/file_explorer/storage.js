@@ -87,7 +87,19 @@ function getItemsForPath(fullPath) {
 
   // For all other paths, use the direct lookup in fs.folders
   // since each folder's contents are stored under its fullPath key
-  return fs.folders[fullPath] || {};
+  const folderContents = fs.folders[fullPath] || {};
+
+  // Filter out the 'contents' object if it exists, as it's metadata not a file
+  const filteredContents = {};
+  for (const [key, value] of Object.entries(folderContents)) {
+    if (key !== 'contents' && value && typeof value === 'object' && value.type) {
+      filteredContents[key] = value;
+    }
+  }
+
+  console.log('🔍 STORAGE: getItemsForPath for', fullPath, 'found items:', Object.keys(filteredContents));
+
+  return filteredContents;
 }
 
 // System files preloaded by vendor

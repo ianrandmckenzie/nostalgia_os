@@ -136,7 +136,7 @@ function handleDragEnd(e) {
 */
 function moveItemToFolder(itemId, folderId) {
   let fs = getFileSystemStateSync();
-  
+
   console.log('moveItemToFolder called:', { itemId, folderId });
   console.log('File system structure:', fs);
 
@@ -177,7 +177,7 @@ function moveItemToFolder(itemId, folderId) {
   // Ensure target folder has a 'contents' object.
   if (!targetFolder.contents) targetFolder.contents = {};
   targetFolder.contents[itemId] = item;
-  
+
   // Also ensure the item is accessible in the unified structure
   // For folders that are not drive roots, also update fs.folders[targetFullPath]
   if (!/^[A-Z]:\/\/$/.test(targetFullPath)) {
@@ -240,62 +240,62 @@ function findItemAndParentById(itemId, fs) {
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
-    
+
     // Check if the item is directly in this folder
     if (folder[itemId]) {
       return { item: folder[itemId], parent: folder };
     }
-    
+
     // Check if the item is in the folder's contents
     if (folder.contents && folder.contents[itemId]) {
       return { item: folder.contents[itemId], parent: folder.contents };
     }
   }
-  
+
   return null;
 }
 
 // Helper function to get an item from the file system by its ID
 function getItemFromFileSystem(itemId) {
   const fs = getFileSystemStateSync();
-  
+
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
-    
+
     // Check if the item is directly in this folder
     if (folder[itemId]) {
       return folder[itemId];
     }
-    
+
     // Check if the item is in the folder's contents
     if (folder.contents && folder.contents[itemId]) {
       return folder.contents[itemId];
     }
   }
-  
+
   return null;
 }
 
 // Helper function to find the current path of an item
 function findItemCurrentPath(itemId) {
   const fs = getFileSystemStateSync();
-  
+
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
-    
+
     // Check if the item is directly in this folder
     if (folder[itemId]) {
       return folderPath;
     }
-    
+
     // Check if the item is in the folder's contents
     if (folder.contents && folder.contents[itemId]) {
       return folderPath;
     }
   }
-  
+
   return '';
 }
 

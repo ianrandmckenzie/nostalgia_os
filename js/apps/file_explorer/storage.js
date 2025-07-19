@@ -106,12 +106,6 @@ const myDocuments = {
       "url": "mail.mp3"
     },
     {
-      "id": "123",
-      "description": "",
-      "file_type": "html",
-      "url": "test.html"
-    },
-    {
       "id": "133323",
       "description": "",
       "file_type": "html",
@@ -134,8 +128,11 @@ const myDocuments = {
 
 async function fetchDocuments() {
   try {
+    console.log('fetchDocuments() called - populating Documents folder...');
     const data = myDocuments;
     const files = data.files;
+    console.log('Processing', files.length, 'default document files');
+
     const fileItems = files.map(file => {
       let content_type = file.file_type.toLowerCase();
       let icon_url = 'image/file.png';
@@ -164,14 +161,22 @@ async function fetchDocuments() {
     });
 
     let fs = await getFileSystemState();
-    if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
-      const fileItemsObj = {};
-      fileItems.forEach(file => {
-        fileItemsObj[file.id] = file;
-      });
-      fs.folders['C://']['Documents'].contents = fileItemsObj;
+
+    // Use unified structure: populate Documents at fs.folders['C://Documents']
+    if (!fs.folders['C://Documents']) {
+      fs.folders['C://Documents'] = {};
     }
+
+    const fileItemsObj = {};
+    fileItems.forEach(file => {
+      fileItemsObj[file.id] = file;
+    });
+    fs.folders['C://Documents'] = fileItemsObj;
     fs.initialized = true;
+
+    console.log('Documents folder populated with', Object.keys(fileItemsObj).length, 'files');
+    console.log('Document file IDs:', Object.keys(fileItemsObj));
+
     await setFileSystemState(fs);
   } catch (error) {
     console.error("Error loading documents:", error);
@@ -184,12 +189,14 @@ async function fetchDocuments() {
 
 function fetchDocumentsSync() {
   try {
+    console.log('fetchDocumentsSync() called - populating Documents folder...');
     const fs = getFileSystemStateSync();
     if (!fs.folders || !fs.folders['C://']) {
       console.warn('File system structure not properly initialized for sync document fetch');
       return;
     }
 
+    console.log('Processing', myDocuments.files.length, 'default document files (sync)');
     const fileItems = myDocuments.files.map(file => {
       const content_type = file.url.split('.').pop().toLowerCase();
       let icon_url = 'image/file.png';
@@ -217,14 +224,21 @@ function fetchDocumentsSync() {
       };
     });
 
-    if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
-      const fileItemsObj = {};
-      fileItems.forEach(file => {
-        fileItemsObj[file.id] = file;
-      });
-      fs.folders['C://']['Documents'].contents = fileItemsObj;
+    // Use unified structure: populate Documents at fs.folders['C://Documents']
+    if (!fs.folders['C://Documents']) {
+      fs.folders['C://Documents'] = {};
     }
+
+    const fileItemsObj = {};
+    fileItems.forEach(file => {
+      fileItemsObj[file.id] = file;
+    });
+    fs.folders['C://Documents'] = fileItemsObj;
     fs.initialized = true;
+
+    console.log('Documents folder populated with', Object.keys(fileItemsObj).length, 'files (sync)');
+    console.log('Document file IDs (sync):', Object.keys(fileItemsObj));
+
     // Use sync setFileSystemState by calling the sync storage directly
     try {
       const appState = storage.getItemSync('appState') || {};

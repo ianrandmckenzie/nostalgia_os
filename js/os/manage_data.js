@@ -263,6 +263,66 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 // Make addFileToFileSystem available globally for iframe access
 window.globalAddFileToFileSystem = addFileToFileSystem;
 
+/* =====================
+   File System Migration Function
+   Converts old nested structure to unified fs.folders[fullPath] structure.
+   This ensures compost bin and other desktop items appear correctly.
+====================== */
+function migrateFileSystemToUnifiedStructure(fs) {
+  console.log('Migrating file system to unified structure...');
+  console.log('Original file system structure:', JSON.stringify(fs, null, 2));
+
+  // Check if migration is needed (if Desktop has nested contents but no C://Desktop key)
+  if (fs.folders && fs.folders['C://'] && fs.folders['C://']['Desktop'] &&
+      fs.folders['C://']['Desktop'].contents && !fs.folders['C://Desktop']) {
+
+    console.log('Migration needed: Moving Desktop contents to unified structure');
+
+    // Move Desktop contents to the unified location
+    const desktopContents = fs.folders['C://']['Desktop'].contents;
+    fs.folders['C://Desktop'] = desktopContents;
+
+    console.log('Migrated desktop items:', Object.keys(desktopContents));
+
+    // Also migrate any other nested folder contents to the unified structure
+    function migrateNestedContents(folderPath, folderObj) {
+      if (folderObj.contents && Object.keys(folderObj.contents).length > 0) {
+        // Move contents to the unified location
+        if (!fs.folders[folderPath]) {
+          fs.folders[folderPath] = {};
+        }
+        Object.assign(fs.folders[folderPath], folderObj.contents);
+
+        // Recursively migrate nested folders
+        Object.values(folderObj.contents).forEach(item => {
+          if (item.type === 'folder' && item.fullPath) {
+            migrateNestedContents(item.fullPath, item);
+          }
+        });
+      }
+    }
+
+    // Migrate all folders in the file system
+    Object.values(fs.folders).forEach(drive => {
+      if (typeof drive === 'object') {
+        Object.values(drive).forEach(folder => {
+          if (folder.type === 'folder' && folder.fullPath && folder.contents) {
+            migrateNestedContents(folder.fullPath, folder);
+          }
+        });
+      }
+    });
+
+    console.log('File system migration completed');
+    console.log('Migrated file system structure:', JSON.stringify(fs, null, 2));
+  } else {
+    console.log('File system already uses unified structure or no migration needed');
+    console.log('Current Desktop contents in unified location:', fs.folders['C://Desktop']);
+  }
+
+  return fs;
+}
+
 async function initializeAppState() {
   // Ensure storage is ready before proceeding
   try {
@@ -282,9 +342,13 @@ async function initializeAppState() {
 
   if (!appStateData) {
     console.log('No saved state found, initializing with defaults');
-    // No saved state; initialize using the default base objects.
+
+    // Migrate the default file system to the unified structure
+    const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
+
+    // No saved state; initialize using the migrated file system.
     const initialState = {
-      fileSystemState: fileSystemState,
+      fileSystemState: migratedFileSystemState,
       windowStates: windowStates,
       desktopIconsState: desktopIconsState,
       desktopSettings: desktopSettings,
@@ -292,7 +356,7 @@ async function initializeAppState() {
     };
     try {
       await storage.setItem('appState', initialState);
-      console.log('Initialized new app state successfully');
+      console.log('Initialized new app state successfully with migrated file system');
     } catch (error) {
       console.error('Failed to save initial app state:', error);
     }
@@ -301,6 +365,19 @@ async function initializeAppState() {
     setTimeout(async () => {
       await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
     }, 100);
+
+    // Initialize Documents folder with default files
+    setTimeout(async () => {
+      console.log('Initializing Documents folder with default files...');
+      if (typeof fetchDocuments === 'function') {
+        await fetchDocuments();
+      } else {
+        console.warn('fetchDocuments function not available, trying sync version');
+        if (typeof fetchDocumentsSync === 'function') {
+          fetchDocumentsSync();
+        }
+      }
+    }, 200);
   } else {
     // Load state from IndexedDB with validation
     const storedState = appStateData;
@@ -308,10 +385,13 @@ async function initializeAppState() {
 
     // Validate and sanitize the loaded state
     if (storedState.fileSystemState && typeof storedState.fileSystemState === 'object') {
-      setFileSystemState(storedState.fileSystemState);
+      // Apply migration to existing file system state
+      const migratedFS = migrateFileSystemToUnifiedStructure(storedState.fileSystemState);
+      setFileSystemState(migratedFS);
     } else {
       console.warn('Invalid fileSystemState in saved data, using default');
-      setFileSystemState(fileSystemState);
+      const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
+      setFileSystemState(migratedFileSystemState);
     }
 
     windowStates = (storedState.windowStates && typeof storedState.windowStates === 'object')
@@ -347,6 +427,23 @@ async function initializeAppState() {
             await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
           }
         }
+      }
+
+      // Also check if Documents folder needs to be populated
+      console.log('Checking if Documents folder needs default files...');
+      const documentsItems = fs.folders['C://Documents'] || {};
+      const documentsCount = Object.keys(documentsItems).length;
+      console.log('Current Documents folder has', documentsCount, 'items');
+
+      if (documentsCount === 0) {
+        console.log('Documents folder is empty, populating with default files...');
+        if (typeof fetchDocuments === 'function') {
+          await fetchDocuments();
+        } else if (typeof fetchDocumentsSync === 'function') {
+          fetchDocumentsSync();
+        }
+      } else {
+        console.log('Documents folder already has', documentsCount, 'files, skipping population');
       }
     }, 100);
   }

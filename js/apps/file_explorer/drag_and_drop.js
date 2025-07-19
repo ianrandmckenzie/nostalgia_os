@@ -382,9 +382,12 @@ setupFolderDrop();
 // Function to restore an item from compost bin to a target location
 function restoreItemFromCompostBin(itemId, targetPath) {
   const fs = getFileSystemStateSync();
-  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
 
-  if (!compostBin.contents || !compostBin.contents[itemId]) {
+  // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+  const desktopItems = fs.folders['C://Desktop'] || {};
+  const compostBin = desktopItems['compostbin'];
+
+  if (!compostBin || !compostBin.contents || !compostBin.contents[itemId]) {
     console.error('Item not found in compost bin:', itemId);
     return;
   }
@@ -397,7 +400,11 @@ function restoreItemFromCompostBin(itemId, targetPath) {
   // Find target container
   let targetContainer;
   if (targetPath === 'C://Desktop') {
-    targetContainer = fs.folders['C://'].Desktop.contents;
+    // Use unified structure for desktop
+    if (!fs.folders['C://Desktop']) {
+      fs.folders['C://Desktop'] = {};
+    }
+    targetContainer = fs.folders['C://Desktop'];
   } else {
     const targetFolder = findFolderObjectByFullPath(targetPath, fs);
     if (!targetFolder) {
@@ -498,13 +505,13 @@ function moveItemToDesktop(itemId) {
   // Remove item from current location
   delete parent[itemId];
 
-  // Ensure desktop contents exist
-  if (!fs.folders['C://'].Desktop.contents) {
-    fs.folders['C://'].Desktop.contents = {};
+  // Ensure desktop contents exist in unified structure
+  if (!fs.folders['C://Desktop']) {
+    fs.folders['C://Desktop'] = {};
   }
 
-  // Move item to desktop
-  fs.folders['C://'].Desktop.contents[itemId] = item;
+  // Move item to desktop using unified structure
+  fs.folders['C://Desktop'][itemId] = item;
 
   // Update item's fullPath
   item.fullPath = 'C://Desktop/' + item.id;

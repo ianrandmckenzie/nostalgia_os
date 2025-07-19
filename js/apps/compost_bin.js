@@ -41,8 +41,12 @@ function launchCompostBin() {
   const binInfo = document.createElement('div');
   binInfo.className = 'text-sm';
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
-  const itemCount = Object.keys(compostBin.contents || {}).length;
+
+  // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+  const desktopItems = fs.folders['C://Desktop'] || {};
+  const compostBin = desktopItems['compostbin'];
+
+  const itemCount = Object.keys(compostBin?.contents || {}).length;
   binInfo.textContent = `Compost Bin - ${itemCount} item(s)`;
 
   const binActions = document.createElement('div');
@@ -72,8 +76,11 @@ function launchCompostBin() {
 
 function loadCompostBinContents(container) {
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
-  const contents = compostBin.contents || {};
+
+  // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+  const desktopItems = fs.folders['C://Desktop'] || {};
+  const compostBin = desktopItems['compostbin'];
+  const contents = compostBin?.contents || {};
 
   container.innerHTML = '';
 
@@ -141,7 +148,8 @@ function moveItemToCompostBin(itemId, fromPath) {
   let sourceContainer = null;
 
   if (fromPath === 'C://Desktop') {
-    sourceContainer = fs.folders['C://'].Desktop.contents;
+    // Use unified structure for desktop
+    sourceContainer = fs.folders['C://Desktop'] || {};
   } else {
     // Navigate to the source container
     const pathParts = fromPath.split('/').filter(part => part);
@@ -162,7 +170,13 @@ function moveItemToCompostBin(itemId, fromPath) {
     sourceItem = sourceContainer[itemId];
 
     // Move item to compost bin
-    const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
+    const desktopItems = fs.folders['C://Desktop'] || {};
+    const compostBin = desktopItems['compostbin'];
+    if (!compostBin) {
+      console.error('Compost bin not found in unified structure');
+      showDialogBox('Compost Bin not found!', 'error');
+      return;
+    }
     if (!compostBin.contents) {
       compostBin.contents = {};
     }
@@ -202,7 +216,16 @@ function moveItemToCompostBin(itemId, fromPath) {
 
 function emptyCompostBin() {
   const fs = getFileSystemState();
-  const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
+
+  // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+  const desktopItems = fs.folders['C://Desktop'] || {};
+  const compostBin = desktopItems['compostbin'];
+
+  if (!compostBin) {
+    showDialogBox('Compost Bin not found!', 'error');
+    return;
+  }
+
   const itemCount = Object.keys(compostBin.contents || {}).length;
 
   if (itemCount === 0) {
@@ -286,8 +309,12 @@ function updateCompostBinHeader(compostBinWindow) {
     const binInfo = header.querySelector('.text-sm');
     if (binInfo) {
       const fs = getFileSystemState();
-      const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
-      const itemCount = Object.keys(compostBin.contents || {}).length;
+
+      // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+      const desktopItems = fs.folders['C://Desktop'] || {};
+      const compostBin = desktopItems['compostbin'];
+
+      const itemCount = Object.keys(compostBin?.contents || {}).length;
       binInfo.textContent = `Compost Bin - ${itemCount} item(s)`;
     }
   }

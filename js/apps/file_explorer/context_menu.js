@@ -420,6 +420,11 @@ function deleteItem(e) {
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
   deleteBtn.addEventListener('click', () => {
+    // Get the file object before deletion to check if it's a music file
+    const deletedFile = folderContents[fileId];
+    const isMusicFile = deletedFile && deletedFile.content_type && ['mp3', 'wav', 'ogg', 'audio'].includes(deletedFile.content_type);
+    const isFromMusicFolder = contextPath === 'C://Music';
+
     // Clean up desktop icon position if deleting from desktop
     if (contextPath === 'C://Desktop') {
       const iconId = 'icon-' + fileId;
@@ -444,6 +449,16 @@ function deleteItem(e) {
     });
     refreshExplorerViews();
     renderDesktopIcons();
+
+    // If a music file was deleted from C://Music, refresh the media player playlist
+    if (isMusicFile && isFromMusicFolder) {
+      console.log('🎵 DELETE: Music file deleted from C://Music, refreshing media player playlist');
+      if (typeof window.refreshMediaPlayerPlaylist === 'function') {
+        setTimeout(() => {
+          window.refreshMediaPlayerPlaylist();
+        }, 100);
+      }
+    }
 
     closeWindow(winId);
   });
@@ -1233,9 +1248,9 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
         actualSizeInMB: fileSizeInMB
       });
 
-      // If a music file was added to C://Music, refresh the media player playlist
-      if (targetPath === 'C://Music' && ['mp3', 'wav', 'ogg'].includes(contentType)) {
-        console.log('Music file added to C://Music via file upload, refreshing media player playlist');
+      // If a media file was added to C://Music, refresh the media player playlist
+      if (targetPath === 'C://Music' && ['mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+        console.log('Media file added to C://Music via file upload, refreshing media player playlist');
         if (typeof window.refreshMediaPlayerPlaylist === 'function') {
           // Delay the refresh to ensure the file system state is fully updated
           setTimeout(() => {

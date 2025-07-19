@@ -1122,7 +1122,7 @@ function getWinner(gameState) {
 
 async function saveChessGameState(gameState) {
   try {
-    await storage.setItem('chessGameState', JSON.stringify(gameState));
+    await storage.setItem('chessGameState', gameState);
   } catch (error) {
     console.warn('Failed to save chess game state:', error);
   }
@@ -1131,7 +1131,7 @@ async function saveChessGameState(gameState) {
 async function loadChessGameState() {
   try {
     const saved = await storage.getItem('chessGameState');
-    return saved ? JSON.parse(saved) : null;
+    return saved ? saved : null;
   } catch (error) {
     console.warn('Failed to load chess game state:', error);
     return null;

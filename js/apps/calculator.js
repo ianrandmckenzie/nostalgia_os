@@ -282,7 +282,7 @@ async function initializeCalculatorUI(win) {
 // Save calculator state to IndexedDB
 async function saveCalculatorState(calculatorState) {
   try {
-    await storage.setItem('calculator_state', JSON.stringify(calculatorState));
+    await storage.setItem('calculator_state', calculatorState);
   } catch (error) {
     console.warn('Failed to save Calculator state:', error);
   }
@@ -293,7 +293,7 @@ async function loadCalculatorState() {
   try {
     const savedState = await storage.getItem('calculator_state');
     if (savedState) {
-      return JSON.parse(savedState);
+      return savedState;
     }
   } catch (error) {
     console.warn('Failed to load Calculator state:', error);

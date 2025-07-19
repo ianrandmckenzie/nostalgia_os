@@ -691,7 +691,7 @@ async function saveSolitaireGameState(gameState) {
       selectedPile: null,
       dragElement: null
     };
-    await storage.setItem('solitaire_gameState', JSON.stringify(stateToSave));
+    await storage.setItem('solitaire_gameState', stateToSave);
   } catch (error) {
     console.warn('Failed to save Solitaire game state:', error);
     // Fallback to sync method if async fails
@@ -702,7 +702,7 @@ async function saveSolitaireGameState(gameState) {
         selectedPile: null,
         dragElement: null
       };
-      storage.setItemSync('solitaire_gameState', JSON.stringify(stateToSave));
+      storage.setItemSync('solitaire_gameState', stateToSave);
     } catch (fallbackError) {
       console.error('Failed to save Solitaire game state with fallback:', fallbackError);
     }
@@ -714,7 +714,7 @@ async function loadSolitaireGameState() {
   try {
     const savedState = await storage.getItem('solitaire_gameState');
     if (savedState) {
-      const gameState = JSON.parse(savedState);
+      const gameState = savedState;
       // Ensure non-serializable elements are reset
       gameState.selectedCard = null;
       gameState.selectedPile = null;
@@ -727,7 +727,7 @@ async function loadSolitaireGameState() {
     try {
       const savedState = storage.getItemSync('solitaire_gameState');
       if (savedState) {
-        const gameState = JSON.parse(savedState);
+        const gameState = savedState;
         // Ensure non-serializable elements are reset
         gameState.selectedCard = null;
         gameState.selectedPile = null;

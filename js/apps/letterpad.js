@@ -20,10 +20,11 @@ async function initializeLetterPad(container) {
     const storedData = await storage.getItem(storageKey);
     if (storedData) {
       try {
-        const jsonData = JSON.parse(storedData);
+        // storedData is already an object, no need to parse
+        const jsonData = storedData;
         storedContent = jsonData.content;
       } catch (e) {
-        console.error('Error parsing stored markdown data for editor ' + editorId, e);
+        console.error('Error accessing stored markdown data for editor ' + editorId, e);
       }
     }
   } catch (error) {
@@ -32,7 +33,7 @@ async function initializeLetterPad(container) {
     try {
       const storedData = storage.getItemSync(storageKey);
       if (storedData) {
-        const jsonData = JSON.parse(storedData);
+        const jsonData = storedData;
         storedContent = jsonData.content;
       }
     } catch (syncError) {
@@ -182,7 +183,7 @@ async function initializeLetterPad(container) {
       previewArea.innerHTML = convertMarkdownToHTML(markdownText);
 
       try {
-        await storage.setItem(storageKey, JSON.stringify({ content: markdownText }));
+        await storage.setItem(storageKey, { content: markdownText });
       } catch (error) {
         console.warn('Failed to save LetterPad content for editor ' + editorId, error);
       }

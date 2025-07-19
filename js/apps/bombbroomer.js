@@ -434,7 +434,7 @@ async function saveBombbroomerGameState(gameState) {
       ...gameState,
       timerInterval: null // Don't save the interval
     };
-    await storage.setItem('bombbroomer_gameState', JSON.stringify(stateToSave));
+    await storage.setItem('bombbroomer_gameState', stateToSave);
   } catch (error) {
     console.warn('Failed to save Bombbroomer game state:', error);
   }
@@ -445,7 +445,7 @@ async function loadBombbroomerGameState() {
   try {
     const savedState = await storage.getItem('bombbroomer_gameState');
     if (savedState) {
-      const gameState = JSON.parse(savedState);
+      const gameState = savedState;
       // Ensure timerInterval is null when loading
       gameState.timerInterval = null;
       return gameState;

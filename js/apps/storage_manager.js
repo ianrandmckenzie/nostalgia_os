@@ -154,7 +154,7 @@ async function analyzeStoredData() {
 async function analyzeStorage(analysis) {
   try {
     const appStateData = await storage.getItem('appState');
-    const appState = JSON.parse(appStateData || '{}');
+    const appState = appStateData || {};
     const appStateSize = JSON.stringify(appState).length;
 
     // File system data
@@ -448,14 +448,14 @@ async function clearMediaPlayer() {
 
 async function clearDesktopSettings() {
   const appStateData = await storage.getItem('appState');
-  const appState = JSON.parse(appStateData || '{}');
+  const appState = appStateData || {};
   appState.desktopSettings = {
     clockSeconds: false,
     bgColor: "#20b1b1",
     bgImage: ""
   };
   appState.desktopIconsState = {};
-  await storage.setItem('appState', JSON.stringify(appState));
+  await storage.setItem('appState', appState);
 
   showDialogBox('Desktop settings reset successfully!', 'info');
   refreshStorageData();

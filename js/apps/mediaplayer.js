@@ -186,6 +186,14 @@ async function initializeMediaPlayerUI(win) {
       // Start with the default track
       playlist = [];
 
+      // Add the default song first
+      playlist.push({
+        name: 'too_many_screws_final.mp3',
+        path: 'media/too_many_screws_final.mp3',
+        isDefault: true,
+        id: 'default-song'
+      });
+
       // Add songs from IndexedDB
       dbSongs.forEach(song => {
         playlist.push({ name: song.name, file: song.file, id: song.id });
@@ -450,12 +458,12 @@ async function restoreMediaPlayerSession() {
 // Save media player state to IndexedDB
 async function saveMediaPlayerState(playerState) {
   try {
-    await storage.setItem('mediaplayer_state', JSON.stringify(playerState));
+    await storage.setItem('mediaplayer_state', playerState);
   } catch (error) {
     console.warn('Failed to save Media Player state:', error);
     // Fallback to sync method if async fails
     try {
-      storage.setItemSync('mediaplayer_state', JSON.stringify(playerState));
+      storage.setItemSync('mediaplayer_state', playerState);
     } catch (fallbackError) {
       console.error('Failed to save Media Player state with fallback:', fallbackError);
     }
@@ -467,7 +475,7 @@ async function loadMediaPlayerState() {
   try {
     const savedState = await storage.getItem('mediaplayer_state');
     if (savedState) {
-      return JSON.parse(savedState);
+      return savedState;
     }
   } catch (error) {
     console.warn('Failed to load Media Player state:', error);
@@ -475,7 +483,7 @@ async function loadMediaPlayerState() {
     try {
       const savedState = storage.getItemSync('mediaplayer_state');
       if (savedState) {
-        return JSON.parse(savedState);
+        return savedState;
       }
     } catch (fallbackError) {
       console.warn('Failed to load Media Player state with fallback:', fallbackError);

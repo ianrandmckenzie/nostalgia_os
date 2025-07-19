@@ -980,7 +980,7 @@ async function saveWatercolourState() {
       undoStack: undoStack.slice(-10), // Keep only last 10 undo states to avoid storage overflow
       redoStack: redoStack.slice(-10)
     };
-    await storage.setItem('watercolour_state', JSON.stringify(state));
+    await storage.setItem('watercolour_state', state);
     console.log('Watercolour state saved');
   } catch (error) {
     console.warn('Failed to save Watercolour state:', error);
@@ -995,7 +995,7 @@ async function saveWatercolourState() {
         undoStack: undoStack.slice(-10),
         redoStack: redoStack.slice(-10)
       };
-      storage.setItemSync('watercolour_state', JSON.stringify(state));
+      storage.setItemSync('watercolour_state', state);
       console.log('Watercolour state saved with fallback');
     } catch (fallbackError) {
       console.error('Failed to save Watercolour state with fallback:', fallbackError);
@@ -1008,7 +1008,7 @@ async function loadWatercolourState() {
     const savedState = await storage.getItem('watercolour_state');
     if (savedState) {
       console.log('Loading Watercolour state');
-      return JSON.parse(savedState);
+      return savedState;
     }
   } catch (error) {
     console.warn('Failed to load Watercolour state:', error);
@@ -1017,7 +1017,7 @@ async function loadWatercolourState() {
       const savedState = storage.getItemSync('watercolour_state');
       if (savedState) {
         console.log('Loading Watercolour state with fallback');
-        return JSON.parse(savedState);
+        return savedState;
       }
     } catch (fallbackError) {
       console.warn('Failed to load Watercolour state with fallback:', fallbackError);

@@ -276,10 +276,14 @@ function editItemName(e, menuItem) {
       // Refresh the UI to show the updated name
       if (contextPath === "C://Desktop") {
         // For desktop, refresh desktop icons
-        renderDesktopIcons();
+        if (typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        }
       } else {
         // For explorer windows, refresh all windows showing this path
-        refreshAllExplorerWindows(contextPath);
+        if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(contextPath);
+        }
       }
 
       setFileSystemState(fs);
@@ -287,6 +291,16 @@ function editItemName(e, menuItem) {
       saveState().catch(error => {
         console.error('Failed to save state after renaming:', error);
       });
+
+      // Force additional refresh after a short delay to ensure everything updates
+      setTimeout(() => {
+        if (contextPath === "C://Desktop" && typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        } else if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(contextPath);
+        }
+      }, 100);
+
       // Note: refreshExplorerViews() is known to be broken, so we handle refresh above
     }
     closeWindow(winId);
@@ -925,29 +939,50 @@ function makeField(labelText, control) {
 
 // Comprehensive function to refresh all explorer windows showing a specific path
 function refreshAllExplorerWindows(targetPath) {
+  console.log('Refreshing all explorer windows for path:', targetPath);
+
   // Find all explorer windows that are currently showing the target path
   const allExplorerWindows = document.querySelectorAll('.file-explorer-window');
+  console.log('Found explorer windows:', allExplorerWindows.length);
 
-  allExplorerWindows.forEach(explorerDiv => {
+  let refreshedCount = 0;
+  allExplorerWindows.forEach((explorerDiv, index) => {
     const currentPath = explorerDiv.getAttribute('data-current-path');
-    if (currentPath === targetPath) {
-      // Use innerHTML instead of outerHTML to preserve the element itself and its attributes
-      const newContent = getExplorerWindowContent(targetPath);
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = newContent;
-      const newExplorerDiv = tempDiv.querySelector('.file-explorer-window');
+    console.log(`Window ${index}: current path = "${currentPath}", target path = "${targetPath}"`);
 
-      if (newExplorerDiv) {
-        // Copy the inner content while preserving the original element
-        explorerDiv.innerHTML = newExplorerDiv.innerHTML;
-        // Ensure the data-current-path is preserved
-        explorerDiv.setAttribute('data-current-path', targetPath);
+    if (currentPath === targetPath) {
+      try {
+        // Use innerHTML instead of outerHTML to preserve the element itself and its attributes
+        const newContent = getExplorerWindowContent(targetPath);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newContent;
+        const newExplorerDiv = tempDiv.querySelector('.file-explorer-window');
+
+        if (newExplorerDiv) {
+          // Copy the inner content while preserving the original element
+          explorerDiv.innerHTML = newExplorerDiv.innerHTML;
+          // Ensure the data-current-path is preserved
+          explorerDiv.setAttribute('data-current-path', targetPath);
+          refreshedCount++;
+          console.log(`Refreshed window ${index} successfully`);
+        } else {
+          console.warn(`Failed to get new explorer content for window ${index}`);
+        }
+      } catch (error) {
+        console.error(`Error refreshing window ${index}:`, error);
       }
     }
   });
 
+  console.log(`Refreshed ${refreshedCount} explorer windows`);
+
   // Re-setup all event handlers for the refreshed windows
   setTimeout(() => {
-    setupFolderDrop();
+    if (typeof setupFolderDrop === 'function') {
+      setupFolderDrop();
+    }
   }, 50);
 }
+
+// Make refreshAllExplorerWindows globally available
+window.refreshAllExplorerWindows = refreshAllExplorerWindows;

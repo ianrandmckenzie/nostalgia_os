@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Management Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { margin: 10px; padding: 10px; }
+        #results { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>File Management Tests</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Create file in C:// drive</h3>
+        <p>This tests the "new user creating first file" scenario</p>
+        <button onclick="testCreateFileInCDrive()">Create Test File in C://</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Test file name editing and UI refresh</h3>
+        <button onclick="simulateFileEdit()">Simulate File Rename</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Check refresh functions availability</h3>
+        <button onclick="checkRefreshFunctions()">Check Refresh Functions</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script src="js/os/indexeddb_storage.js"></script>
+    <script src="js/os/manage_data.js"></script>
+    <script>
+        async function testCreateFileInCDrive() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Testing C:// Drive File Creation...</h3>';
+            
+            try {
+                // Clear any existing state to simulate new user
+                await storage.removeItem('appState');
+                
+                // Try to create a file in C:// drive
+                const result = await addFileToFileSystem('test-file.txt', 'Hello World', 'C://', 'txt');
+                
+                if (result) {
+                    results.innerHTML += '<p style="color: green;">✅ Successfully created file in C:// drive</p>';
+                    results.innerHTML += '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                } else {
+                    results.innerHTML += '<p style="color: red;">❌ Failed to create file in C:// drive</p>';
+                }
+            } catch (error) {
+                results.innerHTML += '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+            }
+        }
+        
+        function simulateFileEdit() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Testing File Edit UI Refresh...</h3>';
+            
+            // Check if refresh functions are available
+            const desktopRefresh = typeof renderDesktopIcons === 'function' || typeof window.renderDesktopIcons === 'function';
+            const explorerRefresh = typeof refreshAllExplorerWindows === 'function' || typeof window.refreshAllExplorerWindows === 'function';
+            
+            results.innerHTML += '<p><strong>Desktop Refresh Available:</strong> ' + desktopRefresh + '</p>';
+            results.innerHTML += '<p><strong>Explorer Refresh Available:</strong> ' + explorerRefresh + '</p>';
+            
+            // Try to call refresh functions
+            try {
+                if (window.renderDesktopIcons) {
+                    window.renderDesktopIcons();
+                    results.innerHTML += '<p style="color: green;">✅ Called renderDesktopIcons</p>';
+                }
+                if (window.refreshAllExplorerWindows) {
+                    window.refreshAllExplorerWindows('C://');
+                    results.innerHTML += '<p style="color: green;">✅ Called refreshAllExplorerWindows for C://</p>';
+                }
+            } catch (error) {
+                results.innerHTML += '<p style="color: red;">❌ Error calling refresh: ' + error.message + '</p>';
+            }
+        }
+        
+        function checkRefreshFunctions() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Checking Refresh Function Availability...</h3>';
+            
+            const funcs = [
+                'renderDesktopIcons',
+                'refreshAllExplorerWindows',
+                'getExplorerWindowContent',
+                'setupFolderDrop',
+                'addFileToFileSystem',
+                'getFileSystemState',
+                'setFileSystemState'
+            ];
+            
+            funcs.forEach(funcName => {
+                const globalAvailable = typeof window[funcName] === 'function';
+                const localAvailable = typeof eval(funcName) === 'function';
+                const color = (globalAvailable || localAvailable) ? 'green' : 'red';
+                const symbol = (globalAvailable || localAvailable) ? '✅' : '❌';
+                
+                results.innerHTML += `<p style="color: ${color};">${symbol} ${funcName}: Global=${globalAvailable}, Local=${localAvailable}</p>`;
+            });
+        }
+        
+        // Auto-check functions on load
+        window.addEventListener('load', () => {
+            setTimeout(checkRefreshFunctions, 1000);
+        });
+    </script>
+</body>
+</html>

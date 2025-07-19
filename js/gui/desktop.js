@@ -477,3 +477,6 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
     targetExplorer.classList.add('dragover');
   }
 }
+
+// Make renderDesktopIcons globally available for file management operations
+window.renderDesktopIcons = renderDesktopIcons;

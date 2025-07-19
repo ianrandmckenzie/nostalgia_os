@@ -74,10 +74,23 @@ function updateContent(windowId, newContent) {
 async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
   const fs = await getFileSystemState();
 
-  // Ensure file system is initialized
+  // Ensure file system is initialized with proper structure
   if (!fs || !fs.folders) {
-    console.error('File system not initialized');
-    return null;
+    console.error('File system not initialized, creating basic structure');
+    // Create a basic file system structure
+    const basicFS = {
+      folders: {
+        "C://": {
+          "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
+          "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {}},
+          "Music": { id: 'Music', name: 'Music', type: 'folder', fullPath: 'C://Music', contents: {} },
+        },
+        "A://": {},
+        "D://": {}
+      }
+    };
+    setFileSystemState(basicFS);
+    fs = basicFS;
   }
 
   // Extract drive and navigate to target folder
@@ -89,6 +102,13 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 
   const drive = driveMatch[1];
   const pathParts = targetFolderPath.replace(/^[A-Z]:\/\//, '').split('/').filter(p => p);
+
+  // Ensure the drive exists
+  if (!fs.folders[drive]) {
+    console.error('Drive does not exist:', drive);
+    fs.folders[drive] = {};
+  }
+
   let targetFolder = fs.folders[drive];
 
   console.log('Adding file to path:', targetFolderPath);
@@ -215,10 +235,25 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   }
 
   // Refresh views if the function exists (will be available when file explorer is loaded)
-  if (targetFolderPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
-    renderDesktopIcons();
-  } else if (typeof refreshAllExplorerWindows === 'function') {
-    refreshAllExplorerWindows(targetFolderPath);
+  console.log('Attempting to refresh views for path:', targetFolderPath);
+  if (targetFolderPath === 'C://Desktop') {
+    console.log('Refreshing desktop icons');
+    if (typeof renderDesktopIcons === 'function') {
+      renderDesktopIcons();
+    } else if (typeof window.renderDesktopIcons === 'function') {
+      window.renderDesktopIcons();
+    } else {
+      console.warn('renderDesktopIcons function not found');
+    }
+  } else {
+    console.log('Refreshing explorer windows');
+    if (typeof refreshAllExplorerWindows === 'function') {
+      refreshAllExplorerWindows(targetFolderPath);
+    } else if (typeof window.refreshAllExplorerWindows === 'function') {
+      window.refreshAllExplorerWindows(targetFolderPath);
+    } else {
+      console.warn('refreshAllExplorerWindows function not found');
+    }
   }
   // Note: refreshExplorerViews() is broken, so we handle refresh above
 

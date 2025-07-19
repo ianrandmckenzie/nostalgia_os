@@ -2,11 +2,20 @@
    openExplorer
    Now accepts a folderId. It finds the folder’s fullPath and refreshes the explorer.
 ====================== */
-function openExplorer(folderId) {
-  // If folderId is a drive root (like "C://"), use it directly.
-  let fullPath = /^[A-Z]:\/\/$/.test(folderId) ? folderId : findFolderFullPathById(folderId);
+function openExplorer(folderIdOrPath) {
+  let fullPath;
+
+  // Check if it's already a full path (starts with drive letter and contains ://)
+  if (/^[A-Z]:\/\//.test(folderIdOrPath)) {
+    // It's already a full path, use it directly
+    fullPath = folderIdOrPath;
+  } else {
+    // It's a folder ID, look up the full path
+    fullPath = findFolderFullPathById(folderIdOrPath);
+  }
+
   if (!fullPath) {
-    console.error("Folder not found for id:", folderId);
+    console.error("Folder not found for id/path:", folderIdOrPath);
     return;
   }
   let explorerWindow = document.getElementById('explorer-window');

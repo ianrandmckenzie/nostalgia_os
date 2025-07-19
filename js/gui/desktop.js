@@ -230,11 +230,16 @@ async function renderDesktopIcons() {
     return;
   }
 
-  const desktopFolder = fs.folders['C://']['Desktop'];
-  if (!desktopFolder) {
-    console.error('Desktop folder still not available after initialization');
-    return;
+  // Get desktop items from the correct location
+  // Desktop items are stored in fs.folders['C://Desktop'], not in the nested structure
+  const desktopItems = fs.folders['C://Desktop'] || {};
+
+  if (!desktopItems) {
+    console.log('No desktop items found, creating empty desktop folder structure');
+    fs.folders['C://Desktop'] = {};
   }
+
+  console.log('Desktop items found:', Object.keys(desktopItems).length);
 
   // Constants for grid layout
   const ICON_WIDTH = 96; // w-24 = 96px
@@ -250,7 +255,7 @@ async function renderDesktopIcons() {
   let iconIndex = 0;
   let gridIndex = 0; // Separate counter for grid positioning
 
-  Object.values(desktopFolder.contents).forEach(item => {
+  Object.values(desktopItems).forEach(item => {
     const iconElem = document.createElement('div');
     iconElem.id = "icon-" + item.id;
     iconElem.className = 'flex flex-col items-center cursor-pointer draggable-icon desktop-folder-icon z-10 h-32 truncate-ellipsis w-24 text-wrap absolute';

@@ -194,12 +194,15 @@ function editItemName(e, menuItem) {
   const isDrive = contextPath.length === 4;
   if (isDrive) {
     folderContents = fs.folders[contextPath];
-  } else if (contextPath == 'C://Desktop') {
-    folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
   } else {
-    // For all other subdirectories, get the contents property
-    const folderObj = findFolderObjectByFullPath(contextPath, fs);
-    folderContents = folderObj ? folderObj.contents : {};
+    // For all subdirectories (including desktop), use direct fs.folders lookup
+    folderContents = fs.folders[contextPath];
+  }
+
+  if (!folderContents) {
+    console.error('Folder contents not found for path:', contextPath);
+    showDialogBox('Folder contents not found.', 'error');
+    return;
   }
   if (!(itemId in folderContents)) {
     showDialogBox('Item not found.', 'error');
@@ -265,24 +268,53 @@ function editItemName(e, menuItem) {
           newFullPath = contextPath + "/" + newName;
         }
         const oldFullPath = item.fullPath;
-        item.fullPath = newFullPath;
-        fs.folders[newFullPath] = fs.folders[oldFullPath] || {};
-        if(newFullPath !== oldFullPath) {
-          delete fs.folders[oldFullPath];
+
+        // Recursively update all nested folder paths
+        function updateNestedFolderPaths(oldPath, newPath) {
+          // Update the folder's own path
+          if (fs.folders[oldPath]) {
+            fs.folders[newPath] = fs.folders[oldPath];
+            delete fs.folders[oldPath];
+
+            // Recursively update all nested folders
+            for (const key in fs.folders[newPath]) {
+              const nestedItem = fs.folders[newPath][key];
+              if (nestedItem.type === "folder" && nestedItem.fullPath && nestedItem.fullPath.startsWith(oldPath)) {
+                const nestedOldPath = nestedItem.fullPath;
+                const nestedNewPath = nestedItem.fullPath.replace(oldPath, newPath);
+                nestedItem.fullPath = nestedNewPath;
+
+                // Recursively update this nested folder's contents
+                if (fs.folders[nestedOldPath]) {
+                  updateNestedFolderPaths(nestedOldPath, nestedNewPath);
+                }
+              }
+            }
+          }
         }
+
+        item.fullPath = newFullPath;
+        updateNestedFolderPaths(oldFullPath, newFullPath);
       }
       item.name = newName;
 
       // Refresh the UI to show the updated name
+      console.log('Refreshing UI after rename, contextPath:', contextPath);
       if (contextPath === "C://Desktop") {
         // For desktop, refresh desktop icons
+        console.log('Refreshing desktop icons');
         if (typeof renderDesktopIcons === 'function') {
           renderDesktopIcons();
+        } else {
+          console.error('renderDesktopIcons function not available');
         }
       } else {
         // For explorer windows, refresh all windows showing this path
+        console.log('Refreshing explorer windows for path:', contextPath);
         if (typeof refreshAllExplorerWindows === 'function') {
           refreshAllExplorerWindows(contextPath);
+        } else {
+          console.error('refreshAllExplorerWindows function not available');
         }
       }
 
@@ -294,6 +326,7 @@ function editItemName(e, menuItem) {
 
       // Force additional refresh after a short delay to ensure everything updates
       setTimeout(() => {
+        console.log('Additional delayed refresh for path:', contextPath);
         if (contextPath === "C://Desktop" && typeof renderDesktopIcons === 'function') {
           renderDesktopIcons();
         } else if (typeof refreshAllExplorerWindows === 'function') {
@@ -468,7 +501,8 @@ function createNewFolder(e, fromFullPath) {
 
     const folderId = "folder-" + Date.now();
     const driveRootRegex = /^[A-Z]:\/\/$/;
-    let newFolderPath = driveRootRegex.test(parentPath) ? parentPath + folderId : parentPath + "/" + folderId;
+    // Build the correct folder path using the folder name, not the ID
+    let newFolderPath = driveRootRegex.test(parentPath) ? parentPath + folderName : parentPath + "/" + folderName;
     const newFolderItem = {
       id: folderId,
       name: folderName,
@@ -483,31 +517,49 @@ function createNewFolder(e, fromFullPath) {
     // For root directories, insert directly into the drive
     if (driveRootRegex.test(fromFullPath)) {
       destination = fs.folders[fromFullPath];
+      if (!destination) {
+        fs.folders[fromFullPath] = {};
+        destination = fs.folders[fromFullPath];
+      }
+    } else if (fromFullPath === 'C://Desktop') {
+      // Special handling for desktop
+      if (!fs.folders['C://Desktop']) {
+        fs.folders['C://Desktop'] = {};
+      }
+      destination = fs.folders['C://Desktop'];
     } else {
-      // For subdirectories, find the parent folder object
-      const parentFolder = findFolderObjectByFullPath(fromFullPath, fs);
-      if (parentFolder && parentFolder.contents) {
-        destination = parentFolder.contents;
-      } else {
-        console.error('Parent folder not found or has no contents:', fromFullPath);
-        destination = fs.folders[fromFullPath.substring(0, 4)] || {};
+      // For subdirectories, use the direct folder contents from fs.folders
+      destination = fs.folders[fromFullPath];
+      if (!destination) {
+        // If the parent folder doesn't exist in fs.folders, create it
+        console.warn('Parent folder contents not found, creating:', fromFullPath);
+        fs.folders[fromFullPath] = {};
+        destination = fs.folders[fromFullPath];
       }
     }
 
     // Insert the new folder into the parent's contents.
     destination[folderId] = newFolderItem;
 
-    // Refresh the UI to show the new folder
-    if (fromFullPath === 'C://Desktop') {
-      // For desktop, refresh desktop icons
-      renderDesktopIcons();
-    } else {
-      // For explorer windows, refresh all windows showing this path
-      refreshAllExplorerWindows(parentPath);
-    }
+    // Initialize the folder's contents in fs.folders
+    fs.folders[newFolderPath] = {};
 
+    // Save state first, then refresh UI
     setFileSystemState(fs);
-    saveState().catch(error => {
+    saveState().then(() => {
+      // Refresh the UI to show the new folder after state is saved
+      if (fromFullPath === 'C://Desktop') {
+        // For desktop, refresh desktop icons
+        if (typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        }
+      } else {
+        // For explorer windows, refresh all windows showing this path
+        if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(parentPath);
+        }
+      }
+    }).catch(error => {
       console.error('Failed to save state after creating folder:', error);
     });
     // Note: refreshExplorerViews() is broken, so we handle refresh above

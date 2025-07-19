@@ -39,37 +39,38 @@ function getFolderIdByFullPath(fullPath) {
 function findFolderObjectByFullPath(fullPath, fileSystem = null) {
   fullPath = normalizePath(fullPath);
   const fs = fileSystem || getFileSystemStateSync();
+
   // For drive roots, return a synthetic folder object.
   if (/^[A-Z]:\/\/$/.test(fullPath)) {
     return { id: fullPath, name: fullPath, fullPath: fullPath, contents: fs.folders[fullPath] };
   }
 
-  function search(contents) {
-    for (const key in contents) {
-      const item = contents[key];
-      if (item.type === "folder") {
-        if (normalizePath(item.fullPath) === fullPath) {
-          return item;
+  // First, try to find the folder by searching through all folder contents
+  // This is more reliable than recursive search through item.contents
+  function searchAllFolders() {
+    for (const folderPath in fs.folders) {
+      if (/^[A-Z]:\/\/$/.test(folderPath)) {
+        // Search through this drive's contents
+        for (const itemKey in fs.folders[folderPath]) {
+          const item = fs.folders[folderPath][itemKey];
+          if (item.type === "folder" && normalizePath(item.fullPath) === fullPath) {
+            return item;
+          }
         }
-        // Search recursively in this folder's contents
-        if (item.contents) {
-          const result = search(item.contents);
-          if (result) return result;
+      } else {
+        // Search through subfolder contents
+        for (const itemKey in fs.folders[folderPath]) {
+          const item = fs.folders[folderPath][itemKey];
+          if (item.type === "folder" && normalizePath(item.fullPath) === fullPath) {
+            return item;
+          }
         }
       }
     }
     return null;
   }
 
-  // Search in each drive root.
-  const fsFolders = fs.folders;
-  for (const drive in fsFolders) {
-    if (/^[A-Z]:\/\/$/.test(drive)) {
-      const result = search(fsFolders[drive]);
-      if (result) return result;
-    }
-  }
-  return null;
+  return searchAllFolders();
 }
 
 /* =====================
@@ -79,24 +80,30 @@ function findFolderObjectByFullPath(fullPath, fileSystem = null) {
 function findFolderFullPathById(folderId, file = false) {
   // If folderId is a drive root, return it.
   if (/^[A-Z]:\/\/$/.test(folderId)) return folderId;
-  function search(contents) {
+
+  const fs = getFileSystemStateSync();
+
+  function search(contents, parentPath = null) {
     for (const key in contents) {
       const item = contents[key];
       if (item.type === "folder" || file === true) {
         if (key === folderId) {
           return item.fullPath;
         }
-        const nested = getItemsForPath(item.fullPath);
-        const result = search(nested);
-        if (result) return result;
+        // If this item is a folder, look for its contents in fs.folders
+        if (item.type === "folder" && item.fullPath && fs.folders[item.fullPath]) {
+          const result = search(fs.folders[item.fullPath], item.fullPath);
+          if (result) return result;
+        }
       }
     }
     return null;
   }
-  const fsFolders = getFileSystemStateSync().folders;
-  for (const drive in fsFolders) {
+
+  // Search in each drive root
+  for (const drive in fs.folders) {
     if (/^[A-Z]:\/\/$/.test(drive)) {
-      const result = search(fsFolders[drive]);
+      const result = search(fs.folders[drive], drive);
       if (result) return result;
     }
   }

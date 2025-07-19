@@ -80,46 +80,14 @@ function getItemsForPath(fullPath) {
   const fs = getFileSystemStateSync();
   if (fs.initialized !== true) fetchDocumentsSync();
 
-  let current = fs.folders;
+  // For drive roots, return the contents directly
   if (fullPath.substring(1, 4) === '://' && fullPath.length === 4) {
-    return current[fullPath]
+    return fs.folders[fullPath] || {};
   }
 
-  const drivePath = fullPath.substring(0, 4);
-  current = current[drivePath];
-
-  // Split the path into segments
-  let parts = fullPath.split('/').filter(Boolean).filter(str => str !== 'A:').filter(str => str !== 'D:').filter(str => str !== 'C:');
-
-  if (parts.length === 0) return {};
-  current = current[parts[0]]
-  let infinite_prot = 50;
-  while (infinite_prot > 1) {
-    let breakit = false;
-    infinite_prot -= 1;
-    parts.forEach(part => {
-      let objects = drillIntoFolder(part, current);
-      current = objects;
-      if (typeof objects.contents === 'undefined') breakit = true;
-    });
-    if (breakit) {
-      break;
-    }
-  }
-
-  function drillIntoFolder (part) {
-    if (part) {
-      if (current[part]) {
-        current = current[part]
-      }
-    }
-
-    if (typeof current.contents !== 'undefined') {
-      current = current.contents; // Move deeper into contents
-      return current;
-    } else { return current }
-  }
-  return current;
+  // For all other paths, use the direct lookup in fs.folders
+  // since each folder's contents are stored under its fullPath key
+  return fs.folders[fullPath] || {};
 }
 
 // System files preloaded by vendor

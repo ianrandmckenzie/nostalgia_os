@@ -390,26 +390,23 @@ function constrainIconPosition(icon) {
 
 // Helper function to get an item from the file system by its ID
 function getItemFromFileSystem(itemId) {
-  function searchInContents(contents) {
-    for (const key in contents) {
-      if (key === itemId) {
-        return contents[key];
-      }
-      if (contents[key].type === 'folder' && contents[key].contents) {
-        const found = searchInContents(contents[key].contents);
-        if (found) return found;
-      }
+  const fs = getFileSystemStateSync();
+  
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    
+    // Check if the item is directly in this folder
+    if (folder[itemId]) {
+      return folder[itemId];
     }
-    return null;
-  }
-
-  const fs = getFileSystemState();
-  for (const drive in fs.folders) {
-    if (/^[A-Z]:\/\/$/.test(drive)) {
-      const found = searchInContents(fs.folders[drive]);
-      if (found) return found;
+    
+    // Check if the item is in the folder's contents
+    if (folder.contents && folder.contents[itemId]) {
+      return folder.contents[itemId];
     }
   }
+  
   return null;
 }
 

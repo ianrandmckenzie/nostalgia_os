@@ -136,9 +136,13 @@ function handleDragEnd(e) {
 */
 function moveItemToFolder(itemId, folderId) {
   let fs = getFileSystemStateSync();
+  
+  console.log('moveItemToFolder called:', { itemId, folderId });
+  console.log('File system structure:', fs);
 
   // Find the dragged item and its parent.
   const result = findItemAndParentById(itemId, fs);
+  console.log('findItemAndParentById result:', result);
   if (!result) {
     console.error("Item not found:", itemId);
     return;
@@ -147,9 +151,11 @@ function moveItemToFolder(itemId, folderId) {
 
   // Check if item is moving from desktop for cleanup
   const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
+  console.log('Moving from desktop:', isMovingFromDesktop);
 
   // Remove the item from its current parent's contents.
   delete parent[itemId];
+  console.log('Removed item from parent');
 
   // Clean up desktop icon position if moving from desktop
   if (isMovingFromDesktop) {
@@ -161,7 +167,9 @@ function moveItemToFolder(itemId, folderId) {
 
   // Find the target folder object.
   let targetFullPath = findFolderFullPathById(folderId);
+  console.log('Target full path:', targetFullPath);
   let targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
+  console.log('Target folder object:', targetFolder);
   if (!targetFolder) {
     console.error("Target folder not found:", folderId);
     return;
@@ -169,9 +177,24 @@ function moveItemToFolder(itemId, folderId) {
   // Ensure target folder has a 'contents' object.
   if (!targetFolder.contents) targetFolder.contents = {};
   targetFolder.contents[itemId] = item;
+  
+  // Also ensure the item is accessible in the unified structure
+  // For folders that are not drive roots, also update fs.folders[targetFullPath]
+  if (!/^[A-Z]:\/\/$/.test(targetFullPath)) {
+    if (!fs.folders[targetFullPath]) {
+      console.log('Creating folder entry in unified structure:', targetFullPath);
+      fs.folders[targetFullPath] = {};
+    }
+    fs.folders[targetFullPath][itemId] = item;
+    console.log('Added item to unified structure at:', targetFullPath, 'item:', item);
+  }
 
-  // Update the moved item's fullPath.
-  item.fullPath = targetFullPath + "/" + item.id;
+  console.log('Final target folder contents:', targetFolder.contents);
+  console.log('Final fs.folders[targetFullPath]:', fs.folders[targetFullPath]);
+
+  // Update the moved item's fullPath using the item's name, not its ID.
+  item.fullPath = targetFullPath + "/" + item.name;
+  console.log('Updated item fullPath:', item.fullPath);
 
   setFileSystemState(fs);
   saveState();
@@ -214,74 +237,65 @@ function updateOrderForCurrentPath() {
   Returns an object with the found item and its parent object.
 */
 function findItemAndParentById(itemId, fs) {
-  function search(contents) {
-    for (const key in contents) {
-      if (key === itemId) {
-        return { item: contents[key], parent: contents };
-      }
-      if (contents[key].type === 'folder' && contents[key].contents) {
-        const found = search(contents[key].contents);
-        if (found) return found;
-      }
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    
+    // Check if the item is directly in this folder
+    if (folder[itemId]) {
+      return { item: folder[itemId], parent: folder };
     }
-    return null;
-  }
-  for (const drive in fs.folders) {
-    if (/^[A-Z]:\/\/$/.test(drive)) {
-      const found = search(fs.folders[drive]);
-      if (found) return found;
+    
+    // Check if the item is in the folder's contents
+    if (folder.contents && folder.contents[itemId]) {
+      return { item: folder.contents[itemId], parent: folder.contents };
     }
   }
+  
   return null;
 }
 
 // Helper function to get an item from the file system by its ID
 function getItemFromFileSystem(itemId) {
-  function searchInContents(contents) {
-    for (const key in contents) {
-      if (key === itemId) {
-        return contents[key];
-      }
-      if (contents[key].type === 'folder' && contents[key].contents) {
-        const found = searchInContents(contents[key].contents);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
   const fs = getFileSystemStateSync();
-  for (const drive in fs.folders) {
-    if (/^[A-Z]:\/\/$/.test(drive)) {
-      const found = searchInContents(fs.folders[drive]);
-      if (found) return found;
+  
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    
+    // Check if the item is directly in this folder
+    if (folder[itemId]) {
+      return folder[itemId];
+    }
+    
+    // Check if the item is in the folder's contents
+    if (folder.contents && folder.contents[itemId]) {
+      return folder.contents[itemId];
     }
   }
+  
   return null;
 }
 
 // Helper function to find the current path of an item
 function findItemCurrentPath(itemId) {
-  function searchPath(contents, currentPath) {
-    for (const key in contents) {
-      if (key === itemId) {
-        return currentPath;
-      }
-      if (contents[key].type === 'folder' && contents[key].contents) {
-        const found = searchPath(contents[key].contents, contents[key].fullPath || currentPath + '/' + key);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
   const fs = getFileSystemStateSync();
-  for (const drive in fs.folders) {
-    if (/^[A-Z]:\/\/$/.test(drive)) {
-      const found = searchPath(fs.folders[drive], drive);
-      if (found) return found;
+  
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    
+    // Check if the item is directly in this folder
+    if (folder[itemId]) {
+      return folderPath;
+    }
+    
+    // Check if the item is in the folder's contents
+    if (folder.contents && folder.contents[itemId]) {
+      return folderPath;
     }
   }
+  
   return '';
 }
 

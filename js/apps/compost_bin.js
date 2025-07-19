@@ -40,7 +40,7 @@ function launchCompostBin() {
 
   const binInfo = document.createElement('div');
   binInfo.className = 'text-sm';
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']
   const desktopItems = fs.folders['C://Desktop'] || {};
@@ -75,7 +75,7 @@ function launchCompostBin() {
 }
 
 function loadCompostBinContents(container) {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']
   const desktopItems = fs.folders['C://Desktop'] || {};
@@ -135,7 +135,7 @@ function createCompostBinItem(item) {
 }
 
 function moveItemToCompostBin(itemId, fromPath) {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Don't allow moving the compost bin itself
   if (itemId === 'compostbin') {
@@ -151,19 +151,8 @@ function moveItemToCompostBin(itemId, fromPath) {
     // Use unified structure for desktop
     sourceContainer = fs.folders['C://Desktop'] || {};
   } else {
-    // Navigate to the source container
-    const pathParts = fromPath.split('/').filter(part => part);
-    let current = fs.folders;
-
-    for (const part of pathParts) {
-      if (current[part]) {
-        current = current[part];
-        if (current.contents) {
-          current = current.contents;
-        }
-      }
-    }
-    sourceContainer = current;
+    // Use unified structure: all folders are stored directly in fs.folders[fullPath]
+    sourceContainer = fs.folders[fromPath] || {};
   }
 
   if (sourceContainer && sourceContainer[itemId]) {
@@ -215,7 +204,7 @@ function moveItemToCompostBin(itemId, fromPath) {
 }
 
 function emptyCompostBin() {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']
   const desktopItems = fs.folders['C://Desktop'] || {};
@@ -308,7 +297,7 @@ function updateCompostBinHeader(compostBinWindow) {
   if (header) {
     const binInfo = header.querySelector('.text-sm');
     if (binInfo) {
-      const fs = getFileSystemState();
+      const fs = getFileSystemStateSync();
 
       // Use unified structure: look for compost bin in fs.folders['C://Desktop']
       const desktopItems = fs.folders['C://Desktop'] || {};

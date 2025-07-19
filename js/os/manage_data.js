@@ -116,22 +116,16 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   console.log('Path parts:', pathParts);
   console.log('Initial target folder:', targetFolder);
 
-  // Navigate through the path parts
-  for (const part of pathParts) {
-    if (targetFolder[part]) {
-      targetFolder = targetFolder[part];
-      console.log('Navigated to:', part, targetFolder);
-      // Don't navigate to contents here, we need the folder object itself
-    } else if (targetFolder.contents && targetFolder.contents[part]) {
-      // Check if the folder is in contents (for nested folders)
-      targetFolder = targetFolder.contents[part];
-      console.log('Navigated to (via contents):', part, targetFolder);
-    } else {
-      console.error('Target folder not found:', targetFolderPath, 'Missing part:', part);
-      console.error('Available folders:', Object.keys(targetFolder));
-      if (targetFolder.contents) {
-        console.error('Available in contents:', Object.keys(targetFolder.contents));
-      }
+  // Use unified structure: all folders are stored directly in fs.folders[fullPath]
+  if (pathParts.length === 0) {
+    // Targeting root drive
+    targetFolder = fs.folders[drive];
+  } else {
+    // Targeting specific folder - use full path in unified structure
+    targetFolder = fs.folders[targetFolderPath];
+    if (!targetFolder) {
+      console.error('Target folder not found in unified structure:', targetFolderPath);
+      console.error('Available folders:', Object.keys(fs.folders));
       return null;
     }
   }
@@ -165,7 +159,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     id: fileId,
     name: fileName,
     type: 'ugc-file',
-    fullPath: isRootDrive ? `${targetFolderPath}${fileId}` : `${targetFolderPath}/${fileId}`,
+    fullPath: isRootDrive ? `${targetFolderPath}${fileName}` : `${targetFolderPath}/${fileName}`,
     content_type: contentType,
     icon: icon_url,
     contents: fileContent || '',
@@ -925,51 +919,15 @@ function findFolderByPath(fs, targetPath) {
     return fs.folders[targetPath];
   }
 
-  // Split the path into components
-  const pathParts = targetPath.split('/').filter(part => part !== '');
-
-  // First part should be the drive (C:, D:, A:) - handle the colon properly
-  const driveLetter = pathParts[0].replace(':', '');
-  const drive = driveLetter + '://';
-  let currentFolder = fs.folders[drive];
-
-  if (!currentFolder) {
-    console.error('Drive not found:', drive);
+  // Use unified structure: all folders are stored directly in fs.folders[fullPath]
+  const folder = fs.folders[targetPath];
+  if (!folder) {
+    console.error('Folder not found in unified structure:', targetPath);
+    console.error('Available folders:', Object.keys(fs.folders));
     return null;
   }
 
-  // Traverse through the remaining path parts
-  for (let i = 1; i < pathParts.length; i++) {
-    const folderName = pathParts[i];
-
-    // Look for the folder by name in the current level
-    let found = false;
-    if (currentFolder.contents) {
-      for (const [key, item] of Object.entries(currentFolder.contents)) {
-        if (item.type === 'folder' && item.name === folderName) {
-          currentFolder = item;
-          found = true;
-          break;
-        }
-      }
-    } else {
-      // Check direct properties for root level folders
-      for (const [key, item] of Object.entries(currentFolder)) {
-        if (item && item.type === 'folder' && item.name === folderName) {
-          currentFolder = item;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    if (!found) {
-      console.error(`Folder '${folderName}' not found in path:`, targetPath);
-      return null;
-    }
-  }
-
-  return currentFolder;
+  return folder;
 }
 
 // Initialize async

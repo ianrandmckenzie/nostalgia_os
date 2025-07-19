@@ -181,18 +181,27 @@ function editItemName(e, menuItem) {
     contextPath = targetElem.getAttribute('data-current-path')
   }
 
-  let fs = getFileSystemState();
+  let fs = getFileSystemStateSync();
+
+  // Safety check to ensure file system state is properly initialized
+  if (!fs || !fs.folders) {
+    console.error('File system state not properly initialized:', fs);
+    showDialogBox('File system not initialized. Please refresh the page.', 'error');
+    return;
+  }
+
   let folderContents = {};
-  let fileId = targetElem.getAttribute('data-item-id');
   const isDrive = contextPath.length === 4;
   if (isDrive) {
     folderContents = fs.folders[contextPath];
   } else if (contextPath == 'C://Desktop') {
     folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
   } else {
-    folderContents = findFolderObjectByFullPath(contextPath, fs);
+    // For all other subdirectories, get the contents property
+    const folderObj = findFolderObjectByFullPath(contextPath, fs);
+    folderContents = folderObj ? folderObj.contents : {};
   }
-  if (!(fileId in folderContents)) {
+  if (!(itemId in folderContents)) {
     showDialogBox('Item not found.', 'error');
     return;
   }
@@ -263,17 +272,22 @@ function editItemName(e, menuItem) {
         }
       }
       item.name = newName;
-      if (!(contextPath === "C://Desktop")) {
-        const explorerWindow = document.getElementById('explorer-window');
-        if (explorerWindow) {
-          explorerWindow.querySelector('.file-explorer-window').outerHTML = getExplorerWindowContent(contextPath);
-        }
+
+      // Refresh the UI to show the updated name
+      if (contextPath === "C://Desktop") {
+        // For desktop, refresh desktop icons
+        renderDesktopIcons();
+      } else {
+        // For explorer windows, refresh all windows showing this path
+        refreshAllExplorerWindows(contextPath);
       }
-      setupFolderDrop();
+
       setFileSystemState(fs);
-      saveState();
-      refreshExplorerViews();
-      if (contextPath === "C://Desktop") renderDesktopIcons();
+      // Use async save for critical data operations
+      saveState().catch(error => {
+        console.error('Failed to save state after renaming:', error);
+      });
+      // Note: refreshExplorerViews() is known to be broken, so we handle refresh above
     }
     closeWindow(winId);
   });
@@ -305,14 +319,26 @@ function deleteItem(e) {
         ? explorerElem.getAttribute('data-current-path')
         : targetElem.getAttribute('data-current-path');
 
-  const fs   = getFileSystemState();
+  const fs   = getFileSystemStateSync();
+
+  // Safety check to ensure file system state is properly initialized
+  if (!fs || !fs.folders) {
+    console.error('File system state not properly initialized:', fs);
+    showDialogBox('File system not initialized. Please refresh the page.', 'error');
+    return;
+  }
+
   let folderContents;
   const isDrive = contextPath.length === 4;
 
   if (isDrive)                    folderContents = fs.folders[contextPath];
   else if (contextPath === 'C://Desktop')
                                   folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
-  else                            folderContents = findFolderObjectByFullPath(contextPath, fs);
+  else {
+    // For all other subdirectories, get the contents property
+    const folderObj = findFolderObjectByFullPath(contextPath, fs);
+    folderContents = folderObj ? folderObj.contents : {};
+  }
 
   if (!(fileId in folderContents)) {
     showDialogBox('Item not found.', 'error');
@@ -364,7 +390,9 @@ function deleteItem(e) {
       setupFolderDrop();
     }
     setFileSystemState(fs);
-    saveState();
+    saveState().catch(error => {
+      console.error('Failed to save state after deletion:', error);
+    });
     refreshExplorerViews();
     renderDesktopIcons();
 
@@ -415,7 +443,15 @@ function createNewFolder(e, fromFullPath) {
     let folderName = form.folderName.value.trim();
     if (!folderName) folderName = 'Untitled';
 
-    let fs = getFileSystemState();
+    let fs = getFileSystemStateSync();
+
+    // Safety check to ensure file system state is properly initialized
+    if (!fs || !fs.folders) {
+      console.error('File system state not properly initialized:', fs);
+      showDialogBox('File system not initialized. Please refresh the page.', 'error');
+      return;
+    }
+
     const folderId = "folder-" + Date.now();
     const driveRootRegex = /^[A-Z]:\/\/$/;
     let newFolderPath = driveRootRegex.test(parentPath) ? parentPath + folderId : parentPath + "/" + folderId;
@@ -447,16 +483,20 @@ function createNewFolder(e, fromFullPath) {
     // Insert the new folder into the parent's contents.
     destination[folderId] = newFolderItem;
 
-    // Refresh explorer view.
-    const explorerWindow = document.getElementById('explorer-window');
-    if (explorerWindow) {
-      explorerWindow.querySelector('.file-explorer-window').outerHTML = getExplorerWindowContent(parentPath);
-      setupFolderDrop();
+    // Refresh the UI to show the new folder
+    if (fromFullPath === 'C://Desktop') {
+      // For desktop, refresh desktop icons
+      renderDesktopIcons();
+    } else {
+      // For explorer windows, refresh all windows showing this path
+      refreshAllExplorerWindows(parentPath);
     }
+
     setFileSystemState(fs);
-    saveState();
-    refreshExplorerViews();
-    if (fromFullPath == 'C://Desktop') renderDesktopIcons();
+    saveState().catch(error => {
+      console.error('Failed to save state after creating folder:', error);
+    });
+    // Note: refreshExplorerViews() is broken, so we handle refresh above
 
     closeWindow(winId);
   });
@@ -536,7 +576,15 @@ function createNewFile(e, fromFullPath, onCreated = null) {
     };
 
     /* ------------- insert into filesystem ---------------- */
-    const fs    = getFileSystemState();
+    const fs = getFileSystemStateSync();
+
+    // Safety check to ensure file system state is properly initialized
+    if (!fs || !fs.folders) {
+      console.error('File system state not properly initialized:', fs);
+      showDialogBox('File system not initialized. Please refresh the page.', 'error');
+      return;
+    }
+
     const drive = parentPath.substring(0, 4);
     const paths = parentPath.substring(4).split('/');
     paths.unshift(drive);
@@ -557,17 +605,20 @@ function createNewFile(e, fromFullPath, onCreated = null) {
     dest[newFile.id] = newFile;
 
     /* ------------- refresh views ------------------------ */
-    const explorerWin = document.getElementById('explorer-window');
-    if (explorerWin) {
-      explorerWin.querySelector('.file-explorer-window').outerHTML =
-        getExplorerWindowContent(parentPath);
-      setupFolderDrop();
+    if (fromFullPath === 'C://Desktop') {
+      // For desktop, refresh desktop icons
+      renderDesktopIcons();
+    } else {
+      // For explorer windows, refresh all windows showing this path
+      refreshAllExplorerWindows(parentPath);
     }
+
     setFileSystemState(fs);
-    saveState();
+    saveState().catch(error => {
+      console.error('Failed to save state after creating file:', error);
+    });
     if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
-    refreshExplorerViews();
-    if (fromFullPath === 'C://Desktop') renderDesktopIcons();
+    // Note: refreshExplorerViews() is broken, so we handle refresh above
   });
 }
 
@@ -656,7 +707,15 @@ function createNewShortcut(e, fromFullPath) {
     };
 
     /* insert into filesystem (same traversal logic) */
-    const fs    = getFileSystemState();
+    const fs = getFileSystemStateSync();
+
+    // Safety check to ensure file system state is properly initialized
+    if (!fs || !fs.folders) {
+      console.error('File system state not properly initialized:', fs);
+      showDialogBox('File system not initialized. Please refresh the page.', 'error');
+      return;
+    }
+
     const drive = fromFullPath.substring(0, 4);
     const paths = fromFullPath.substring(4).split('/');
     paths.unshift(drive);
@@ -678,16 +737,26 @@ function createNewShortcut(e, fromFullPath) {
     dest[newShortcut.id] = newShortcut;
 
     /* refresh views */
-    const explorerWin = document.getElementById('explorer-window');
-    if (explorerWin) {
-      explorerWin.querySelector('.file-explorer-window').outerHTML =
-        getExplorerWindowContent(parentPath);
-      setupFolderDrop();
+    if (fromFullPath === 'C://Desktop') {
+      // For desktop, refresh desktop icons
+      renderDesktopIcons();
+    } else {
+      // For explorer windows, refresh the current explorer window
+      const explorerWin = document.getElementById('explorer-window');
+      if (explorerWin) {
+        const fileExplorerDiv = explorerWin.querySelector('.file-explorer-window');
+        if (fileExplorerDiv) {
+          fileExplorerDiv.outerHTML = getExplorerWindowContent(parentPath);
+        }
+      }
     }
+
+    setupFolderDrop();
     setFileSystemState(fs);
-    saveState();
-    refreshExplorerViews();
-    if (fromFullPath === 'C://Desktop') renderDesktopIcons();
+    saveState().catch(error => {
+      console.error('Failed to save state after creating shortcut:', error);
+    });
+    // Note: refreshExplorerViews() is broken, so we handle refresh above
   });
 }
 
@@ -716,7 +785,15 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   };
 
   // Insert into filesystem
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
+
+  // Safety check to ensure file system state is properly initialized
+  if (!fs || !fs.folders) {
+    console.error('File system state not properly initialized:', fs);
+    showDialogBox('File system not initialized. Please refresh the page.', 'error');
+    return;
+  }
+
   const drive = parentPath.substring(0, 4);
   const paths = parentPath.substring(4).split('/');
   paths.unshift(drive);
@@ -738,17 +815,20 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
 
   // Save filesystem state
   setFileSystemState(fs);
-  saveState();
+  saveState().catch(error => {
+    console.error('Failed to save state after creating LetterPad:', error);
+  });
 
   // Refresh views to show the new file
-  const explorerWin = document.getElementById('explorer-window');
-  if (explorerWin) {
-    explorerWin.querySelector('.file-explorer-window').outerHTML =
-      getExplorerWindowContent(parentPath);
-    setupFolderDrop();
+  if (fromFullPath === 'C://Desktop') {
+    // For desktop, refresh desktop icons
+    renderDesktopIcons();
+  } else {
+    // For explorer windows, refresh all windows showing this path
+    refreshAllExplorerWindows(parentPath);
   }
-  refreshExplorerViews();
-  if (fromFullPath === 'C://Desktop') renderDesktopIcons();
+
+  // Note: refreshExplorerViews() is broken, so we handle refresh above
 
   // Launch the LetterPad editor directly for immediate editing
   const win = createWindow(
@@ -841,4 +921,33 @@ function makeField(labelText, control) {
   label.textContent = labelText;
   wrap.append(label, control);
   return wrap;
+}
+
+// Comprehensive function to refresh all explorer windows showing a specific path
+function refreshAllExplorerWindows(targetPath) {
+  // Find all explorer windows that are currently showing the target path
+  const allExplorerWindows = document.querySelectorAll('.file-explorer-window');
+
+  allExplorerWindows.forEach(explorerDiv => {
+    const currentPath = explorerDiv.getAttribute('data-current-path');
+    if (currentPath === targetPath) {
+      // Use innerHTML instead of outerHTML to preserve the element itself and its attributes
+      const newContent = getExplorerWindowContent(targetPath);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = newContent;
+      const newExplorerDiv = tempDiv.querySelector('.file-explorer-window');
+
+      if (newExplorerDiv) {
+        // Copy the inner content while preserving the original element
+        explorerDiv.innerHTML = newExplorerDiv.innerHTML;
+        // Ensure the data-current-path is preserved
+        explorerDiv.setAttribute('data-current-path', targetPath);
+      }
+    }
+  });
+
+  // Re-setup all event handlers for the refreshed windows
+  setTimeout(() => {
+    setupFolderDrop();
+  }, 50);
 }

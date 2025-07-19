@@ -52,8 +52,22 @@ function getFileSystemStateSync() {
   } catch (error) {
     console.warn('Failed to get file system state sync:', error);
   }
-  // Return global variable as fallback
-  return fileSystemState;
+  // Return global variable as fallback - check if it exists in global scope
+  if (typeof window !== 'undefined' && window.fileSystemState) {
+    return window.fileSystemState;
+  }
+  if (typeof fileSystemState !== 'undefined') {
+    return fileSystemState;
+  }
+  // Last resort: return a minimal structure to prevent errors
+  console.error('No file system state available anywhere!');
+  return {
+    folders: {
+      "C://": {},
+      "A://": {},
+      "D://": {}
+    }
+  };
 }
 
 /* =====================
@@ -181,7 +195,7 @@ async function fetchDocuments() {
       };
     });
 
-    let fs = getFileSystemState();
+    let fs = await getFileSystemState();
     if (fs.folders['C://'] && fs.folders['C://']['Documents']) {
       const fileItemsObj = {};
       fileItems.forEach(file => {

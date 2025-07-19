@@ -10,7 +10,7 @@ function normalizePath(path) {
 function getFolderIdByFullPath(fullPath) {
   // For drive roots, return the fullPath itself.
   if (/^[A-Z]:\/\/$/.test(fullPath)) return fullPath;
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
   function searchInFolder(contents) {
     for (const key in contents) {
       const item = contents[key];
@@ -38,7 +38,7 @@ function getFolderIdByFullPath(fullPath) {
 ====================== */
 function findFolderObjectByFullPath(fullPath, fileSystem = null) {
   fullPath = normalizePath(fullPath);
-  const fs = fileSystem || getFileSystemState();
+  const fs = fileSystem || getFileSystemStateSync();
   // For drive roots, return a synthetic folder object.
   if (/^[A-Z]:\/\/$/.test(fullPath)) {
     return { id: fullPath, name: fullPath, fullPath: fullPath, contents: fs.folders[fullPath] };
@@ -93,7 +93,7 @@ function findFolderFullPathById(folderId, file = false) {
     }
     return null;
   }
-  const fsFolders = getFileSystemState().folders;
+  const fsFolders = getFileSystemStateSync().folders;
   for (const drive in fsFolders) {
     if (/^[A-Z]:\/\/$/.test(drive)) {
       const result = search(fsFolders[drive]);

@@ -158,10 +158,29 @@ class IndexedDBStorage {
   setItemSync(key, value) {
     // Update cache immediately for sync access
     this.cache.set(key, value);
-    // Async update IndexedDB in background
-    this.setItem(key, value).catch(error => {
-      console.warn('Failed to save to IndexedDB:', error);
+    // Async update IndexedDB in background with retry logic
+    this.setItemWithRetry(key, value, 3).catch(error => {
+      console.warn('Failed to save to IndexedDB after retries:', error);
     });
+  }
+
+  // Helper method to retry setItem operations
+  async setItemWithRetry(key, value, maxRetries = 3) {
+    let lastError;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await this.setItem(key, value);
+        return; // Success
+      } catch (error) {
+        lastError = error;
+        console.warn(`setItem retry ${i + 1}/${maxRetries} failed:`, error);
+        if (i < maxRetries - 1) {
+          // Wait before retry, with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 100));
+        }
+      }
+    }
+    throw lastError;
   }
 
   getItemSync(key) {

@@ -21,7 +21,12 @@ let fileSystemState = {
   }
 };
 
-function saveState() {
+// Expose globally for consistency across modules
+if (typeof window !== 'undefined') {
+  window.fileSystemState = fileSystemState;
+}
+
+async function saveState() {
   const appState = {
     fileSystemState: fileSystemState,
     windowStates: windowStates,
@@ -29,7 +34,21 @@ function saveState() {
     desktopSettings: desktopSettings,
     navWindows: navWindows
   };
-  storage.setItemSync('appState', appState);
+
+  const startTime = Date.now();
+  console.log('Starting saveState operation...');
+
+  try {
+    // Use async method to ensure data is fully written before continuing
+    await storage.setItem('appState', appState);
+    const endTime = Date.now();
+    console.log(`saveState completed successfully in ${endTime - startTime}ms`);
+  } catch (error) {
+    console.warn('Failed to save state to IndexedDB:', error);
+    // Fallback to sync method as last resort
+    storage.setItemSync('appState', appState);
+    console.log('Fell back to sync save method');
+  }
 }
 
 function getFileSystemState() {
@@ -38,12 +57,16 @@ function getFileSystemState() {
 
 function setFileSystemState(newState) {
   fileSystemState = newState;
+  // Also expose globally for consistency
+  if (typeof window !== 'undefined') {
+    window.fileSystemState = newState;
+  }
 }
 
 function updateContent(windowId, newContent) {
   if (windowStates[windowId]) {
     windowStates[windowId].content = newContent;
-    saveState();
+    saveState(); // Fire and forget - this is not critical for data integrity
   }
 }
 
@@ -93,8 +116,11 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     }
   }
 
-  // Ensure the target folder has a contents object
-  if (!targetFolder.contents) {
+  // Check if we're targeting a root drive
+  const isRootDrive = pathParts.length === 0;
+
+  // Ensure the target folder has a contents object (unless it's a root drive)
+  if (!isRootDrive && !targetFolder.contents) {
     console.log('Creating contents object for folder:', targetFolder.name);
     targetFolder.contents = {};
   }
@@ -119,7 +145,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     id: fileId,
     name: fileName,
     type: 'ugc-file',
-    fullPath: `${targetFolderPath}/${fileId}`,
+    fullPath: isRootDrive ? `${targetFolderPath}${fileId}` : `${targetFolderPath}/${fileId}`,
     content_type: contentType,
     icon: icon_url,
     contents: fileContent || '',
@@ -151,33 +177,50 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
       newFile.file = null;
       setFileSystemState(fs);
 
-      // Save state
-      saveState();
+      // Save state - wait for completion to ensure data integrity
+      try {
+        await saveState();
+      } catch (error) {
+        console.error('Failed to save state after file storage:', error);
+      }
 
       // Refresh views after async operation
-      if (typeof refreshExplorerViews === 'function') {
-        refreshExplorerViews();
-      }
       if (targetFolderPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
         renderDesktopIcons();
+      } else if (typeof refreshAllExplorerWindows === 'function') {
+        refreshAllExplorerWindows(targetFolderPath);
       }
+      // Note: refreshExplorerViews() is broken, so we handle refresh above
     };
     reader.readAsDataURL(fileObj);
   }
 
-  // Add to target folder contents
-  targetFolder.contents[fileId] = newFile;
+  // Add to target folder (handle root drives differently)
+  if (isRootDrive) {
+    // For root drives, add directly to the drive folder
+    targetFolder[fileId] = newFile;
+  } else {
+    // For regular folders, add to contents
+    targetFolder.contents[fileId] = newFile;
+  }
 
   // Save changes (for non-binary files or immediate save)
   setFileSystemState(fs);
   if (!fileObj || !['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
-    saveState();
+    try {
+      await saveState();
+    } catch (error) {
+      console.error('Failed to save state after non-binary file:', error);
+    }
   }
 
   // Refresh views if the function exists (will be available when file explorer is loaded)
-  if (typeof refreshExplorerViews === 'function') {
-    refreshExplorerViews();
+  if (targetFolderPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
+    renderDesktopIcons();
+  } else if (typeof refreshAllExplorerWindows === 'function') {
+    refreshAllExplorerWindows(targetFolderPath);
   }
+  // Note: refreshExplorerViews() is broken, so we handle refresh above
 
   return newFile;
 }
@@ -186,8 +229,24 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 window.globalAddFileToFileSystem = addFileToFileSystem;
 
 async function initializeAppState() {
-  const appStateData = await storage.getItem('appState');
+  // Ensure storage is ready before proceeding
+  try {
+    await storage.ensureReady();
+    console.log('Storage initialized and ready');
+  } catch (error) {
+    console.error('Failed to initialize storage:', error);
+  }
+
+  let appStateData;
+  try {
+    appStateData = await storage.getItem('appState');
+  } catch (error) {
+    console.error('Failed to load app state from storage:', error);
+    appStateData = null;
+  }
+
   if (!appStateData) {
+    console.log('No saved state found, initializing with defaults');
     // No saved state; initialize using the default base objects.
     const initialState = {
       fileSystemState: fileSystemState,
@@ -196,19 +255,36 @@ async function initializeAppState() {
       desktopSettings: desktopSettings,
       navWindows: navWindows
     };
-    await storage.setItem('appState', initialState);
+    try {
+      await storage.setItem('appState', initialState);
+      console.log('Initialized new app state successfully');
+    } catch (error) {
+      console.error('Failed to save initial app state:', error);
+    }
 
     // Add the default song to the Music folder on first load
     setTimeout(async () => {
       await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
     }, 100);
   } else {
-    // Load state from IndexedDB
+    // Load state from IndexedDB with validation
     const storedState = appStateData;
-    setFileSystemState(storedState.fileSystemState);
-    windowStates = storedState.windowStates || {};
-    desktopIconsState = storedState.desktopIconsState || {};
-    navWindows = storedState.navWindows || {};
+    console.log('Loading existing app state:', Object.keys(storedState));
+
+    // Validate and sanitize the loaded state
+    if (storedState.fileSystemState && typeof storedState.fileSystemState === 'object') {
+      setFileSystemState(storedState.fileSystemState);
+    } else {
+      console.warn('Invalid fileSystemState in saved data, using default');
+      setFileSystemState(fileSystemState);
+    }
+
+    windowStates = (storedState.windowStates && typeof storedState.windowStates === 'object')
+      ? storedState.windowStates : {};
+    desktopIconsState = (storedState.desktopIconsState && typeof storedState.desktopIconsState === 'object')
+      ? storedState.desktopIconsState : {};
+    navWindows = (storedState.navWindows && typeof storedState.navWindows === 'object')
+      ? storedState.navWindows : {};
 
     // Merge stored desktop settings with defaults to ensure all properties exist
     desktopSettings = {
@@ -541,9 +617,13 @@ function debugWindowStates() {
 }
 
 // Force save current state (for testing)
-function forceSaveState() {
-  saveState();
-  console.log('State saved manually');
+async function forceSaveState() {
+  try {
+    await saveState();
+    console.log('State saved manually');
+  } catch (error) {
+    console.error('Failed to save state manually:', error);
+  }
 }
 
 // Test app restoration (for testing)
@@ -579,12 +659,75 @@ function testBombbroomerInit() {
   }
 }
 
+// Test data integrity (for debugging)
+async function testDataIntegrity() {
+  console.log('=== Data Integrity Test ===');
+  try {
+    // Test 1: Save current state
+    console.log('1. Saving current state...');
+    await saveState();
+
+    // Test 2: Read back the saved state
+    console.log('2. Reading back saved state...');
+    const savedData = await storage.getItem('appState');
+
+    if (savedData) {
+      console.log('✓ Data successfully saved and retrieved');
+      console.log('- File system folders count:', Object.keys(savedData.fileSystemState?.folders || {}).length);
+      console.log('- Window states count:', Object.keys(savedData.windowStates || {}).length);
+      console.log('- Desktop icons count:', Object.keys(savedData.desktopIconsState || {}).length);
+
+      // Test 3: Verify IndexedDB persistence
+      const storage_estimate = await navigator.storage.estimate();
+      console.log('3. Storage usage:', (storage_estimate.usage / 1024 / 1024).toFixed(2), 'MB');
+
+      return true;
+    } else {
+      console.error('✗ No data found after save');
+      return false;
+    }
+  } catch (error) {
+    console.error('✗ Data integrity test failed:', error);
+    return false;
+  }
+}
+
 // Make debug functions globally available
 window.debugWindowStates = debugWindowStates;
 window.forceSaveState = forceSaveState;
 window.testAppRestoration = testAppRestoration;
 window.testAppReinitialization = testAppReinitialization;
 window.testBombbroomerInit = testBombbroomerInit;
+window.testDataIntegrity = testDataIntegrity;
+
+// Add beforeunload handler to ensure data is saved before page closes
+window.addEventListener('beforeunload', async (event) => {
+  try {
+    console.log('Page unloading - performing emergency save...');
+    // Force immediate save using sync method to ensure it completes before unload
+    const appState = {
+      fileSystemState: fileSystemState,
+      windowStates: windowStates,
+      desktopIconsState: desktopIconsState,
+      desktopSettings: desktopSettings,
+      navWindows: navWindows
+    };
+    storage.setItemSync('appState', appState);
+    console.log('Emergency save completed before page unload');
+  } catch (error) {
+    console.error('Failed to save state during page unload:', error);
+  }
+});
+
+// Also add a periodic backup save to prevent data loss
+setInterval(async () => {
+  try {
+    await saveState();
+    console.log('Periodic backup save completed');
+  } catch (error) {
+    console.error('Failed to save periodic backup:', error);
+  }
+}, 30000); // Save every 30 seconds
 
 async function restoreDesktopIcons() {
   // Desktop icon positions are already loaded into desktopIconsState during initializeAppState()

@@ -135,7 +135,7 @@ function handleDragEnd(e) {
   to the target folder's contents, updating fullPath as needed.
 */
 function moveItemToFolder(itemId, folderId) {
-  let fs = getFileSystemState();
+  let fs = getFileSystemStateSync();
 
   // Find the dragged item and its parent.
   const result = findItemAndParentById(itemId, fs);
@@ -192,7 +192,7 @@ function updateOrderForCurrentPath() {
   if (!explorer) return;
   const currentPath = explorer.getAttribute('data-current-path');
   const listItems = Array.from(explorer.querySelectorAll('ul > li'));
-  let fs = getFileSystemState();
+  let fs = getFileSystemStateSync();
   let folderObj = findFolderObjectByFullPath(currentPath, fs);
   if (!folderObj || !folderObj.contents) return;
 
@@ -250,7 +250,7 @@ function getItemFromFileSystem(itemId) {
     return null;
   }
 
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
   for (const drive in fs.folders) {
     if (/^[A-Z]:\/\/$/.test(drive)) {
       const found = searchInContents(fs.folders[drive]);
@@ -275,7 +275,7 @@ function findItemCurrentPath(itemId) {
     return null;
   }
 
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
   for (const drive in fs.folders) {
     if (/^[A-Z]:\/\/$/.test(drive)) {
       const found = searchPath(fs.folders[drive], drive);
@@ -381,7 +381,7 @@ setupFolderDrop();
 
 // Function to restore an item from compost bin to a target location
 function restoreItemFromCompostBin(itemId, targetPath) {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
   const compostBin = fs.folders['C://'].Desktop.contents['compostbin'];
 
   if (!compostBin.contents || !compostBin.contents[itemId]) {
@@ -479,7 +479,7 @@ setupDesktopDrop();
 
 // Function to move an item from file explorer to desktop
 function moveItemToDesktop(itemId) {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Find the item and its current parent
   const result = findItemAndParentById(itemId, fs);
@@ -518,7 +518,7 @@ function moveItemToDesktop(itemId) {
 
 // Function to move an item from any location to a specific explorer path
 function moveItemToExplorerPath(itemId, targetPath) {
-  const fs = getFileSystemState();
+  const fs = getFileSystemStateSync();
 
   // Find the item and its current parent
   const result = findItemAndParentById(itemId, fs);

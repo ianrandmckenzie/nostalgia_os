@@ -48,8 +48,8 @@ function updateContent(windowId, newContent) {
 }
 
 // Utility function to add a file to the file system
-function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
-  const fs = getFileSystemState();
+async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
+  const fs = await getFileSystemState();
 
   // Ensure file system is initialized
   if (!fs || !fs.folders) {
@@ -199,8 +199,8 @@ async function initializeAppState() {
     await storage.setItem('appState', initialState);
 
     // Add the default song to the Music folder on first load
-    setTimeout(() => {
-      addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
+    setTimeout(async () => {
+      await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
     }, 100);
   } else {
     // Load state from IndexedDB
@@ -224,15 +224,17 @@ async function initializeAppState() {
     applyDesktopSettings();
 
     // Check if default song exists in Music folder, add if not (for migration)
-    setTimeout(() => {
-      const fs = getFileSystemState();
-      const musicFolder = fs.folders['C://'].Music;
-      if (musicFolder && musicFolder.contents) {
-        const hasDefaultSong = Object.values(musicFolder.contents).some(file =>
-          file.name === 'too_many_screws_final.mp3'
-        );
-        if (!hasDefaultSong) {
-          addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
+    setTimeout(async () => {
+      const fs = await getFileSystemState();
+      if (fs && fs.folders && fs.folders['C://'] && fs.folders['C://'].Music) {
+        const musicFolder = fs.folders['C://'].Music;
+        if (musicFolder && musicFolder.contents) {
+          const hasDefaultSong = Object.values(musicFolder.contents).some(file =>
+            file.name === 'too_many_screws_final.mp3'
+          );
+          if (!hasDefaultSong) {
+            await addFileToFileSystem('too_many_screws_final.mp3', '', 'C://Music', 'mp3');
+          }
         }
       }
     }, 100);

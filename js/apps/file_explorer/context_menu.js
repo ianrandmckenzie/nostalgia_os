@@ -791,14 +791,14 @@ function createNewImage(e, fromFullPath, onCreated = null) {
   fileInput.accept = 'image/*';
   fileInput.style.display = 'none';
 
-  fileInput.addEventListener('change', (event) => {
+  fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (file) {
       // Get file extension for content type
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
       // Use the addFileToFileSystem function
-      const newFile = addFileToFileSystem(file.name, '', parentPath, fileExtension, file);
+      const newFile = await addFileToFileSystem(file.name, '', parentPath, fileExtension, file);
 
       if (newFile && typeof onCreated === 'function') {
         onCreated(newFile.id, newFile);

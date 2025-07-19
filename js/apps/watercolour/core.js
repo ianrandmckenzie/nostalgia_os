@@ -685,7 +685,7 @@ async function saveToCurrentFile() {
       const blob = await response.blob();
       const file = new File([blob], currentFile.name, { type: 'image/png' });
 
-      const result = addFileToFileSystem(currentFile.name, dataURL, currentFile.path, 'png', file);
+      const result = await addFileToFileSystem(currentFile.name, dataURL, currentFile.path, 'png', file);
       console.log('File system update result:', result);
 
       // Force refresh of views
@@ -759,7 +759,7 @@ async function saveAsNewFile() {
         const blob = await response.blob();
         const file = new File([blob], finalFileName, { type: 'image/png' });
 
-        const result = addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
+        const result = await addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
         console.log('File system result:', result);
 
         // Update current file tracking

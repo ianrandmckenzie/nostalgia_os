@@ -164,10 +164,10 @@ async function initializeMediaPlayerUI(win) {
     const song = { name: songFile.name, file: songFile };
     const request = objectStore.add(song);
 
-    request.onsuccess = () => {
+    request.onsuccess = async () => {
       // Also add the song to the file system Music folder
       const fileExtension = songFile.name.split('.').pop().toLowerCase();
-      addFileToFileSystem(songFile.name, '', 'C://Music', fileExtension, songFile);
+      await addFileToFileSystem(songFile.name, '', 'C://Music', fileExtension, songFile);
       loadPlaylist();
     };
 

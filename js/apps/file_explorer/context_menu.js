@@ -641,34 +641,10 @@ function createNewFile(e, fromFullPath, onCreated = null) {
       description: ''
     };
 
-    /* ------------- insert into filesystem ---------------- */
-    const fs = getFileSystemStateSync();
-
-    // Safety check to ensure file system state is properly initialized
-    if (!fs || !fs.folders) {
-      console.error('File system state not properly initialized:', fs);
-      showDialogBox('File system not initialized. Please refresh the page.', 'error');
-      return;
+    /* ------------- insert into filesystem using unified helper ---------------- */
+    if (!addItemToFileSystem(newFile, parentPath)) {
+      return; // Error already shown by helper
     }
-
-    const drive = parentPath.substring(0, 4);
-    const paths = parentPath.substring(4).split('/');
-    paths.unshift(drive);
-
-    let dest = fs.folders;
-    if (paths[1] !== '') {        // not at drive root
-      paths.forEach(p => {
-        const parent = dest;
-        dest = dest[p];
-        if (dest && typeof dest.contents !== 'undefined') {
-          dest = typeof dest.contents === 'string' ? parent : dest.contents;
-        }
-      });
-    }
-    if (typeof dest === 'undefined') dest = dest[drive];
-    if (dest && typeof dest[drive] === 'object') dest = dest[drive];
-
-    dest[newFile.id] = newFile;
 
     /* ------------- refresh views ------------------------ */
     if (fromFullPath === 'C://Desktop') {
@@ -679,7 +655,6 @@ function createNewFile(e, fromFullPath, onCreated = null) {
       refreshAllExplorerWindows(parentPath);
     }
 
-    setFileSystemState(fs);
     saveState().catch(error => {
       console.error('Failed to save state after creating file:', error);
     });
@@ -772,35 +747,10 @@ function createNewShortcut(e, fromFullPath) {
       description: ''
     };
 
-    /* insert into filesystem (same traversal logic) */
-    const fs = getFileSystemStateSync();
-
-    // Safety check to ensure file system state is properly initialized
-    if (!fs || !fs.folders) {
-      console.error('File system state not properly initialized:', fs);
-      showDialogBox('File system not initialized. Please refresh the page.', 'error');
-      return;
+    /* insert into filesystem using unified helper */
+    if (!addItemToFileSystem(newShortcut, fromFullPath)) {
+      return; // Error already shown by helper
     }
-
-    const drive = fromFullPath.substring(0, 4);
-    const paths = fromFullPath.substring(4).split('/');
-    paths.unshift(drive);
-
-    let dest = fs.folders;
-    if (paths[1] !== '') {
-      paths.forEach(p => {
-        const parent = dest;
-        dest = dest[p];
-        if (dest && typeof dest.contents !== 'undefined') {
-          dest = typeof dest.contents === 'string' ? parent
-                                                   : dest.contents;
-        }
-      });
-    }
-    if (typeof dest === 'undefined') dest = dest[drive];
-    if (dest && typeof dest[drive] === 'object') dest = dest[drive];
-
-    dest[newShortcut.id] = newShortcut;
 
     /* refresh views */
     if (fromFullPath === 'C://Desktop') {
@@ -818,7 +768,6 @@ function createNewShortcut(e, fromFullPath) {
     }
 
     setupFolderDrop();
-    setFileSystemState(fs);
     saveState().catch(error => {
       console.error('Failed to save state after creating shortcut:', error);
     });
@@ -850,37 +799,12 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
     icon_url: 'image/doc.png'
   };
 
-  // Insert into filesystem
-  const fs = getFileSystemStateSync();
-
-  // Safety check to ensure file system state is properly initialized
-  if (!fs || !fs.folders) {
-    console.error('File system state not properly initialized:', fs);
-    showDialogBox('File system not initialized. Please refresh the page.', 'error');
-    return;
+  // Insert into filesystem using the unified helper function
+  if (!addItemToFileSystem(newFile, parentPath)) {
+    return; // Error already shown by helper
   }
-
-  const drive = parentPath.substring(0, 4);
-  const paths = parentPath.substring(4).split('/');
-  paths.unshift(drive);
-
-  let dest = fs.folders;
-  if (paths[1] !== '') {
-    paths.forEach(p => {
-      const parent = dest;
-      dest = dest[p];
-      if (dest && typeof dest.contents !== 'undefined') {
-        dest = typeof dest.contents === 'string' ? parent : dest.contents;
-      }
-    });
-  }
-  if (typeof dest === 'undefined') dest = dest[drive];
-  if (dest && typeof dest[drive] === 'object') dest = dest[drive];
-
-  dest[newFile.id] = newFile;
 
   // Save filesystem state
-  setFileSystemState(fs);
   saveState().catch(error => {
     console.error('Failed to save state after creating LetterPad:', error);
   });
@@ -943,19 +867,22 @@ function createNewImage(e, fromFullPath, onCreated = null) {
       // Get file extension for content type
       const fileExtension = file.name.split('.').pop().toLowerCase();
 
-      // Use the addFileToFileSystem function
-      const newFile = await addFileToFileSystem(file.name, '', parentPath, fileExtension, file);
+      // Use our unified binary file creation helper
+      const newFile = await addBinaryFileToFileSystem(file.name, parentPath, fileExtension, file);
 
       if (newFile && typeof onCreated === 'function') {
         onCreated(newFile.id, newFile);
       }
 
-      // Refresh views
-      if (typeof refreshExplorerViews === 'function') {
-        refreshExplorerViews();
-      }
-      if (fromFullPath === 'C://Desktop' && typeof renderDesktopIcons === 'function') {
-        renderDesktopIcons();
+      // Refresh views using our unified approach
+      if (fromFullPath === 'C://Desktop') {
+        if (typeof renderDesktopIcons === 'function') {
+          renderDesktopIcons();
+        }
+      } else {
+        if (typeof refreshAllExplorerWindows === 'function') {
+          refreshAllExplorerWindows(parentPath);
+        }
       }
     }
 
@@ -1038,3 +965,135 @@ function refreshAllExplorerWindows(targetPath) {
 
 // Make refreshAllExplorerWindows globally available
 window.refreshAllExplorerWindows = refreshAllExplorerWindows;
+
+/* =====================
+   Unified File System Item Insertion Helper
+   Uses the same reliable approach as folder creation for consistent behavior.
+   This ensures all file/folder operations use the fs.folders[fullPath] pattern.
+
+   Enhanced version that can handle both simple files and complex file uploads.
+====================== */
+function addItemToFileSystem(item, targetPath) {
+  const fs = getFileSystemStateSync();
+
+  // Safety check to ensure file system state is properly initialized
+  if (!fs || !fs.folders) {
+    console.error('File system state not properly initialized:', fs);
+    showDialogBox('File system not initialized. Please refresh the page.', 'error');
+    return false;
+  }
+
+  // Use the unified approach: fs.folders[targetPath] for folder contents
+  let destination = fs.folders[targetPath];
+  if (!destination) {
+    // If the parent folder doesn't exist in fs.folders, create it
+    console.warn('Parent folder contents not found, creating:', targetPath);
+    fs.folders[targetPath] = {};
+    destination = fs.folders[targetPath];
+  }
+
+  // Insert the new item into the parent's contents
+  destination[item.id] = item;
+
+  // Save the file system state
+  setFileSystemState(fs);
+
+  return true;
+}
+
+/* =====================
+   Enhanced File Creation Helper for Binary Files (Images, etc.)
+   Handles File objects and binary data while using the unified fs.folders approach.
+====================== */
+async function addBinaryFileToFileSystem(fileName, targetPath, contentType, fileObj) {
+  // Generate unique file ID
+  const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Determine appropriate icon based on content type
+  let icon_url = 'image/file.png';
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(contentType)) {
+    icon_url = 'image/image.png';
+  } else if (['mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    icon_url = 'image/video.png';
+  } else if (['mp3', 'wav', 'ogg'].includes(contentType)) {
+    icon_url = 'image/audio.png';
+  }
+
+  // Create file object
+  const newFile = {
+    id: fileId,
+    name: fileName,
+    type: 'ugc-file',
+    content_type: contentType,
+    icon_url: icon_url,
+    content: '', // Will be populated async for binary files
+    isLargeFile: true, // Mark as large file by default for binary files
+    storageLocation: 'indexeddb', // Indicate where the data will be stored
+    file: null   // Will be cleared after processing
+  };
+
+  // First, add the file to the file system using our unified approach
+  if (!addItemToFileSystem(newFile, targetPath)) {
+    return null; // Error already shown
+  }
+
+  // Handle binary file data conversion and storage
+  if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+    try {
+      const dataURL = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(fileObj);
+      });
+
+      const fileSizeInMB = (dataURL.length * 0.75) / (1024 * 1024);
+
+      // Store file data in IndexedDB
+      await storage.setItem(`file_data_${fileId}`, dataURL);
+
+      // Update file metadata - all IndexedDB files should be treated as "large" for loading purposes
+      const fs = getFileSystemStateSync();
+      const destination = fs.folders[targetPath];
+      if (destination && destination[fileId]) {
+        destination[fileId].isLargeFile = true; // Always true for IndexedDB stored files
+        destination[fileId].storageLocation = 'indexeddb';
+        destination[fileId].content = ''; // Keep content empty for binary files
+        destination[fileId].fileSizeInMB = fileSizeInMB; // Add size info for debugging
+        destination[fileId].actualSizeInMB = fileSizeInMB; // Track actual size separately
+      }
+
+      // Save updated file system state
+      setFileSystemState(fs);
+      await saveState();
+
+      console.log(`File (${fileSizeInMB.toFixed(2)}MB) stored successfully:`, fileName);
+      console.log('File metadata:', {
+        id: fileId,
+        name: fileName,
+        storageLocation: 'indexeddb',
+        isLargeFile: true,
+        actualSizeInMB: fileSizeInMB
+      });
+
+    } catch (error) {
+      console.error('Failed to store binary file:', error);
+
+      // Update file to indicate storage failure
+      const fs = getFileSystemStateSync();
+      const destination = fs.folders[targetPath];
+      if (destination && destination[fileId]) {
+        destination[fileId].isLargeFile = true;
+        destination[fileId].storageLocation = 'failed';
+        setFileSystemState(fs);
+      }
+
+      showDialogBox(`File "${fileName}" could not be stored. Storage error: ${error.message}`, 'error');
+    }
+  } else {
+    // For non-binary files, save immediately
+    await saveState();
+  }
+
+  return newFile;
+}

@@ -412,6 +412,14 @@ function openFile(incoming_file, e) {
       content = file.content || file.contents || `<p style="padding:10px;">Empty HTML file.</p>`;
     } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
       // Handle UGC image files
+      console.log('Opening image file:', file.name, 'Properties:', {
+        dataURL: !!file.dataURL,
+        isLargeFile: file.isLargeFile,
+        storageLocation: file.storageLocation,
+        fileObj: !!file.file,
+        id: file.id
+      });
+
       if (file.dataURL) {
         content = `<img src="${file.dataURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
       } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
@@ -422,7 +430,9 @@ function openFile(incoming_file, e) {
         // Load the image data from IndexedDB after window creation
         setTimeout(async () => {
           try {
+            console.log('Attempting to load image data from IndexedDB for file:', file.id);
             const imageData = await storage.getItem(`file_data_${file.id}`);
+            console.log('Retrieved image data:', !!imageData, 'Length:', imageData?.length);
             if (imageData) {
               const img = `<img src="${imageData}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
               const win = document.getElementById(file.id);
@@ -433,10 +443,12 @@ function openFile(incoming_file, e) {
                 }
               }
             } else {
+              console.error('No image data found in IndexedDB for file:', file.id);
               throw new Error('Image data not found in storage');
             }
           } catch (error) {
             console.error('Error loading large image file:', error);
+            console.error('File object details:', file);
             const win = document.getElementById(file.id);
             if (win) {
               const contentDiv = win.querySelector('.p-2');
@@ -450,7 +462,16 @@ function openFile(incoming_file, e) {
         const imageURL = URL.createObjectURL(file.file);
         content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
       } else {
-        content = `<p style="padding:10px;">Image file not found or invalid.</p>`;
+        console.error('Image file properties insufficient for display:', {
+          name: file.name,
+          id: file.id,
+          dataURL: !!file.dataURL,
+          isLargeFile: file.isLargeFile,
+          storageLocation: file.storageLocation,
+          fileObj: !!file.file,
+          contentType: file.content_type
+        });
+        content = `<p style="padding:10px;">Image file not found or invalid.<br>Debug: isLargeFile=${file.isLargeFile}, storage=${file.storageLocation}</p>`;
       }
     } else if (['mp3', 'wav', 'ogg'].includes(file.content_type)) {
       // Handle UGC audio files

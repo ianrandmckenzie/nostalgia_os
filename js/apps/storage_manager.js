@@ -73,11 +73,15 @@ async function loadStorageData() {
         <div class="mt-6 flex gap-3">
           <div id="refresh-btn-container"></div>
           <div id="cleanup-btn-container"></div>
+          <div id="restore-btn-container"></div>
         </div>
       </div>
     `;
 
     contentDiv.innerHTML = html;
+
+    // Check if any apps are missing from Start menu
+    const missingAppsInfo = await checkForMissingApps();
 
     // Create Windows-style buttons
     const refreshBtn = makeWin95Button('Refresh Data');
@@ -87,6 +91,19 @@ async function loadStorageData() {
     const cleanupBtn = makeWin95Button('Cleanup Options');
     cleanupBtn.onclick = openCleanupWindow;
     document.getElementById('cleanup-btn-container').appendChild(cleanupBtn);
+
+    // Create restore button - enabled only if apps are missing
+    const restoreBtn = makeWin95Button('Restore All Applications');
+    restoreBtn.onclick = restoreAllApplications;
+    if (missingAppsInfo.count === 0) {
+      restoreBtn.disabled = true;
+      restoreBtn.title = 'All applications are already in the Start menu';
+      restoreBtn.style.opacity = '0.6';
+      restoreBtn.style.cursor = 'not-allowed';
+    } else {
+      restoreBtn.title = `Restore ${missingAppsInfo.count} missing applications to Start menu`;
+    }
+    document.getElementById('restore-btn-container').appendChild(restoreBtn);
   } catch (error) {
     contentDiv.innerHTML = `<div class="text-red-500">Error loading storage data: ${error.message}</div>`;
   }
@@ -460,6 +477,265 @@ async function clearDesktopSettings() {
 
   showDialogBox('Desktop settings reset successfully!', 'info');
   refreshStorageData();
+}
+
+// Check for missing applications in Start menu
+async function checkForMissingApps() {
+  try {
+    // Get the complete list of default applications from start menu
+    const defaultApps = [
+      { id: 'mycomp', text: 'My Computer', icon: 'image/computer.png' },
+      { id: 'mediaapp', text: 'Media Player', icon: 'image/video.png' },
+      { id: 'watercolourapp', text: 'Watercolour', icon: 'image/watercolour.png' },
+      { id: 'letterpad', text: 'LetterPad', icon: 'image/file.png' },
+      { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.png' },
+      { id: 'sysset', text: 'System Settings', icon: 'image/gears.png' },
+      { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.png' },
+      { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.png' },
+      { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.png' },
+      { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.png' },
+      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.png' }
+    ];
+
+    // Get current start menu order
+    let currentOrder = [];
+    try {
+      const directOrder = await storage.getItem('startMenuOrder');
+      if (directOrder && Array.isArray(directOrder)) {
+        currentOrder = directOrder;
+      } else {
+        currentOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+      }
+    } catch (error) {
+      currentOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+    }
+
+    // Create a set of all currently visible app IDs
+    const visibleAppIds = new Set();
+
+    // Check main menu items
+    currentOrder.forEach(orderItem => {
+      if (typeof orderItem === 'string') {
+        visibleAppIds.add(orderItem);
+      } else if (orderItem && orderItem.type === 'group' && orderItem.items) {
+        // Check submenu items
+        orderItem.items.forEach(subItem => {
+          if (subItem && subItem.id) {
+            visibleAppIds.add(subItem.id);
+          }
+        });
+      }
+    });
+
+    // Find missing apps
+    const missingApps = defaultApps.filter(app => !visibleAppIds.has(app.id));
+
+    console.log('🔍 Apps check - Visible:', Array.from(visibleAppIds));
+    console.log('🔍 Apps check - Missing:', missingApps.map(app => app.id));
+
+    return {
+      count: missingApps.length,
+      apps: missingApps
+    };
+  } catch (error) {
+    console.error('Error checking for missing apps:', error);
+    return { count: 0, apps: [] };
+  }
+}
+
+// Restore all missing applications to the Start menu
+async function restoreAllApplications() {
+  try {
+    console.log('🔄 Starting application restore...');
+
+    // Check what apps are missing
+    const missingAppsInfo = await checkForMissingApps();
+    
+    if (missingAppsInfo.count === 0) {
+      if (typeof showDialogBox === 'function') {
+        showDialogBox('All applications are already present in the Start menu.', 'info');
+      } else {
+        alert('All applications are already present in the Start menu.');
+      }
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmMessage = `This will restore ${missingAppsInfo.count} missing applications to the Start menu:\n\n${missingAppsInfo.apps.map(app => `• ${app.text}`).join('\n')}\n\nProceed?`;
+
+    if (typeof showDialogBox === 'function') {
+      // Use OS-style dialog
+      showDialogBox(confirmMessage, 'confirmation', async () => {
+        await performAppRestore(missingAppsInfo.apps);
+      });
+    } else {
+      // Fallback to browser confirm
+      if (confirm(confirmMessage)) {
+        await performAppRestore(missingAppsInfo.apps);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error in restoreAllApplications:', error);
+    if (typeof showDialogBox === 'function') {
+      showDialogBox('Failed to restore applications: ' + error.message, 'error');
+    } else {
+      alert('Failed to restore applications: ' + error.message);
+    }
+  }
+}
+
+// Perform the actual restore operation
+async function performAppRestore(missingApps) {
+  try {
+    console.log('🔄 Performing app restore for:', missingApps.map(app => app.id));
+
+    // Get current start menu order
+    let currentOrder = [];
+    try {
+      const directOrder = await storage.getItem('startMenuOrder');
+      if (directOrder && Array.isArray(directOrder)) {
+        currentOrder = [...directOrder];
+      } else {
+        currentOrder = (typeof startMenuOrder !== 'undefined') ? [...startMenuOrder] : [...(window.startMenuOrder || [])];
+      }
+    } catch (error) {
+      currentOrder = (typeof startMenuOrder !== 'undefined') ? [...startMenuOrder] : [...(window.startMenuOrder || [])];
+    }
+
+    // Define default groupings for restored apps
+    const defaultGroupings = {
+      'letterpad': 'utilities-group',
+      'calcapp': 'utilities-group', 
+      'sysset': 'utilities-group',
+      'storageapp': 'utilities-group',
+      'abtcomp': 'utilities-group',
+      'solapp': 'games-group',
+      'chessapp': 'games-group',
+      'bombapp': 'games-group'
+    };
+
+    // Process missing apps
+    missingApps.forEach(missingApp => {
+      const targetGroup = defaultGroupings[missingApp.id];
+
+      if (targetGroup) {
+        // Add to appropriate group
+        let groupFound = false;
+        currentOrder = currentOrder.map(orderItem => {
+          if (typeof orderItem === 'object' && orderItem.type === 'group' && orderItem.id === targetGroup) {
+            groupFound = true;
+            return {
+              ...orderItem,
+              items: [...(orderItem.items || []), {
+                id: missingApp.id,
+                text: missingApp.text,
+                icon: missingApp.icon
+              }]
+            };
+          }
+          return orderItem;
+        });
+
+        // If group doesn't exist, create it
+        if (!groupFound) {
+          const groupData = getDefaultGroupData(targetGroup);
+          if (groupData) {
+            groupData.items = [{ id: missingApp.id, text: missingApp.text, icon: missingApp.icon }];
+            // Insert before restart item if it exists
+            const restartIndex = currentOrder.findIndex(item => item === 'rstrtcomp');
+            if (restartIndex !== -1) {
+              currentOrder.splice(restartIndex, 0, groupData);
+            } else {
+              currentOrder.push(groupData);
+            }
+          }
+        }
+      } else {
+        // Add as main menu item
+        // Insert before restart item if it exists
+        const restartIndex = currentOrder.findIndex(item => item === 'rstrtcomp');
+        if (restartIndex !== -1) {
+          currentOrder.splice(restartIndex, 0, missingApp.id);
+        } else {
+          currentOrder.push(missingApp.id);
+        }
+      }
+    });
+
+    // Update global state
+    window.startMenuOrder = currentOrder;
+    if (typeof startMenuOrder !== 'undefined') {
+      startMenuOrder = currentOrder;
+    }
+
+    // Save to storage
+    await storage.setItem('startMenuOrder', currentOrder);
+
+    // Also save to appState
+    if (typeof saveState === 'function') {
+      await saveState();
+    }
+
+    // Regenerate start menu if the function exists
+    if (typeof generateStartMenuHTML === 'function') {
+      generateStartMenuHTML();
+    } else if (typeof window.generateStartMenuHTML === 'function') {
+      window.generateStartMenuHTML();
+    }
+
+    // Re-initialize drag and drop
+    if (typeof safeInitializeStartMenuDragDrop === 'function') {
+      setTimeout(() => {
+        safeInitializeStartMenuDragDrop();
+      }, 50);
+    } else if (typeof window.safeInitializeStartMenuDragDrop === 'function') {
+      setTimeout(() => {
+        window.safeInitializeStartMenuDragDrop();
+      }, 50);
+    }
+
+    // Show success message
+    if (typeof showDialogBox === 'function') {
+      showDialogBox(`Successfully restored ${missingApps.length} applications to the Start menu.`, 'info');
+    } else {
+      alert(`Successfully restored ${missingApps.length} applications to the Start menu.`);
+    }
+
+    // Refresh the Storage Manager to update the restore button
+    setTimeout(() => {
+      refreshStorageData();
+    }, 500);
+
+    console.log('✅ App restore completed successfully');
+
+  } catch (error) {
+    console.error('❌ Error performing app restore:', error);
+    if (typeof showDialogBox === 'function') {
+      showDialogBox('Failed to restore applications: ' + error.message, 'error');
+    } else {
+      alert('Failed to restore applications: ' + error.message);
+    }
+  }
+}
+
+// Get default group data structure
+function getDefaultGroupData(groupId) {
+  const defaultGroups = {
+    'utilities-group': {
+      id: 'utilities-group',
+      text: 'Utilities',
+      type: 'group',
+      items: []
+    },
+    'games-group': {
+      id: 'games-group', 
+      text: 'Games',
+      type: 'group',
+      items: []
+    }
+  };
+
+  return defaultGroups[groupId] || null;
 }
 
 function fullSystemRestart() {

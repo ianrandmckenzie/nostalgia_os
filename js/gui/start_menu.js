@@ -156,8 +156,8 @@ function createMenuItem(item) {
   const li = document.createElement('li');
   li.id = item.id;
   li.className = item.fixed
-    ? 'px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center'
-    : 'px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center';
+    ? 'px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center relative'
+    : 'px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center relative';
 
   li.innerHTML = `
     <img src="${item.icon}" class="h-6 w-6 inline mr-2" alt="${item.text}">
@@ -165,7 +165,18 @@ function createMenuItem(item) {
   `;
 
   // Add click handler for the item
-  li.addEventListener('click', () => handleStartMenuItemClick(item.id));
+  li.addEventListener('click', (e) => {
+    // Don't handle click if context menu is visible
+    if (li.querySelector('.start-menu-context-menu')?.style.display !== 'none') {
+      return;
+    }
+    handleStartMenuItemClick(item.id);
+  });
+
+  // Add context menu support (not for fixed items like restart)
+  if (!item.fixed) {
+    setupContextMenu(li, item, false);
+  }
 
   return li;
 }
@@ -178,7 +189,7 @@ function createGroupItem(item) {
   let submenuItems = '';
   item.items.forEach(subItem => {
     submenuItems += `
-      <li id="${subItem.id}" class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center submenu-item" data-submenu-item data-parent-group="${item.id}">
+      <li id="${subItem.id}" class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center submenu-item relative" data-submenu-item data-parent-group="${item.id}">
         <img src="${subItem.icon}" class="h-6 w-6 inline mr-2" alt="${subItem.text}">
         ${subItem.text}
       </li>
@@ -197,10 +208,22 @@ function createGroupItem(item) {
     </ul>
   `;
 
-  // Add click handlers for submenu items
+  // Add click handlers and context menus for submenu items
   const submenuItemElements = li.querySelectorAll('ul li');
-  submenuItemElements.forEach(subLi => {
-    subLi.addEventListener('click', () => handleStartMenuItemClick(subLi.id));
+  submenuItemElements.forEach((subLi, index) => {
+    subLi.addEventListener('click', (e) => {
+      // Don't handle click if context menu is visible
+      if (subLi.querySelector('.start-menu-context-menu')?.style.display !== 'none') {
+        return;
+      }
+      handleStartMenuItemClick(subLi.id);
+    });
+
+    // Add context menu support for submenu items
+    const subItemData = item.items[index];
+    if (subItemData) {
+      setupContextMenu(subLi, subItemData, true, item.id);
+    }
   });
 
   return li;
@@ -268,6 +291,338 @@ function handleStartMenuItemClick(itemId) {
       break;
     default:
       console.warn('Unknown start menu item clicked:', itemId);
+  }
+}
+
+// Setup context menu for start menu items
+function setupContextMenu(menuItem, itemData, isSubmenuItem = false, parentGroupId = null) {
+  let contextMenuTimer;
+  let isContextMenuVisible = false;
+
+  // Define items that cannot be uninstalled
+  const protectedItems = ['mycomp', 'storageapp', 'sysset'];
+  const canUninstall = !protectedItems.includes(itemData.id);
+
+  // Create context menu element
+  const contextMenu = document.createElement('div');
+  contextMenu.className = 'start-menu-context-menu absolute hidden bg-gray-100 border-r border-t border-b border-gray-500 z-50 w-48';
+  contextMenu.style.display = 'none';
+
+  // Build context menu HTML conditionally
+  let contextMenuHTML = `
+    <div class="context-menu-item px-4 py-2 hover:bg-gray-50 cursor-pointer select-none flex items-center" data-action="open">
+      Open
+    </div>
+    <div class="context-menu-item px-4 py-2 hover:bg-gray-50 cursor-pointer select-none flex items-center" data-action="shortcut">
+      Create shortcut
+    </div>`;
+
+  // Only add uninstall option for non-protected items
+  if (canUninstall) {
+    contextMenuHTML += `
+    <div class="context-menu-item px-4 py-2 hover:bg-gray-50 cursor-pointer select-none flex items-center text-red-600" data-action="uninstall">
+      Uninstall
+    </div>`;
+  }
+
+  contextMenu.innerHTML = contextMenuHTML;
+
+  menuItem.appendChild(contextMenu);
+
+  // Add context menu item click handlers
+  contextMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const action = e.target.closest('.context-menu-item')?.dataset.action;
+    if (action) {
+      handleContextMenuAction(action, itemData, isSubmenuItem, parentGroupId);
+      hideContextMenu(contextMenu);
+    }
+  });
+
+  // Show context menu on hover (desktop) or long tap (mobile)
+  let hoverTimer;
+
+  menuItem.addEventListener('mouseenter', () => {
+    if (!dragState.isDragging) {
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => {
+        if (!isContextMenuVisible && !dragState.isDragging) {
+          showContextMenu(contextMenu, menuItem);
+        }
+      }, 800); // Show after 800ms hover
+    }
+  });
+
+  menuItem.addEventListener('mouseleave', () => {
+    clearTimeout(hoverTimer);
+    setTimeout(() => {
+      if (!contextMenu.matches(':hover')) {
+        hideContextMenu(contextMenu);
+      }
+    }, 200);
+  });
+
+  // Hide when context menu loses hover
+  contextMenu.addEventListener('mouseleave', () => {
+    setTimeout(() => {
+      if (!menuItem.matches(':hover')) {
+        hideContextMenu(contextMenu);
+      }
+    }, 200);
+  });
+
+  // Touch support for mobile devices
+  let touchTimer;
+  let touchMoved = false;
+
+  menuItem.addEventListener('touchstart', (e) => {
+    if (!dragState.isDragging) {
+      touchMoved = false;
+      touchTimer = setTimeout(() => {
+        if (!touchMoved && !isContextMenuVisible) {
+          e.preventDefault();
+          showContextMenu(contextMenu, menuItem);
+        }
+      }, 500); // Show after 500ms touch
+    }
+  });
+
+  menuItem.addEventListener('touchmove', () => {
+    touchMoved = true;
+    clearTimeout(touchTimer);
+  });
+
+  menuItem.addEventListener('touchend', () => {
+    clearTimeout(touchTimer);
+  });
+
+  // Hide context menu when clicking elsewhere
+  document.addEventListener('click', (e) => {
+    if (!contextMenu.contains(e.target) && !menuItem.contains(e.target)) {
+      hideContextMenu(contextMenu);
+    }
+  });
+
+  function showContextMenu(menu, item) {
+    // Hide any other visible context menus
+    document.querySelectorAll('.start-menu-context-menu').forEach(otherMenu => {
+      if (otherMenu !== menu) {
+        otherMenu.style.display = 'none';
+      }
+    });
+
+    menu.style.display = 'block';
+    menu.classList.remove('hidden');
+    isContextMenuVisible = true;
+
+    // Position the context menu
+    const itemRect = item.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+
+    // Position to the right of the item
+    menu.style.left = `${item.offsetWidth}px`;
+    menu.style.top = '-1px';
+
+    // Adjust if it would go off screen
+    const startMenuRect = document.getElementById('start-menu').getBoundingClientRect();
+    if (itemRect.right + menuRect.width > window.innerWidth) {
+      menu.style.left = `-${menuRect.width + 5}px`;
+    }
+  }
+
+  function hideContextMenu(menu) {
+    menu.style.display = 'none';
+    menu.classList.add('hidden');
+    isContextMenuVisible = false;
+  }
+}
+
+// Handle context menu actions
+function handleContextMenuAction(action, itemData, isSubmenuItem, parentGroupId) {
+  switch (action) {
+    case 'open':
+      handleStartMenuItemClick(itemData.id);
+      break;
+
+    case 'shortcut':
+      createDesktopShortcut(itemData);
+      break;
+
+    case 'uninstall':
+      confirmUninstall(itemData, isSubmenuItem, parentGroupId);
+      break;
+  }
+
+  // Close start menu after action
+  const startMenu = document.getElementById('start-menu');
+  if (startMenu) {
+    startMenu.classList.add('hidden');
+  }
+}
+
+// Create desktop shortcut
+async function createDesktopShortcut(itemData) {
+  try {
+    // Get the file system state
+    const fs = await getFileSystemState();
+    if (!fs.folders['C://Desktop']) {
+      console.error('Desktop folder not found');
+      if (typeof showDialogBox === 'function') {
+        showDialogBox('Desktop folder not found', 'error');
+      }
+      return;
+    }
+
+    // Create a unique ID for the shortcut
+    const shortcutId = `shortcut-${itemData.id}-${Date.now()}`;
+
+    // Determine the appropriate icon
+    let shortcutIcon = itemData.icon || 'image/file.png';
+
+    // Create the desktop shortcut item
+    const shortcutItem = {
+      id: shortcutId,
+      name: itemData.text,
+      type: 'app', // Desktop shortcuts are treated as apps
+      fullPath: `C://Desktop/${shortcutId}`,
+      content_type: 'html',
+      contents: {},
+      icon: shortcutIcon,
+      isShortcut: true,
+      targetId: itemData.id // Reference to the original item
+    };
+
+    // Add to desktop folder in unified structure
+    fs.folders['C://Desktop'][shortcutId] = shortcutItem;
+
+    // Save the updated file system
+    setFileSystemState(fs);
+    await saveState();
+
+    // Refresh desktop icons
+    if (typeof renderDesktopIcons === 'function') {
+      renderDesktopIcons();
+    } else if (typeof window.renderDesktopIcons === 'function') {
+      window.renderDesktopIcons();
+    }
+
+    console.log('✅ Desktop shortcut created:', shortcutItem);
+
+  } catch (error) {
+    console.error('❌ Failed to create desktop shortcut:', error);
+    if (typeof showDialogBox === 'function') {
+      showDialogBox('Failed to create desktop shortcut', 'error');
+    }
+  }
+}
+
+// Confirm uninstall action
+function confirmUninstall(itemData, isSubmenuItem, parentGroupId) {
+  const confirmMessage = `Are you sure you want to uninstall "${itemData.text}" from the Start menu?`;
+
+  if (typeof showDialogBox === 'function') {
+    // Use themed dialog box with confirmation
+    showDialogBox(
+      confirmMessage,
+      'confirmation',
+      () => {
+        // Confirmed - proceed with uninstall
+        performUninstall(itemData, isSubmenuItem, parentGroupId);
+      },
+      () => {
+        // Cancelled - do nothing
+        console.log('Uninstall cancelled by user');
+      }
+    );
+  } else {
+    // Fallback to browser confirm
+    if (confirm(confirmMessage)) {
+      performUninstall(itemData, isSubmenuItem, parentGroupId);
+    }
+  }
+}
+
+async function performUninstall(itemData, isSubmenuItem, parentGroupId) {
+  try {
+    console.log('🗑️ Uninstalling item:', itemData.id, { isSubmenuItem, parentGroupId });
+
+    // Get current start menu order
+    let currentOrder = [];
+    try {
+      const directOrder = await storage.getItem('startMenuOrder');
+      if (directOrder && Array.isArray(directOrder)) {
+        currentOrder = directOrder;
+      } else {
+        currentOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+      }
+    } catch (error) {
+      currentOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+    }
+
+    if (isSubmenuItem && parentGroupId) {
+      // Remove from submenu
+      const newOrder = currentOrder.map(orderItem => {
+        if (typeof orderItem === 'object' && orderItem.type === 'group' && orderItem.id === parentGroupId) {
+          return {
+            ...orderItem,
+            items: orderItem.items.filter(subItem => subItem.id !== itemData.id)
+          };
+        }
+        return orderItem;
+      });
+
+      // Update global state
+      window.startMenuOrder = newOrder;
+      if (typeof startMenuOrder !== 'undefined') {
+        startMenuOrder = newOrder;
+      }
+
+      // Save to storage
+      await storage.setItem('startMenuOrder', newOrder);
+
+    } else {
+      // Remove from main menu
+      const newOrder = currentOrder.filter(orderItem => {
+        if (typeof orderItem === 'string') {
+          return orderItem !== itemData.id;
+        }
+        return true; // Keep group items as-is
+      });
+
+      // Update global state
+      window.startMenuOrder = newOrder;
+      if (typeof startMenuOrder !== 'undefined') {
+        startMenuOrder = newOrder;
+      }
+
+      // Save to storage
+      await storage.setItem('startMenuOrder', newOrder);
+    }
+
+    // Also save to appState
+    if (typeof saveState === 'function') {
+      await saveState();
+    }
+
+    // Regenerate start menu
+    generateStartMenuHTML();
+
+    // Re-initialize drag and drop
+    setTimeout(() => {
+      safeInitializeStartMenuDragDrop();
+    }, 50);
+
+    if (typeof showDialogBox === 'function') {
+      showDialogBox(`"${itemData.id}" has been uninstalled from the Start menu`, 'info');
+    }
+
+    console.log('✅ Item uninstalled successfully');
+
+  } catch (error) {
+    console.error('❌ Failed to uninstall item:', error);
+    if (typeof showDialogBox === 'function') {
+      showDialogBox('Failed to uninstall item', 'error');
+    }
   }
 }
 
@@ -478,6 +833,12 @@ function resetDragState() {
     dragState.draggedElement.classList.add('cursor-grab');
   }
 
+  // Hide all context menus during drag operations
+  document.querySelectorAll('.start-menu-context-menu').forEach(menu => {
+    menu.style.display = 'none';
+    menu.classList.add('hidden');
+  });
+
   dragState.isDragging = false;
   dragState.draggedElement = null;
   dragState.draggedFromGroup = null;
@@ -488,6 +849,12 @@ function resetDragState() {
 }
 
 function startSubmenuDragOperation(item, e) {
+  // Hide all context menus when drag starts
+  document.querySelectorAll('.start-menu-context-menu').forEach(menu => {
+    menu.style.display = 'none';
+    menu.classList.add('hidden');
+  });
+
   // Apply visual feedback
   item.classList.add('opacity-50', 'cursor-grabbing');
   item.classList.remove('cursor-grab');
@@ -693,6 +1060,12 @@ function completeSubmenuDragOperation(e) {
 }
 
 function startDragOperation(item, e) {
+  // Hide all context menus when drag starts
+  document.querySelectorAll('.start-menu-context-menu').forEach(menu => {
+    menu.style.display = 'none';
+    menu.classList.add('hidden');
+  });
+
   // Apply Tailwind classes for visual feedback
   item.classList.add('opacity-50', 'cursor-grabbing');
   item.classList.remove('cursor-grab');

@@ -89,17 +89,12 @@ window.addEventListener('load', async function () {
   await renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
 
-  // Restore Start menu order after a brief delay to ensure DOM is ready
-  setTimeout(() => {
-    if (typeof restoreStartMenuOrder === 'function') {
-      restoreStartMenuOrder();
-    } else {
-      console.error('restoreStartMenuOrder function not available');
-      // Fallback: at least initialize drag and drop
-      if (typeof safeInitializeStartMenuDragDrop === 'function') {
-        safeInitializeStartMenuDragDrop();
-      }
-    }
-  }, 200);
+  // Initialize start menu system (this will also restore order)
+  if (typeof initializeStartMenu === 'function') {
+    initializeStartMenu();
+  } else {
+    console.error('initializeStartMenu function not available');
+  }
+
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });

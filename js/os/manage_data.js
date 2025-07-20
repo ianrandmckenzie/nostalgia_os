@@ -42,8 +42,6 @@ async function saveState() {
   // Get startMenuOrder from either global var or window object
   const currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
 
-  // Debug: Check if startMenuOrder is available
-
   const appState = {
     fileSystemState: fileSystemState,
     windowStates: windowStates,
@@ -52,7 +50,6 @@ async function saveState() {
     navWindows: navWindows,
     startMenuOrder: currentStartMenuOrder
   };
-
 
   const startTime = Date.now();
 
@@ -523,8 +520,23 @@ async function initializeAppState() {
       ? storedState.desktopIconsState : {};
     navWindows = (storedState.navWindows && typeof storedState.navWindows === 'object')
       ? storedState.navWindows : {};
-    startMenuOrder = (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder))
-      ? storedState.startMenuOrder : [];
+
+    // Try to load startMenuOrder from direct storage first
+    let finalStartMenuOrder = [];
+    try {
+      const directStartMenuOrder = await storage.getItem('startMenuOrder');
+      if (directStartMenuOrder && Array.isArray(directStartMenuOrder)) {
+        finalStartMenuOrder = directStartMenuOrder;
+      } else if (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder)) {
+        finalStartMenuOrder = storedState.startMenuOrder;
+      }
+    } catch (error) {
+      console.warn('⚠ Error loading from direct storage, using appState:', error);
+      finalStartMenuOrder = (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder))
+        ? storedState.startMenuOrder : [];
+    }
+
+    startMenuOrder = finalStartMenuOrder;
 
     // Also update window reference for consistency
     if (typeof window !== 'undefined') {

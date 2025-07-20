@@ -10,6 +10,8 @@ function toggleStartMenu() {
         safeInitializeStartMenuDragDrop();
       } else if (typeof initializeStartMenuDragDrop === 'function') {
         initializeStartMenuDragDrop();
+      } else {
+        console.warn('Start menu drag and drop initialization functions not available');
       }
     }, 10);
   }
@@ -124,71 +126,4 @@ document.getElementById('min-all-btn').addEventListener('click', () => {
 
 document.getElementById('start-button').addEventListener('click', () => {
   toggleStartMenu();
-});
-
-document.getElementById('mycomp').addEventListener('click', () => {
-  toggleStartMenu();
-  openExplorer('C://');
-});
-
-document.getElementById('abtcomp').addEventListener('click', () => {
-  toggleStartMenu();
-  openAboutWindow();
-});
-
-document.getElementById('sysset').addEventListener('click', () => {
-  toggleStartMenu();
-  openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
-});
-
-document.getElementById('storageapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('storage');
-});
-
-document.getElementById('watercolourapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('watercolour');
-});
-
-document.getElementById('letterpad').addEventListener('click', () => {
-  toggleStartMenu();
-  createNewFile(null, 'C://Documents', (newFileId) => {
-    openFile(newFileId, { target: document.body });
-  });
-});
-
-document.getElementById('calcapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('calculator');
-});
-
-document.getElementById('solapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('solitaire');
-});
-
-document.getElementById('chessapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('chess');
-});
-
-document.getElementById('bombapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('bombbroomer');
-});
-
-document.getElementById('mediaapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('mediaplayer');
-});
-
-// document.getElementById('mailapp').addEventListener('click', () => {
-//   toggleStartMenu();
-//   openApp('mailbox');
-// });
-
-document.getElementById('rstrtcomp').addEventListener('click', () => {
-  toggleStartMenu();
-  restart();
 });

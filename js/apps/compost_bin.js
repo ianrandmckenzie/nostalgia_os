@@ -134,7 +134,7 @@ function createCompostBinItem(item) {
   return itemDiv;
 }
 
-function moveItemToCompostBin(itemId, fromPath) {
+async function moveItemToCompostBin(itemId, fromPath) {
   const fs = getFileSystemStateSync();
 
   // Don't allow moving the compost bin itself
@@ -186,7 +186,7 @@ function moveItemToCompostBin(itemId, fromPath) {
     }
 
     // Save state and refresh
-    setFileSystemState(fs);
+    await setFileSystemState(fs);
     saveState();
     refreshExplorerViews();
     renderDesktopIcons();
@@ -258,7 +258,7 @@ function emptyCompostBin() {
 
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
-  emptyBtn.addEventListener('click', () => {
+  emptyBtn.addEventListener('click', async () => {
     // Get list of items before clearing for cleanup
     const itemIds = Object.keys(compostBin.contents || {});
 
@@ -274,7 +274,7 @@ function emptyCompostBin() {
     });
 
     // Save state and refresh
-    setFileSystemState(fs);
+    await setFileSystemState(fs);
     saveState();
 
     // Refresh compost bin if open

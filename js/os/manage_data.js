@@ -732,18 +732,83 @@ async function initializeRestoredApp(windowId) {
       }
     },
     'compost-bin': () => {
-      // Compost Bin needs to load its contents
+      // Compost Bin needs to be reinitialized completely
+      console.log('🗑️ Initializing restored Compost Bin window');
       const compostWindow = document.getElementById('compost-bin');
       if (compostWindow) {
-        const contentArea = compostWindow.querySelector('#compost-bin-content');
-        if (contentArea && typeof loadCompostBinContents === 'function') {
-          loadCompostBinContents(contentArea);
-          if (typeof updateCompostBinHeader === 'function') {
-            updateCompostBinHeader(compostWindow);
+        const content = compostWindow.querySelector('.p-2');
+        console.log('🗑️ Content element found:', !!content, 'Current content:', content?.innerHTML.length, 'chars');
+
+        if (content && needsReinitialization(content)) {
+          console.log('🗑️ Compost Bin needs reinitialization - rebuilding UI');
+          // Clear existing content and reinitialize the Compost Bin
+          content.innerHTML = '';
+          content.className = 'p-2 bg-gray-100 h-full flex flex-col';
+
+          // Create the compost bin interface
+          const binContainer = document.createElement('div');
+          binContainer.className = 'h-full flex flex-col';
+
+          // Header with bin info
+          const header = document.createElement('div');
+          header.className = 'bg-gray-200 border-b border-gray-400 p-2 flex justify-between items-center';
+
+          const binInfo = document.createElement('div');
+          binInfo.className = 'text-sm';
+          const fs = getFileSystemStateSync();
+
+          // Use unified structure: look for compost bin in fs.folders['C://Desktop']
+          const desktopItems = fs.folders['C://Desktop'] || {};
+          const compostBin = desktopItems['compostbin'];
+          const itemCount = Object.keys(compostBin?.contents || {}).length;
+          binInfo.textContent = `Compost Bin - ${itemCount} item(s)`;
+
+          const binActions = document.createElement('div');
+          binActions.className = 'flex space-x-2';
+
+          const emptyBinBtn = document.createElement('button');
+          emptyBinBtn.className = 'px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs';
+          emptyBinBtn.textContent = 'Empty Bin';
+          if (typeof emptyCompostBin === 'function') {
+            emptyBinBtn.addEventListener('click', emptyCompostBin);
           }
+
+          binActions.appendChild(emptyBinBtn);
+          header.appendChild(binInfo);
+          header.appendChild(binActions);
+
+          // Content area
+          const contentArea = document.createElement('div');
+          contentArea.className = 'flex-1 bg-white border border-gray-400 p-2 overflow-auto';
+          contentArea.id = 'compost-bin-content';
+
+          // Load compost bin contents
+          if (typeof loadCompostBinContents === 'function') {
+            console.log('🗑️ Loading compost bin contents');
+            loadCompostBinContents(contentArea);
+          } else {
+            console.warn('🗑️ loadCompostBinContents function not available');
+          }
+
+          binContainer.appendChild(header);
+          binContainer.appendChild(contentArea);
+          content.appendChild(binContainer);
+          console.log('🗑️ Compost Bin UI rebuilt successfully');
         } else {
-          console.warn('Compost bin content area not found or loadCompostBinContents not available');
+          console.log('🗑️ Compost Bin content exists, just reloading contents');
+          // Content exists, just try to reload the contents
+          const contentArea = compostWindow.querySelector('#compost-bin-content');
+          if (contentArea && typeof loadCompostBinContents === 'function') {
+            loadCompostBinContents(contentArea);
+            if (typeof updateCompostBinHeader === 'function') {
+              updateCompostBinHeader(compostWindow);
+            }
+          } else {
+            console.warn('Compost bin content area not found or loadCompostBinContents not available');
+          }
         }
+      } else {
+        console.warn('🗑️ Compost bin window not found during restoration');
       }
     },
     'watercolour': () => {
@@ -827,7 +892,7 @@ function needsReinitialization(content) {
   }
 
   // Check for specific app indicators that suggest proper initialization
-  if (content.querySelector('button, canvas, input[type="text"], .game-board, #media-container, #game-grid, #calc-display')) {
+  if (content.querySelector('button, canvas, input[type="text"], .game-board, #media-container, #game-grid, #calc-display, #compost-bin-content')) {
     return false; // Has proper app elements
   }
 

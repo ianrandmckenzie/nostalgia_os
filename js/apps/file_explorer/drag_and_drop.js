@@ -76,7 +76,7 @@ function handleDragLeave(e) {
   this.classList.remove('dragover');
 }
 
-function handleDrop(e) {
+async function handleDrop(e) {
   e.stopPropagation();
   this.classList.remove('dragover');
 
@@ -96,14 +96,14 @@ function handleDrop(e) {
       const explorer = targetElem.closest('.file-explorer-window');
       const currentPath = explorer ? explorer.getAttribute('data-current-path') : 'C://';
       const targetPath = currentPath === 'C://' ? currentPath + targetId : currentPath + '/' + targetId;
-      restoreItemFromCompostBin(sourceId, targetPath);
+      await restoreItemFromCompostBin(sourceId, targetPath);
     }
     return;
   }
 
   // Check if the target is a folder (has 'folder-item') to move into it.
   if (targetElem.classList.contains('folder-item')) {
-    moveItemToFolder(sourceId, targetId);
+    await moveItemToFolder(sourceId, targetId);
   } else {
     // Reorder: decide based on mouse position.
     const bounding = this.getBoundingClientRect();
@@ -114,7 +114,7 @@ function handleDrop(e) {
     } else {
       list.insertBefore(sourceElem, this.nextSibling);
     }
-    updateOrderForCurrentPath();
+    await updateOrderForCurrentPath();
   }
 
   // Clean up dragged style.
@@ -134,7 +134,7 @@ function handleDragEnd(e) {
   It removes the item from its current parent's contents and adds it
   to the target folder's contents, updating fullPath as needed.
 */
-function moveItemToFolder(itemId, folderId) {
+async function moveItemToFolder(itemId, folderId) {
   let fs = getFileSystemStateSync();
 
 
@@ -184,7 +184,7 @@ function moveItemToFolder(itemId, folderId) {
   // Update the moved item's fullPath using the item's name, not its ID.
   item.fullPath = targetFullPath + "/" + item.name;
 
-  setFileSystemState(fs);
+  await setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
 
@@ -198,7 +198,7 @@ function moveItemToFolder(itemId, folderId) {
   After a reordering drag-and-drop, update the underlying file system's order
   for the current folder (as rendered in the explorer window).
 */
-function updateOrderForCurrentPath() {
+async function updateOrderForCurrentPath() {
   const explorer = document.querySelector('.file-explorer-window');
   if (!explorer) return;
   const currentPath = explorer.getAttribute('data-current-path');
@@ -216,7 +216,7 @@ function updateOrderForCurrentPath() {
     }
   });
   folderObj.contents = newContents;
-  setFileSystemState(fs);
+  await setFileSystemState(fs);
   saveState();
 }
 
@@ -303,7 +303,7 @@ function handleDesktopFolderDragLeave(e) {
 }
 
 // Handle drop on desktop folder icons
-function handleDesktopFolderDrop(e) {
+async function handleDesktopFolderDrop(e) {
   e.preventDefault();
   e.stopPropagation();
   this.classList.remove('dragover');
@@ -317,15 +317,15 @@ function handleDesktopFolderDrop(e) {
       // Restore item to folder
       const targetItem = getItemFromFileSystem(targetId);
       if (targetItem && targetItem.type === 'folder') {
-        restoreItemFromCompostBin(sourceId, targetItem.fullPath);
+        await restoreItemFromCompostBin(sourceId, targetItem.fullPath);
       }
     } else {
       // Special case for compost bin
       if (targetId === 'compostbin') {
         const sourcePath = findItemCurrentPath(sourceId);
-        moveItemToCompostBin(sourceId, sourcePath);
+        await moveItemToCompostBin(sourceId, sourcePath);
       } else {
-        moveItemToFolder(sourceId, targetId);
+        await moveItemToFolder(sourceId, targetId);
       }
     }
   }
@@ -349,7 +349,7 @@ function handleExplorerDragLeave(e) {
 }
 
 // Handle drop on explorer windows
-function handleExplorerDrop(e) {
+async function handleExplorerDrop(e) {
   e.preventDefault();
   e.stopPropagation();
   this.classList.remove('dragover');
@@ -370,10 +370,10 @@ function handleExplorerDrop(e) {
 
       // Move from desktop to explorer
       if (currentPath && currentPath.includes('C://Desktop')) {
-        moveItemToExplorerPath(sourceId, explorerPath);
+        await moveItemToExplorerPath(sourceId, explorerPath);
       } else {
         // Move between explorer locations
-        moveItemToExplorerPath(sourceId, explorerPath);
+        await moveItemToExplorerPath(sourceId, explorerPath);
       }
     }
   }
@@ -382,7 +382,7 @@ function handleExplorerDrop(e) {
 setupFolderDrop();
 
 // Function to restore an item from compost bin to a target location
-function restoreItemFromCompostBin(itemId, targetPath) {
+async function restoreItemFromCompostBin(itemId, targetPath) {
   const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']
@@ -424,7 +424,7 @@ function restoreItemFromCompostBin(itemId, targetPath) {
   targetContainer[itemId] = item;
 
   // Save and refresh
-  setFileSystemState(fs);
+  await setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
   renderDesktopIcons();
@@ -463,7 +463,7 @@ function setupDesktopDrop() {
       }
     });
 
-    desktop.addEventListener('drop', (e) => {
+    desktop.addEventListener('drop', async (e) => {
       e.preventDefault();
       desktop.classList.remove('drag-hover-target');
 
@@ -473,10 +473,10 @@ function setupDesktopDrop() {
       if (itemId) {
         if (isCompostItem) {
           // Restore from compost bin to desktop
-          restoreItemFromCompostBin(itemId, 'C://Desktop');
+          await restoreItemFromCompostBin(itemId, 'C://Desktop');
         } else {
           // Move regular file/folder from explorer to desktop
-          moveItemToDesktop(itemId);
+          await moveItemToDesktop(itemId);
         }
       }
     });
@@ -487,7 +487,7 @@ function setupDesktopDrop() {
 setupDesktopDrop();
 
 // Function to move an item from file explorer to desktop
-function moveItemToDesktop(itemId) {
+async function moveItemToDesktop(itemId) {
   const fs = getFileSystemStateSync();
 
   // Find the item and its current parent
@@ -519,67 +519,11 @@ function moveItemToDesktop(itemId) {
   item.fullPath = 'C://Desktop/' + item.id;
 
   // Save changes
-  setFileSystemState(fs);
+  await setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
   renderDesktopIcons();
 }
 
-// Function to move an item from any location to a specific explorer path
-function moveItemToExplorerPath(itemId, targetPath) {
-  const fs = getFileSystemStateSync();
-
-  // Find the item and its current parent
-  const result = findItemAndParentById(itemId, fs);
-  if (!result) {
-    console.error("Item not found:", itemId);
-    return;
-  }
-
-  const { item, parent } = result;
-
-  // Don't move if already in target path
-  if (item.fullPath && item.fullPath.startsWith(targetPath)) {
-    return;
-  }
-
-  // Check if item is moving from desktop for cleanup
-  const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
-
-  // Remove from current location
-  delete parent[itemId];
-
-  // Clean up desktop icon position if moving from desktop
-  if (isMovingFromDesktop) {
-    const iconId = 'icon-' + itemId;
-    if (desktopIconsState[iconId]) {
-      delete desktopIconsState[iconId];
-    }
-  }
-
-  // Find target container
-  let targetContainer;
-  if (targetPath === 'C://') {
-    targetContainer = fs.folders['C://'];
-  } else {
-    const targetFolder = findFolderObjectByFullPath(targetPath, fs);
-    if (!targetFolder) {
-      console.error('Target path not found:', targetPath);
-      return;
-    }
-    if (!targetFolder.contents) targetFolder.contents = {};
-    targetContainer = targetFolder.contents;
-  }
-
-  // Move item to target location
-  targetContainer[itemId] = item;
-
-  // Update item's fullPath
-  item.fullPath = targetPath === 'C://' ? targetPath + item.id : targetPath + '/' + item.id;
-
-  // Save changes
-  setFileSystemState(fs);
-  saveState();
-  refreshExplorerViews();
-  renderDesktopIcons();
-}
+// Call setupDesktopDrop when the script loads
+setupDesktopDrop();

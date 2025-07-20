@@ -59,7 +59,7 @@ function makeIconDraggable(icon) {
       }
     }
 
-    function pointerUpHandler(e) {
+    async function pointerUpHandler(e) {
       if (!e.isPrimary) return;
 
       document.removeEventListener('pointermove', pointerMoveHandler);
@@ -91,11 +91,11 @@ function makeIconDraggable(icon) {
           if (sourceId !== targetId) {
             // Special case for compost bin
             if (targetId === 'compostbin') {
-              moveItemToCompostBin(sourceId, 'C://Desktop');
+              await moveItemToCompostBin(sourceId, 'C://Desktop');
               return; // Don't save position if moved to compost bin
             } else if (targetItem && targetItem.type === 'folder') {
               // Move the item into the folder
-              moveItemToFolder(sourceId, targetId);
+              await moveItemToFolder(sourceId, targetId);
               return; // Don't save position if moved to folder
             }
           }
@@ -104,7 +104,7 @@ function makeIconDraggable(icon) {
           const sourceId = icon.getAttribute('data-item-id');
           const explorerPath = targetExplorer.getAttribute('data-current-path');
           if (explorerPath && sourceId) {
-            moveItemToExplorerPath(sourceId, explorerPath);
+            await moveItemToExplorerPath(sourceId, explorerPath);
             return; // Don't save position if moved to explorer
           }
         }

@@ -455,6 +455,7 @@ async function clearDesktopSettings() {
     bgImage: ""
   };
   appState.desktopIconsState = {};
+  appState.startMenuOrder = [];
   await storage.setItem('appState', appState);
 
   showDialogBox('Desktop settings reset successfully!', 'info');
@@ -473,7 +474,6 @@ function fullSystemRestart() {
     },
     () => {
       // Cancel button was clicked - do nothing
-      console.log('Factory reset cancelled by user');
     }
   );
 }
@@ -485,7 +485,6 @@ function performFactoryReset() {
   // Clear IndexedDB for media player
   const deleteRequest = indexedDB.deleteDatabase("media_player_db");
   deleteRequest.onsuccess = () => {
-    console.log("Factory reset: Media player database cleared");
   };
   deleteRequest.onerror = (event) => {
     console.error("Factory reset: Error clearing media player database:", event);
@@ -494,6 +493,7 @@ function performFactoryReset() {
   // Reset state objects
   windowStates = {};
   desktopIconsState = {};
+  startMenuOrder = [];
   desktopSettings = {
     clockSeconds: false,
     bgColor: "#20b1b1",

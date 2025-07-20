@@ -137,12 +137,9 @@ function handleDragEnd(e) {
 function moveItemToFolder(itemId, folderId) {
   let fs = getFileSystemStateSync();
 
-  console.log('moveItemToFolder called:', { itemId, folderId });
-  console.log('File system structure:', fs);
 
   // Find the dragged item and its parent.
   const result = findItemAndParentById(itemId, fs);
-  console.log('findItemAndParentById result:', result);
   if (!result) {
     console.error("Item not found:", itemId);
     return;
@@ -151,11 +148,9 @@ function moveItemToFolder(itemId, folderId) {
 
   // Check if item is moving from desktop for cleanup
   const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
-  console.log('Moving from desktop:', isMovingFromDesktop);
 
   // Remove the item from its current parent's contents.
   delete parent[itemId];
-  console.log('Removed item from parent');
 
   // Clean up desktop icon position if moving from desktop
   if (isMovingFromDesktop) {
@@ -167,9 +162,7 @@ function moveItemToFolder(itemId, folderId) {
 
   // Find the target folder object.
   let targetFullPath = findFolderFullPathById(folderId);
-  console.log('Target full path:', targetFullPath);
   let targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
-  console.log('Target folder object:', targetFolder);
   if (!targetFolder) {
     console.error("Target folder not found:", folderId);
     return;
@@ -182,19 +175,14 @@ function moveItemToFolder(itemId, folderId) {
   // For folders that are not drive roots, also update fs.folders[targetFullPath]
   if (!/^[A-Z]:\/\/$/.test(targetFullPath)) {
     if (!fs.folders[targetFullPath]) {
-      console.log('Creating folder entry in unified structure:', targetFullPath);
       fs.folders[targetFullPath] = {};
     }
     fs.folders[targetFullPath][itemId] = item;
-    console.log('Added item to unified structure at:', targetFullPath, 'item:', item);
   }
 
-  console.log('Final target folder contents:', targetFolder.contents);
-  console.log('Final fs.folders[targetFullPath]:', fs.folders[targetFullPath]);
 
   // Update the moved item's fullPath using the item's name, not its ID.
   item.fullPath = targetFullPath + "/" + item.name;
-  console.log('Updated item fullPath:', item.fullPath);
 
   setFileSystemState(fs);
   saveState();

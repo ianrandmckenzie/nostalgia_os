@@ -26,29 +26,53 @@ if (typeof window !== 'undefined') {
   window.fileSystemState = fileSystemState;
 }
 
+// Flag to prevent saving during initialization
+let isInitializing = false;
+
+// Make initialization flag globally accessible
+if (typeof window !== 'undefined') {
+  window.isInitializing = isInitializing;
+}
+
 async function saveState() {
+  if (isInitializing) {
+    return;
+  }
+
+  // Get startMenuOrder from either global var or window object
+  const currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+
+  // Debug: Check if startMenuOrder is available
+
   const appState = {
     fileSystemState: fileSystemState,
     windowStates: windowStates,
     desktopIconsState: desktopIconsState,
     desktopSettings: desktopSettings,
-    navWindows: navWindows
+    navWindows: navWindows,
+    startMenuOrder: currentStartMenuOrder
   };
 
+
   const startTime = Date.now();
-  console.log('Starting saveState operation...');
 
   try {
     // Use async method to ensure data is fully written before continuing
     await storage.setItem('appState', appState);
     const endTime = Date.now();
-    console.log(`saveState completed successfully in ${endTime - startTime}ms`);
+
+    // Verify save by reading it back immediately
+    const readBack = await storage.getItem('appState');
   } catch (error) {
     console.warn('Failed to save state to IndexedDB:', error);
     // Fallback to sync method as last resort
     storage.setItemSync('appState', appState);
-    console.log('Fell back to sync save method');
   }
+}
+
+// Make saveState available globally
+if (typeof window !== 'undefined') {
+  window.saveState = saveState;
 }
 
 function getFileSystemState() {
@@ -111,10 +135,6 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 
   let targetFolder = fs.folders[drive];
 
-  console.log('Adding file to path:', targetFolderPath);
-  console.log('Drive:', drive);
-  console.log('Path parts:', pathParts);
-  console.log('Initial target folder:', targetFolder);
 
   // Use unified structure: all folders are stored directly in fs.folders[fullPath]
   if (pathParts.length === 0) {
@@ -163,22 +183,12 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
     file: fileObj || null // Store the actual file object if provided
   };
 
-  console.log('🎵 ADDFILE: Creating new file:', {
-    fileName,
-    fileId,
-    targetFolderPath,
-    contentType,
-    hasFileObj: !!fileObj
-  });
-
   // Convert File object to data URL for persistence if it's a binary file
   if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
-    console.log('🎵 ADDFILE: Processing binary file for storage...');
 
     // Create immediate object URL for instant playback while async processing happens
     const tempObjectURL = URL.createObjectURL(fileObj);
     newFile.tempObjectURL = tempObjectURL;
-    console.log('🎵 ADDFILE: Created temporary object URL for immediate access');
 
     const reader = new FileReader();
     reader.onload = async function(e) {
@@ -206,9 +216,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 
           // Keep the tempObjectURL as backup - don't clean it up immediately
           // The file explorer will prefer dataURL when available
-          console.log('🎵 ADDFILE: DataURL stored, keeping tempObjectURL as backup');
 
-          console.log(`🎵 ADDFILE: File (${fileSizeInMB.toFixed(2)}MB) stored in IndexedDB:`, fileName);
         } else {
           console.error('🎵 ADDFILE: File entry not found after creation:', fileId);
           console.error('🎵 ADDFILE: Looking in:', isRootDrive ? drive : targetFolderPath);
@@ -246,7 +254,6 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 
       if (fileEntry) {
         fileEntry.file = null;
-        console.log('🎵 ADDFILE: Removed File object from file entry:', fileId);
       } else {
         console.error('🎵 ADDFILE: Could not find file entry to remove File object:', fileId);
       }
@@ -275,16 +282,11 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   if (isRootDrive) {
     // For root drives, add directly to the drive folder
     targetFolder[fileId] = newFile;
-    console.log('🎵 ADDFILE: Added to root drive:', drive, 'File ID:', fileId, 'File name:', newFile.name);
   } else {
     // For regular folders in unified structure, add directly to the folder, NOT to contents
     targetFolder[fileId] = newFile;
-    console.log('🎵 ADDFILE: Added directly to folder:', targetFolderPath, 'File ID:', fileId, 'File name:', newFile.name);
   }
 
-  console.log('🎵 ADDFILE: File added to file system. Checking folder contents...');
-  console.log('🎵 ADDFILE: Folder contents:', Object.keys(targetFolder));
-  console.log('🎵 ADDFILE: Added file object:', targetFolder[fileId]);
 
   // Save changes (for non-binary files or immediate save)
   setFileSystemState(fs);
@@ -297,9 +299,7 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   }
 
   // Refresh views if the function exists (will be available when file explorer is loaded)
-  console.log('Attempting to refresh views for path:', targetFolderPath);
   if (targetFolderPath === 'C://Desktop') {
-    console.log('Refreshing desktop icons');
     if (typeof renderDesktopIcons === 'function') {
       renderDesktopIcons();
     } else if (typeof window.renderDesktopIcons === 'function') {
@@ -308,7 +308,6 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
       console.warn('renderDesktopIcons function not found');
     }
   } else {
-    console.log('Refreshing explorer windows');
     if (typeof refreshAllExplorerWindows === 'function') {
       refreshAllExplorerWindows(targetFolderPath);
     } else if (typeof window.refreshAllExplorerWindows === 'function') {
@@ -320,14 +319,12 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
 
   // If a media file was added to C://Media, refresh the media player playlist
   if (targetFolderPath === 'C://Media' && ['mp3', 'wav', 'ogg', 'audio', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
-    console.log('Media file added to C://Media, refreshing media player playlist');
     if (typeof window.refreshMediaPlayerPlaylist === 'function') {
       // Delay the refresh to ensure the file system state is fully updated
       setTimeout(() => {
         window.refreshMediaPlayerPlaylist();
       }, 100);
     } else {
-      console.log('Media player playlist refresh function not available yet');
     }
   }
   // Note: refreshExplorerViews() is broken, so we handle refresh above
@@ -344,8 +341,6 @@ window.globalAddFileToFileSystem = addFileToFileSystem;
    This ensures compost bin and other desktop items appear correctly.
 ====================== */
 function migrateFileSystemToUnifiedStructure(fs) {
-  console.log('Migrating file system to unified structure...');
-  console.log('Original file system structure:', JSON.stringify(fs, null, 2));
 
   // Ensure the unified structure exists
   if (!fs.folders) {
@@ -357,7 +352,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
 
   // Check for old nested structure
   if (fs.folders['C://'] && typeof fs.folders['C://'] === 'object') {
-    console.log('Found old nested structure in C:// drive');
 
     // Migrate all default folders from nested to unified structure
     const driveContents = fs.folders['C://'];
@@ -367,7 +361,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
 
         // If this folder doesn't exist in unified structure, migrate it
         if (!fs.folders[unifiedPath]) {
-          console.log(`Migrating ${folderName} to unified structure at ${unifiedPath}`);
 
           // Create the folder in unified structure with its contents
           fs.folders[unifiedPath] = folderObj.contents || {};
@@ -390,7 +383,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
   const essentialFolders = ['C://Desktop', 'C://Documents', 'C://Media'];
   for (const folderPath of essentialFolders) {
     if (!fs.folders[folderPath]) {
-      console.log(`Creating missing essential folder: ${folderPath}`);
       fs.folders[folderPath] = {};
       migrationNeeded = true;
     }
@@ -415,20 +407,21 @@ function migrateFileSystemToUnifiedStructure(fs) {
   }
 
   if (migrationNeeded) {
-    console.log('Migration completed. Updated file system structure.');
-    console.log('Available folders after migration:', Object.keys(fs.folders));
   } else {
-    console.log('No migration needed.');
   }
 
   return fs;
 }
 
 async function initializeAppState() {
+  isInitializing = true; // Prevent saves during initialization
+  if (typeof window !== 'undefined') {
+    window.isInitializing = true;
+  }
+
   // Ensure storage is ready before proceeding
   try {
     await storage.ensureReady();
-    console.log('Storage initialized and ready');
   } catch (error) {
     console.error('Failed to initialize storage:', error);
   }
@@ -442,7 +435,12 @@ async function initializeAppState() {
   }
 
   if (!appStateData) {
-    console.log('No saved state found, initializing with defaults');
+
+    // Initialize startMenuOrder to empty array for new installs
+    startMenuOrder = [];
+    if (typeof window !== 'undefined') {
+      window.startMenuOrder = startMenuOrder;
+    }
 
     // Migrate the default file system to the unified structure
     const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
@@ -457,24 +455,19 @@ async function initializeAppState() {
     };
     try {
       await storage.setItem('appState', initialState);
-      console.log('Initialized new app state successfully with migrated file system');
     } catch (error) {
       console.error('Failed to save initial app state:', error);
     }
 
     // Add the default song to the Media folder on first load
     setTimeout(async () => {
-      console.log('🎵 DEBUGGING: Adding default song to Media folder...');
       // For the default song, create a file entry that references the static media file
       const fs = await getFileSystemState();
-      console.log('🎵 DEBUGGING: Current file system state:', fs);
-      console.log('🎵 DEBUGGING: C://Media contents:', fs.folders['C://Media']);
       if (fs.folders['C://Media']) {
         // Check if the default song is already there
         const hasDefaultSong = Object.values(fs.folders['C://Media']).some(file =>
           file.name === 'too_many_screws_final.mp3'
         );
-        console.log('🎵 DEBUGGING: Has default song already?', hasDefaultSong);
         if (!hasDefaultSong) {
           const defaultSongFile = {
             id: 'default-music-file',
@@ -492,19 +485,14 @@ async function initializeAppState() {
           fs.folders['C://Media']['default-music-file'] = defaultSongFile;
           setFileSystemState(fs);
           await saveState();
-          console.log('🎵 DEBUGGING: Default song added to C://Media');
-          console.log('🎵 DEBUGGING: Updated C://Media contents:', fs.folders['C://Media']);
         } else {
-          console.log('🎵 DEBUGGING: Default song already exists in C://Media');
         }
       } else {
-        console.log('🎵 DEBUGGING: C://Media folder does not exist!');
       }
     }, 100);
 
     // Initialize Documents folder with default files
     setTimeout(async () => {
-      console.log('Initializing Documents folder with default files...');
       if (typeof fetchDocuments === 'function') {
         await fetchDocuments();
       } else {
@@ -517,7 +505,6 @@ async function initializeAppState() {
   } else {
     // Load state from IndexedDB with validation
     const storedState = appStateData;
-    console.log('Loading existing app state:', Object.keys(storedState));
 
     // Validate and sanitize the loaded state
     if (storedState.fileSystemState && typeof storedState.fileSystemState === 'object') {
@@ -536,6 +523,14 @@ async function initializeAppState() {
       ? storedState.desktopIconsState : {};
     navWindows = (storedState.navWindows && typeof storedState.navWindows === 'object')
       ? storedState.navWindows : {};
+    startMenuOrder = (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder))
+      ? storedState.startMenuOrder : [];
+
+    // Also update window reference for consistency
+    if (typeof window !== 'undefined') {
+      window.startMenuOrder = startMenuOrder;
+    }
+
 
     // Merge stored desktop settings with defaults to ensure all properties exist
     desktopSettings = {
@@ -545,7 +540,6 @@ async function initializeAppState() {
       ...(storedState.desktopSettings || {})
     };
 
-    console.log('Loaded desktop settings:', desktopSettings);
 
     // Apply desktop settings after loading them
     applyDesktopSettings();
@@ -560,7 +554,6 @@ async function initializeAppState() {
             file.name === 'too_many_screws_final.mp3'
           );
           if (!hasDefaultSong) {
-            console.log('Adding default song to Media folder during migration...');
             const defaultSongFile = {
               id: 'default-music-file',
               name: 'too_many_screws_final.mp3',
@@ -577,28 +570,29 @@ async function initializeAppState() {
             fs.folders['C://Media']['default-music-file'] = defaultSongFile;
             setFileSystemState(fs);
             await saveState();
-            console.log('Default song added to C://Media during migration');
           }
         }
       }
 
       // Also check if Documents folder needs to be populated
-      console.log('Checking if Documents folder needs default files...');
       const documentsItems = fs.folders['C://Documents'] || {};
       const documentsCount = Object.keys(documentsItems).length;
-      console.log('Current Documents folder has', documentsCount, 'items');
 
       if (documentsCount === 0) {
-        console.log('Documents folder is empty, populating with default files...');
         if (typeof fetchDocuments === 'function') {
           await fetchDocuments();
         } else if (typeof fetchDocumentsSync === 'function') {
           fetchDocumentsSync();
         }
       } else {
-        console.log('Documents folder already has', documentsCount, 'files, skipping population');
       }
     }, 100);
+  }
+
+  // Initialization complete, allow saves now
+  isInitializing = false;
+  if (typeof window !== 'undefined') {
+    window.isInitializing = false;
   }
 }
 
@@ -664,10 +658,8 @@ async function initializeRestoredApp(windowId) {
       if (calcWindow) {
         const content = calcWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Calculator content empty, reinitializing...');
           initializeCalculatorUI(calcWindow);
         } else {
-          console.log('Calculator content already exists, skipping reinitialization');
         }
       }
     },
@@ -677,10 +669,8 @@ async function initializeRestoredApp(windowId) {
       if (playerWindow) {
         const content = playerWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Media Player content empty, reinitializing...');
           initializeMediaPlayerUI(playerWindow);
         } else {
-          console.log('Media Player content already exists, skipping reinitialization');
         }
       }
     },
@@ -690,14 +680,12 @@ async function initializeRestoredApp(windowId) {
       if (gameWindow) {
         const content = gameWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Bombbroomer content empty, reinitializing...');
           if (typeof initializeBombbroomerUI === 'function') {
             initializeBombbroomerUI(gameWindow);
           } else {
             console.warn('initializeBombbroomerUI function not available');
           }
         } else {
-          console.log('Bombbroomer content already exists, skipping reinitialization');
         }
       }
     },
@@ -707,10 +695,8 @@ async function initializeRestoredApp(windowId) {
       if (gameWindow) {
         const content = gameWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Solitaire content empty, reinitializing...');
           initializeSolitaireUI(gameWindow);
         } else {
-          console.log('Solitaire content already exists, skipping reinitialization');
         }
       }
     },
@@ -720,14 +706,12 @@ async function initializeRestoredApp(windowId) {
       if (chessWindow) {
         const content = chessWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Chess content empty, reinitializing...');
           if (typeof initializeChessUI === 'function') {
             initializeChessUI(chessWindow);
           } else {
             console.warn('initializeChessUI function not available');
           }
         } else {
-          console.log('Chess content already exists, skipping reinitialization');
         }
       }
     },
@@ -752,10 +736,8 @@ async function initializeRestoredApp(windowId) {
       if (watercolourWindow) {
         const content = watercolourWindow.querySelector('.p-2');
         if (needsReinitialization(content)) {
-          console.log('Watercolour content empty, reinitializing...');
           initializeWatercolourUI(watercolourWindow);
         } else {
-          console.log('Watercolour content exists, but ensuring event handlers are set up...');
           // Even if content exists, we need to ensure event handlers and global functions are set up
           if (typeof initializeWatercolour === 'function') {
             initializeWatercolour();
@@ -776,11 +758,9 @@ async function initializeRestoredApp(windowId) {
       // File Explorer needs to restore its current path
       const explorerWindow = document.getElementById('explorer-window');
       if (explorerWindow) {
-        console.log('File Explorer found, restoring state...');
         if (typeof initializeFileExplorerUI === 'function') {
           initializeFileExplorerUI(explorerWindow);
         } else {
-          console.log('File Explorer UI initializer not available, trying direct restoration...');
           if (typeof restoreFileExplorerState === 'function') {
             setTimeout(restoreFileExplorerState, 100);
           }
@@ -802,7 +782,6 @@ async function initializeRestoredApp(windowId) {
     if (windowElement) {
       const letterpadEditor = windowElement.querySelector('.letterpad_editor');
       if (letterpadEditor) {
-        console.log('Found LetterPad editor in window', windowId, 'reinitializing...');
         try {
           if (typeof initializeLetterPad === 'function') {
             await initializeLetterPad(letterpadEditor);
@@ -884,7 +863,6 @@ function reinitializeApp(windowId, launchFunction) {
     // Restore the original window ID
     existingWindow.id = windowId;
 
-    console.log(`Successfully reinitialized ${windowId}`);
   } catch (error) {
     // Restore window ID if something went wrong
     if (existingWindow && existingWindow.id !== windowId) {
@@ -896,16 +874,12 @@ function reinitializeApp(windowId, launchFunction) {
 
 // Debug function to check current window states
 function debugWindowStates() {
-  console.log('Current windowStates:', windowStates);
-  console.log('Current navWindows:', navWindows);
-  console.log('Current desktop icons state:', desktopIconsState);
 }
 
 // Force save current state (for testing)
 async function forceSaveState() {
   try {
     await saveState();
-    console.log('State saved manually');
   } catch (error) {
     console.error('Failed to save state manually:', error);
   }
@@ -914,7 +888,6 @@ async function forceSaveState() {
 // Test app restoration (for testing)
 function testAppRestoration(windowId) {
   initializeRestoredApp(windowId);
-  console.log(`Tested restoration for app: ${windowId}`);
 }
 
 // Test app reinitialization (for testing)
@@ -938,7 +911,6 @@ function testBombbroomerInit() {
   const gameWindow = document.getElementById('bombbroomer');
   if (gameWindow && typeof initializeBombbroomerUI === 'function') {
     initializeBombbroomerUI(gameWindow);
-    console.log('Bombbroomer UI initialized');
   } else {
     console.warn('Bombbroomer window not found or function not available');
   }
@@ -946,25 +918,17 @@ function testBombbroomerInit() {
 
 // Test data integrity (for debugging)
 async function testDataIntegrity() {
-  console.log('=== Data Integrity Test ===');
   try {
     // Test 1: Save current state
-    console.log('1. Saving current state...');
     await saveState();
 
     // Test 2: Read back the saved state
-    console.log('2. Reading back saved state...');
     const savedData = await storage.getItem('appState');
 
     if (savedData) {
-      console.log('✓ Data successfully saved and retrieved');
-      console.log('- File system folders count:', Object.keys(savedData.fileSystemState?.folders || {}).length);
-      console.log('- Window states count:', Object.keys(savedData.windowStates || {}).length);
-      console.log('- Desktop icons count:', Object.keys(savedData.desktopIconsState || {}).length);
 
       // Test 3: Verify IndexedDB persistence
       const storage_estimate = await navigator.storage.estimate();
-      console.log('3. Storage usage:', (storage_estimate.usage / 1024 / 1024).toFixed(2), 'MB');
 
       return true;
     } else {
@@ -979,20 +943,13 @@ async function testDataIntegrity() {
 
 // Test session persistence (for debugging login behavior)
 async function testSessionPersistence() {
-  console.log('=== Session Persistence Test ===');
   try {
     const appState = await storage.getItem('appState');
     const explicitRestart = await storage.getItem('explicitRestart');
 
-    console.log('Current session state:');
-    console.log('- Has app state:', !!appState);
-    console.log('- Explicit restart flag:', !!explicitRestart);
-    console.log('- Should show login on reload:', !appState || !!explicitRestart);
 
     if (appState) {
-      console.log('✓ Session should persist across page reloads');
     } else {
-      console.log('⚠ No app state - will show login screen');
     }
 
     return !!appState;
@@ -1004,9 +961,7 @@ async function testSessionPersistence() {
 
 // Simulate restart for testing
 async function simulateRestart() {
-  console.log('Simulating restart...');
   await storage.setItem('explicitRestart', true);
-  console.log('Restart flag set. Reload the page to test login behavior.');
 }
 
 // Make debug functions globally available
@@ -1020,7 +975,6 @@ window.testSessionPersistence = testSessionPersistence;
 window.simulateRestart = simulateRestart;// Add beforeunload handler to ensure data is saved before page closes
 window.addEventListener('beforeunload', async (event) => {
   try {
-    console.log('Page unloading - performing emergency save...');
     // Force immediate save using sync method to ensure it completes before unload
     const appState = {
       fileSystemState: fileSystemState,
@@ -1030,7 +984,6 @@ window.addEventListener('beforeunload', async (event) => {
       navWindows: navWindows
     };
     storage.setItemSync('appState', appState);
-    console.log('Emergency save completed before page unload');
   } catch (error) {
     console.error('Failed to save state during page unload:', error);
   }
@@ -1040,7 +993,6 @@ window.addEventListener('beforeunload', async (event) => {
 setInterval(async () => {
   try {
     await saveState();
-    console.log('Periodic backup save completed');
   } catch (error) {
     console.error('Failed to save periodic backup:', error);
   }
@@ -1091,5 +1043,4 @@ function findFolderByPath(fs, targetPath) {
 
 // Initialize async
 restoreFileSystemState().then(() => {
-  console.log('File system state restored from IndexedDB');
 }).catch(console.error);

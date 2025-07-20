@@ -5,6 +5,7 @@ async function restart() {
   // Reset state objects for current session
   windowStates = {};
   desktopIconsState = {};
+  startMenuOrder = [];
   desktopSettings = {
     clockSeconds: false,
     bgColor: "#20b1b1",

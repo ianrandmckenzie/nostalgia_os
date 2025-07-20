@@ -30,7 +30,6 @@ function launchMediaPlayer() {
 
 // Separate function to initialize the Media Player UI (for restoration)
 async function initializeMediaPlayerUI(win) {
-  console.log('Initializing Media Player UI, window:', win);
 
   // Get the content area
   const content = win.querySelector('.p-2');
@@ -41,7 +40,6 @@ async function initializeMediaPlayerUI(win) {
 
   // Try to load saved media player state
   let playerState = await loadMediaPlayerState();
-  console.log('Loaded media player state:', playerState);
 
   // If no saved state, create default state
   if (!playerState) {
@@ -186,7 +184,6 @@ async function initializeMediaPlayerUI(win) {
   }
 
   function addSongToDB(songFile) {
-    console.log('🎵 MEDIAPLAYER: Adding song to C://Media folder only:', songFile.name);
 
     // Add the song directly to the file system Media folder (no IndexedDB)
     const fileExtension = songFile.name.split('.').pop().toLowerCase();
@@ -194,7 +191,6 @@ async function initializeMediaPlayerUI(win) {
     addFileToFileSystem(songFile.name, '', 'C://Media', fileExtension, songFile)
       .then((result) => {
         if (result) {
-          console.log('🎵 MEDIAPLAYER: Song added to file system C://Media:', songFile.name);
           // Reload the playlist to include the new song
           loadPlaylist().catch(console.error);
         } else {
@@ -207,7 +203,6 @@ async function initializeMediaPlayerUI(win) {
   }
 
     async function loadPlaylist() {
-    console.log('🎵 MEDIAPLAYER: Loading playlist exclusively from C://Media folder');
 
     // Start with an empty playlist
     playlist = [];
@@ -215,9 +210,7 @@ async function initializeMediaPlayerUI(win) {
     // Load songs EXCLUSIVELY from the Media folder in the file system
     try {
       const fs = getFileSystemStateSync();
-      console.log('🎵 MEDIAPLAYER: File system state:', fs);
       const musicFolder = fs.folders['C://Media'];
-      console.log('🎵 MEDIAPLAYER: Media folder contents:', musicFolder);
 
       if (musicFolder) {
         // Get all files from the Media folder, excluding the 'contents' object
@@ -225,14 +218,11 @@ async function initializeMediaPlayerUI(win) {
           .filter(([key, value]) => key !== 'contents' && value && typeof value === 'object' && value.type)
           .map(([key, value]) => value);
 
-        console.log('🎵 MEDIAPLAYER: Media files found (excluding contents):', musicFiles);
 
         // Process files with async operations
         const playlistPromises = musicFiles.map(async file => {
-          console.log('🎵 MEDIAPLAYER: Checking file:', file);
           if (file.content_type && ['mp3', 'wav', 'audio', 'mp4', 'webm', 'avi', 'mov'].includes(file.content_type)) {
             const isVideo = ['mp4', 'webm', 'avi', 'mov'].includes(file.content_type);
-            console.log('🎵 MEDIAPLAYER: Adding file system media to playlist:', file.name, isVideo ? '(video)' : '(audio)');
 
             // For file system media, we need to handle them differently
             const playlistEntry = {
@@ -250,14 +240,12 @@ async function initializeMediaPlayerUI(win) {
             // This covers files with storageLocation='indexeddb' OR files that appear to be uploaded but lack dataURL
             if ((file.storageLocation === 'indexeddb' && !file.dataURL) ||
                 (!file.dataURL && !file.file && !file.path && file.id && file.id.startsWith('file-'))) {
-              console.log('🎵 MEDIAPLAYER: File needs data from IndexedDB:', file.name, 'Storage location:', file.storageLocation, 'Has dataURL:', !!file.dataURL);
               try {
                 const storedDataURL = await storage.getItem(`file_data_${file.id}`);
                 if (storedDataURL) {
                   // Update the file system entry with the loaded dataURL
                   file.dataURL = storedDataURL;
                   playlistEntry.dataURL = storedDataURL;
-                  console.log('🎵 MEDIAPLAYER: Successfully loaded dataURL from IndexedDB for:', file.name);
 
                   // Update the file system state to include the loaded dataURL
                   const fs = getFileSystemStateSync();
@@ -275,20 +263,11 @@ async function initializeMediaPlayerUI(win) {
                   if (alternativeData) {
                     file.dataURL = alternativeData;
                     playlistEntry.dataURL = alternativeData;
-                    console.log('🎵 MEDIAPLAYER: Found data with alternative key for:', file.name);
                   }
                 }
               } catch (error) {
                 console.error('🎵 MEDIAPLAYER: Failed to load data from IndexedDB for:', file.name, error);
               }
-            } else {
-              console.log('🎵 MEDIAPLAYER: File storage info:', {
-                name: file.name,
-                storageLocation: file.storageLocation,
-                hasDataURL: !!file.dataURL,
-                hasTempObjectURL: !!file.tempObjectURL,
-                hasFile: !!file.file
-              });
             }
 
             // Determine the correct path/source for the song (prioritize persistent storage)
@@ -319,7 +298,6 @@ async function initializeMediaPlayerUI(win) {
         const playlistEntries = await Promise.all(playlistPromises);
         playlist = playlistEntries.filter(entry => entry !== null);
       } else {
-        console.log('Media folder not found in file system');
       }
     } catch (error) {
       console.error('Could not load songs from file system:', error);
@@ -328,7 +306,6 @@ async function initializeMediaPlayerUI(win) {
     // If no default song was found in the file system, add the fallback default song
     const hasDefaultSong = playlist.some(track => track.name === 'too_many_screws_final.mp3');
     if (!hasDefaultSong) {
-      console.log('No default song found in file system, adding fallback');
       playlist.unshift({
         name: 'too_many_screws_final.mp3',
         path: 'media/too_many_screws_final.mp3',
@@ -338,7 +315,6 @@ async function initializeMediaPlayerUI(win) {
       });
     }
 
-    console.log('🎵 MEDIAPLAYER: Final playlist (C://Media only):', playlist);
     renderPlaylist();
 
     if (playlist.length > 0) {
@@ -358,9 +334,7 @@ async function initializeMediaPlayerUI(win) {
   function renderPlaylist() {
     const container = content.querySelector('#playlist-container');
     container.innerHTML = '';
-    console.log('🎵 MEDIAPLAYER: Rendering playlist with', playlist.length, 'tracks');
     playlist.forEach((track, index) => {
-      console.log('🎵 MEDIAPLAYER: Rendering track', index, ':', track.name, 'Full track:', track);
       const trackEl = document.createElement('div');
       trackEl.className = 'text-xs cursor-pointer hover:bg-gray-100 p-1 rounded';
       // Validate track name
@@ -385,23 +359,12 @@ async function initializeMediaPlayerUI(win) {
     playerState.currentTrackIndex = currentTrackIndex;
     const track = playlist[index];
 
-    console.log('Loading track:', track);
-    console.log('🎵 MEDIAPLAYER: Track sources available:', {
-      hasPath: !!track.path,
-      hasDataURL: !!track.dataURL,
-      hasTempObjectURL: !!track.tempObjectURL,
-      hasFile: !!track.file,
-      isDefault: track.isDefault,
-      storageLocation: track.storageLocation
-    });
-
     // Determine if this is a video or audio file
     // Check multiple possible properties for video detection
     const isVideo = (track.type && track.type.startsWith('video/')) ||
                    (track.contentType && ['mp4', 'webm', 'avi', 'mov'].includes(track.contentType)) ||
                    (track.isVideo === true) ||
                    (track.file && track.file.type && track.file.type.startsWith('video/'));
-    console.log('Track is video:', isVideo, 'Type:', track.type, 'ContentType:', track.contentType, 'File type:', track.file?.type);
 
     // Hide all media elements initially
     audio.style.display = 'none';
@@ -431,7 +394,6 @@ async function initializeMediaPlayerUI(win) {
       }
     }
 
-    console.log('🎵 MEDIAPLAYER: Using', isVideo ? 'video' : 'audio', 'player for:', track.name);
 
     // Pause the inactive player
     inactivePlayer.pause();
@@ -439,27 +401,20 @@ async function initializeMediaPlayerUI(win) {
 
     if (track.isDefault || (track.path && !track.file && !track.dataURL)) {
       // For default songs or file system songs that reference static files
-      console.log('🎵 MEDIAPLAYER: Setting source from path:', track.path);
       activePlayer.src = track.path;
     } else if (track.dataURL) {
       // For songs with stored data URLs (uploaded files)
-      console.log('🎵 MEDIAPLAYER: Setting source from dataURL');
       activePlayer.src = track.dataURL;
     } else if (track.tempObjectURL) {
       // For files with temporary object URLs (uploaded files being processed)
-      console.log('🎵 MEDIAPLAYER: Setting source from tempObjectURL');
       activePlayer.src = track.tempObjectURL;
     } else if (track.isFileSystem && track.file) {
       // For file system songs with actual file objects
-      console.log('🎵 MEDIAPLAYER: Setting source from file system file object');
       const objectURL = URL.createObjectURL(track.file);
-      console.log('🎵 MEDIAPLAYER: Created object URL:', objectURL, 'for file type:', track.file.type);
       activePlayer.src = objectURL;
     } else if (track.file) {
       // For uploaded files from IndexedDB
-      console.log('🎵 MEDIAPLAYER: Setting source from file object');
       const objectURL = URL.createObjectURL(track.file);
-      console.log('🎵 MEDIAPLAYER: Created object URL:', objectURL, 'for file type:', track.file.type);
       activePlayer.src = objectURL;
     } else {
       console.error('Unable to load track - no valid source:', track);
@@ -491,7 +446,6 @@ async function initializeMediaPlayerUI(win) {
         if (error.name === 'AbortError') {
           // This error is expected if a new load request interrupts the play request.
           // We can safely ignore it.
-          // console.log('Play request was aborted by a new load. Safe to ignore.');
         } else {
           // Log other errors.
           console.error("Playback failed:", error);
@@ -604,11 +558,9 @@ async function initializeMediaPlayerUI(win) {
 
   // Add loadstart event listeners for debugging
   audio.addEventListener('loadstart', () => {
-    console.log('🎵 MEDIAPLAYER: Audio loadstart, source:', audio.src);
   });
 
   video.addEventListener('loadstart', () => {
-    console.log('🎵 MEDIAPLAYER: Video loadstart, source:', video.src);
   });
 
   stopBtn.addEventListener('click', stopTrack);
@@ -703,7 +655,6 @@ async function initializeMediaPlayerUI(win) {
   // Expose a global function to refresh the media player playlist
   // This allows other parts of the system to notify the media player when files are added to C://Media
   window.refreshMediaPlayerPlaylist = function() {
-    console.log('Refreshing media player playlist from external trigger');
     if (db) {
       loadPlaylist().catch(console.error);
     }
@@ -727,12 +678,10 @@ async function initializeMediaPlayerUI(win) {
         const newFiles = currentMediaFiles.filter(fileName => !playlistFileNames.includes(fileName));
 
         if (newFiles.length > 0) {
-          console.log('Detected new music files in C://Media:', newFiles);
           loadPlaylist().catch(console.error); // Reload the playlist to include new files
         }
       }
     } catch (error) {
-      console.log('Error checking for music folder changes:', error);
     }
   }, 10000); // Check every 10 seconds
 
@@ -740,7 +689,6 @@ async function initializeMediaPlayerUI(win) {
   const mediaPlayerWindow = win;
   const originalRemove = mediaPlayerWindow.remove;
   mediaPlayerWindow.remove = function() {
-    console.log('Media player closing, cleaning up music folder watcher');
     clearInterval(musicFolderWatcher);
     if (window.refreshMediaPlayerPlaylist === window.refreshMediaPlayerPlaylist) {
       delete window.refreshMediaPlayerPlaylist;
@@ -754,7 +702,6 @@ async function restoreMediaPlayerSession() {
   const playerState = await loadMediaPlayerState();
   if (!playerState || playerState.currentTrackIndex < 0) return;
 
-  console.log('Restoring media player session:', playerState);
 
   // Load the track if we have a valid index
   if (playlist.length > playerState.currentTrackIndex) {
@@ -765,7 +712,6 @@ async function restoreMediaPlayerSession() {
       const activePlayer = getActivePlayer();
       if (playerState.currentTime > 0) {
         activePlayer.currentTime = playerState.currentTime;
-        console.log('Restored playback position to:', playerState.currentTime);
       }
 
       // Resume playback if it was playing

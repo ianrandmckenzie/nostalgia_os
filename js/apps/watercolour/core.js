@@ -2,7 +2,6 @@
 const canvas = document.getElementById('watercolourCanvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-console.log('Watercolour Core.js loaded - VERSION 3.0 - Direct integration');
 
 // Initialize with default state - will be updated when restored
 let watercolourState = null;
@@ -100,7 +99,6 @@ function initializeFileMenu() {
   fileMenuInitRetries++;
 
   if (fileMenuInitRetries > maxRetries) {
-    console.log('Using existing button structure (no dropdown)');
     // Work with the existing buttons that we know exist
     initializeExistingButtons();
     return;
@@ -112,17 +110,14 @@ function initializeFileMenu() {
   const saveAsBtn = document.getElementById('saveAsBtn');
 
   if (fileMenuBtn && fileDropdown && saveAsBtn) {
-    console.log('Found dropdown elements, initializing dropdown menu...');
     initializeDropdownMenu();
     return;
   }
 
-  console.log(`Dropdown elements not found, trying again... (${fileMenuInitRetries}/${maxRetries})`);
   setTimeout(initializeFileMenu, 200);
 }
 
 function initializeExistingButtons() {
-  console.log('Initializing with existing button structure...');
 
   const saveBtn = document.getElementById('saveBtn');
   const loadBtn = document.getElementById('loadBtn');
@@ -136,12 +131,10 @@ function initializeExistingButtons() {
 
   // Convert Save button to Save As functionality since we don't have separate buttons
   saveBtn.addEventListener('click', async () => {
-    console.log('Save button clicked - using Save As functionality');
     await saveAsNewFile();
   });
 
   loadBtn.addEventListener('click', () => {
-    console.log('Load button clicked');
     loadWatercolourDrawing();
   });
 
@@ -165,7 +158,6 @@ function initializeExistingButtons() {
     link.click();
   });
 
-  console.log('Existing buttons initialized successfully');
 }
 
 function initializeDropdownMenu() {
@@ -197,19 +189,16 @@ function initializeDropdownMenu() {
 
   // File menu button event listeners
   saveBtn.addEventListener('click', async () => {
-    console.log('Save button clicked - save to current file');
     if (currentFile) {
       await saveToCurrentFile();
     }
   });
 
   saveAsBtn.addEventListener('click', async () => {
-    console.log('Save As button clicked - prompt for new file');
     await saveAsNewFile();
   });
 
   loadBtn.addEventListener('click', () => {
-    console.log('Load button clicked');
     loadWatercolourDrawing();
   });
 
@@ -243,11 +232,9 @@ function initializeDropdownMenu() {
       if (currentFile) {
         currentSaveBtn.disabled = false;
         currentSaveBtn.title = `Save to ${currentFile.name}`;
-        console.log('Save button enabled for file:', currentFile.name);
       } else {
         currentSaveBtn.disabled = true;
         currentSaveBtn.title = 'No file loaded - use Save As... instead';
-        console.log('Save button disabled - no current file');
       }
     } else {
       console.error('Save button not found in DOM');
@@ -660,14 +647,12 @@ async function saveToCurrentFile() {
   try {
     // Get canvas as data URL
     const dataURL = canvas.toDataURL('image/png');
-    console.log('Saving to current file:', currentFile.name);
 
     // Check if we have access to the global storage and file system functions
     const storage = globalStorage;
     const addFileToFileSystem = globalAddFileToFileSystem;
 
     if (!storage) {
-      console.log('Global storage not available');
       alert('Cannot access storage. Please ensure the main OS is loaded.');
       return;
     }
@@ -675,18 +660,15 @@ async function saveToCurrentFile() {
     // Update in IndexedDB if we have a storage key
     if (currentFile.storageKey) {
       await storage.setItem(currentFile.storageKey, dataURL);
-      console.log('Updated in IndexedDB with key:', currentFile.storageKey);
     }
 
     // Update in file system
     if (addFileToFileSystem) {
-      console.log('Updating file in file system...');
       const response = await fetch(dataURL);
       const blob = await response.blob();
       const file = new File([blob], currentFile.name, { type: 'image/png' });
 
       const result = await addFileToFileSystem(currentFile.name, dataURL, currentFile.path, 'png', file);
-      console.log('File system update result:', result);
 
       // Force refresh of views
       if (refreshExplorerViews) {
@@ -702,7 +684,6 @@ async function saveToCurrentFile() {
 
       alert(`"${currentFile.name}" saved successfully!`);
     } else {
-      console.log('addFileToFileSystem not available');
       alert('File system not available. Could not save file.');
     }
   } catch (error) {
@@ -713,54 +694,44 @@ async function saveToCurrentFile() {
 
 async function saveAsNewFile() {
   // This function is the same as the original saveWatercolourDrawing but updates currentFile
-  console.log('saveAsNewFile called');
   try {
     // Get canvas as data URL
     const dataURL = canvas.toDataURL('image/png');
-    console.log('Canvas dataURL generated, length:', dataURL.length);
 
     // Check if we have access to the global storage and file system functions
     const storage = globalStorage;
     const addFileToFileSystem = globalAddFileToFileSystem;
 
     if (!storage) {
-      console.log('Global storage not available');
       alert('Cannot access storage. Please ensure the main OS is loaded.');
       return;
     }
 
-    console.log('Global storage available');
 
     // Store in IndexedDB using the existing storage system
     const timestamp = Date.now();
     const storageKey = `watercolour_drawing_${timestamp}`;
 
     // Save to IndexedDB
-    console.log('Saving to IndexedDB with key:', storageKey);
     await storage.setItem(storageKey, dataURL);
-    console.log('Saved to IndexedDB successfully');
 
     // Prompt for filename and save to file system
     const fileName = prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`);
     if (fileName) {
-      console.log('User entered filename:', fileName);
       // Ensure .png extension
       const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
 
       // Get the current folder path
       const currentPath = getCurrentFolderPath();
-      console.log('Current path:', currentPath);
 
       // Add file to file system
       if (addFileToFileSystem) {
-        console.log('Adding file to file system...');
         // Create a blob from the dataURL to simulate a file object
         const response = await fetch(dataURL);
         const blob = await response.blob();
         const file = new File([blob], finalFileName, { type: 'image/png' });
 
         const result = await addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
-        console.log('File system result:', result);
 
         // Update current file tracking
         currentFile = {
@@ -775,18 +746,15 @@ async function saveAsNewFile() {
 
         // Force refresh of views
         if (refreshExplorerViews) {
-          console.log('Refreshing explorer views...');
           refreshExplorerViews();
         }
 
         if (currentPath === 'C://Desktop' && renderDesktopIcons) {
-          console.log('Refreshing desktop icons...');
           renderDesktopIcons();
         }
 
         alert(`Drawing saved as "${finalFileName}" in ${currentPath}!`);
       } else {
-        console.log('addFileToFileSystem not available');
         alert('File system not available. Drawing saved to storage only.');
       }
     } else {
@@ -800,69 +768,56 @@ async function saveAsNewFile() {
 
 // Watercolour save and load functions
 async function saveWatercolourDrawing() {
-  console.log('saveWatercolourDrawing called');
   try {
     // Get canvas as data URL
     const dataURL = canvas.toDataURL('image/png');
-    console.log('Canvas dataURL generated, length:', dataURL.length);
 
     // Check if we have access to the parent window's storage
     const parentStorage = parent?.globalStorage || parent?.storage;
     const parentAddFileToFileSystem = parent?.globalAddFileToFileSystem || parent?.addFileToFileSystem;
 
     if (!parentStorage) {
-      console.log('Parent storage not available');
       alert('Cannot access storage. Please ensure the main OS is loaded.');
       return;
     }
 
-    console.log('Parent storage available');
 
     // Store in IndexedDB using the existing storage system
     const timestamp = Date.now();
     const storageKey = `watercolour_drawing_${timestamp}`;
 
     // Save to IndexedDB
-    console.log('Saving to IndexedDB with key:', storageKey);
     await parentStorage.setItem(storageKey, dataURL);
-    console.log('Saved to IndexedDB successfully');
 
     // Prompt for filename and save to file system
     const fileName = prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`);
     if (fileName) {
-      console.log('User entered filename:', fileName);
       // Ensure .png extension
       const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
 
       // Get the current folder path from the parent window
       const currentPath = getCurrentFolderPath();
-      console.log('Current path:', currentPath);
 
       // Add file to file system
       if (parentAddFileToFileSystem) {
-        console.log('Adding file to file system...');
         // Create a blob from the dataURL to simulate a file object
         const response = await fetch(dataURL);
         const blob = await response.blob();
         const file = new File([blob], finalFileName, { type: 'image/png' });
 
         const result = parentAddFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
-        console.log('File system result:', result);
 
         // Force refresh of views
         if (parent.refreshExplorerViews) {
-          console.log('Refreshing explorer views...');
           parent.refreshExplorerViews();
         }
 
         if (currentPath === 'C://Desktop' && parent.renderDesktopIcons) {
-          console.log('Refreshing desktop icons...');
           parent.renderDesktopIcons();
         }
 
         alert(`Drawing saved as "${finalFileName}" in ${currentPath}!`);
       } else {
-        console.log('addFileToFileSystem not available');
         alert('File system not available. Drawing saved to storage only.');
       }
     } else {
@@ -902,13 +857,9 @@ async function saveWatercolourDrawing() {
 }
 
 function loadImageOntoCanvas(imageData, fileInfo = null) {
-  console.log('=== loadImageOntoCanvas called ===');
-  console.log('imageData length:', imageData ? imageData.length : 'null');
-  console.log('fileInfo:', fileInfo);
 
   const img = new Image();
   img.onload = () => {
-    console.log('Image loaded successfully');
     const cssWidth = canvas.offsetWidth;
     const cssHeight = canvas.offsetHeight;
 
@@ -936,10 +887,8 @@ function loadImageOntoCanvas(imageData, fileInfo = null) {
     // Track the loaded file for Save functionality
     // When loading an image, we're creating a new drawing based on that image,
     // not opening an existing drawing file for editing
-    console.log('Image loaded as canvas background - this is a new drawing');
     currentFile = null; // Clear current file since this is a new drawing
     if (window.updateSaveButtonState) {
-      console.log('Calling updateSaveButtonState after loading base image');
       window.updateSaveButtonState();
     }
   };
@@ -981,7 +930,6 @@ async function saveWatercolourState() {
       redoStack: redoStack.slice(-10)
     };
     await storage.setItem('watercolour_state', state);
-    console.log('Watercolour state saved');
   } catch (error) {
     console.warn('Failed to save Watercolour state:', error);
     // Fallback to sync method if async fails
@@ -996,7 +944,6 @@ async function saveWatercolourState() {
         redoStack: redoStack.slice(-10)
       };
       storage.setItemSync('watercolour_state', state);
-      console.log('Watercolour state saved with fallback');
     } catch (fallbackError) {
       console.error('Failed to save Watercolour state with fallback:', fallbackError);
     }
@@ -1007,7 +954,6 @@ async function loadWatercolourState() {
   try {
     const savedState = await storage.getItem('watercolour_state');
     if (savedState) {
-      console.log('Loading Watercolour state');
       return savedState;
     }
   } catch (error) {
@@ -1016,7 +962,6 @@ async function loadWatercolourState() {
     try {
       const savedState = storage.getItemSync('watercolour_state');
       if (savedState) {
-        console.log('Loading Watercolour state with fallback');
         return savedState;
       }
     } catch (fallbackError) {
@@ -1029,13 +974,11 @@ async function loadWatercolourState() {
 async function clearWatercolourState() {
   try {
     await storage.removeItem('watercolour_state');
-    console.log('Watercolour state cleared');
   } catch (error) {
     console.warn('Failed to clear Watercolour state:', error);
     // Fallback to sync method if async fails
     try {
       storage.removeItemSync('watercolour_state');
-      console.log('Watercolour state cleared with fallback');
     } catch (fallbackError) {
       console.error('Failed to clear Watercolour state with fallback:', fallbackError);
     }
@@ -1095,7 +1038,6 @@ async function restoreWatercolourState() {
     img.onload = function() {
       ctx.clearRect(0, 0, cssWidth, cssHeight);
       ctx.drawImage(img, 0, 0, cssWidth, cssHeight);
-      console.log('Canvas content restored');
     };
     img.src = savedImage;
   } else {
@@ -1105,5 +1047,4 @@ async function restoreWatercolourState() {
     commitState();
   }
 
-  console.log('Watercolour state restored');
 }

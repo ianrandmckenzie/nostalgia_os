@@ -2,6 +2,17 @@ function toggleStartMenu() {
   const menu = document.getElementById('start-menu');
   menu.classList.toggle('hidden');
   toggleButtonActiveState('start-button');
+
+  // Initialize drag and drop when menu is opened
+  if (!menu.classList.contains('hidden')) {
+    setTimeout(() => {
+      if (typeof safeInitializeStartMenuDragDrop === 'function') {
+        safeInitializeStartMenuDragDrop();
+      } else if (typeof initializeStartMenuDragDrop === 'function') {
+        initializeStartMenuDragDrop();
+      }
+    }, 10);
+  }
 }
 
 function minimizeAllWindows() {
@@ -172,10 +183,10 @@ document.getElementById('mediaapp').addEventListener('click', () => {
   openApp('mediaplayer');
 });
 
-document.getElementById('mailapp').addEventListener('click', () => {
-  toggleStartMenu();
-  openApp('mailbox');
-});
+// document.getElementById('mailapp').addEventListener('click', () => {
+//   toggleStartMenu();
+//   openApp('mailbox');
+// });
 
 document.getElementById('rstrtcomp').addEventListener('click', () => {
   toggleStartMenu();

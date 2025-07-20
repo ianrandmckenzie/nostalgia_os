@@ -151,7 +151,6 @@ function updateDesktopSettings() {
   const image = document.getElementById('bgImageInput').value.trim();
   const clockSec = document.getElementById('clockSecondsInput').checked;
 
-  console.log('Updating desktop settings:', { color, image, clockSec });
 
   desktopSettings.bgColor = color;
   desktopSettings.bgImage = image;
@@ -159,7 +158,6 @@ function updateDesktopSettings() {
   applyDesktopSettings();
   saveState();
 
-  console.log('Desktop settings saved:', desktopSettings);
 }
 
 async function renderDesktopIcons() {
@@ -179,7 +177,6 @@ async function renderDesktopIcons() {
 
   // If file system is not initialized, initialize it with default state
   if (!fs || !fs.folders || !fs.folders['C://Desktop']) {
-    console.log('File system not initialized, initializing with default state...');
     // Call initializeAppState to set up the default file system
     if (typeof initializeAppState === 'function') {
       await initializeAppState();
@@ -188,10 +185,8 @@ async function renderDesktopIcons() {
       // Fallback: use the default fileSystemState from manage_data.js if available
       console.warn('initializeAppState not available, using default fileSystemState');
       if (typeof window.fileSystemState !== 'undefined') {
-        console.log('Using window.fileSystemState');
         fs = window.fileSystemState;
       } else if (typeof fileSystemState !== 'undefined') {
-        console.log('Using global fileSystemState');
         fs = fileSystemState;
       } else {
         console.error('No fileSystemState available, creating minimal fallback structure');
@@ -210,13 +205,11 @@ async function renderDesktopIcons() {
             "D://": {}
           }
         };
-        console.log('Created minimal fallback file system');
       }
       // Update the global file system state if possible
       if (typeof setFileSystemState === 'function') {
         try {
           setFileSystemState(fs);
-          console.log('Updated global file system state');
         } catch (error) {
           console.warn('Failed to update global file system state:', error);
         }
@@ -235,11 +228,9 @@ async function renderDesktopIcons() {
   const desktopItems = fs.folders['C://Desktop'] || {};
 
   if (!desktopItems) {
-    console.log('No desktop items found, creating empty desktop folder structure');
     fs.folders['C://Desktop'] = {};
   }
 
-  console.log('Desktop items found:', Object.keys(desktopItems).length);
 
   // Constants for grid layout
   const ICON_WIDTH = 96; // w-24 = 96px

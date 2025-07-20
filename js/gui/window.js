@@ -572,10 +572,6 @@ document.addEventListener('click', e => {
         'Your settings have successfully been saved!',
         'info'
       );
-    },
-    () => {
-      // Cancelled - do nothing
-      console.log('Settings changes cancelled by user');
     }
   );
 });

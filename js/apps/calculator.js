@@ -32,7 +32,6 @@ function launchCalculator() {
 
 // Separate function to initialize the Calculator UI (for restoration)
 async function initializeCalculatorUI(win) {
-  console.log('Initializing Calculator UI, window:', win);
 
   // Get the content area
   const content = win.querySelector('.p-2');
@@ -43,7 +42,6 @@ async function initializeCalculatorUI(win) {
 
   // Try to load saved calculator state
   let calculatorState = await loadCalculatorState();
-  console.log('Loaded calculator state:', calculatorState);
 
   // If no saved state, create default state
   if (!calculatorState) {

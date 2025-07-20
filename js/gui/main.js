@@ -69,16 +69,13 @@ function openFileExplorerForImageSelection(callback) {
     // Add instructions and selection UI
     setTimeout(() => {
       const explorerWindow = document.getElementById('explorer-image-select');
-      console.log('Setting up image selection mode for window:', explorerWindow);
 
       if (explorerWindow) {
         // Find the file-explorer-window div within the window and mark it for image selection mode
         const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
-        console.log('Found file-explorer-window div:', fileExplorerDiv);
 
         if (fileExplorerDiv) {
           fileExplorerDiv.setAttribute('data-image-selection-mode', 'true');
-          console.log('Set data-image-selection-mode on file-explorer-window div');
         } else {
           console.error('Could not find .file-explorer-window div!');
         }
@@ -120,7 +117,6 @@ function openFileExplorerForImageSelection(callback) {
             }
           });
 
-          console.log('Image selection mode enabled for explorer window');
         }
       } else {
         console.error('Explorer window not found!');

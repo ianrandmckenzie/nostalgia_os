@@ -18,7 +18,7 @@ function launchChess() {
     'chess',
     false,
     false,
-    { type: 'integer', width: 600, height: 650 },
+    { type: 'integer', width: 600, height: 690 },
     'App',
     null,
     'white'

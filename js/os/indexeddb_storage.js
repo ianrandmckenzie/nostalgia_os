@@ -59,7 +59,6 @@ class IndexedDBStorage {
           results.forEach(item => {
             this.cache.set(item.key, item.value);
           });
-          console.log(`Populated cache with ${results.length} items`);
           resolve();
         };
         request.onerror = () => {
@@ -279,7 +278,6 @@ const storage = {
 
 // Make storage available globally for iframe access immediately
 window.globalStorage = storage;
-console.log('Global storage made available for iframes');
 
 async function clearStorage() {
     // Clear sessionStorage (keeping this as it might still be used elsewhere)
@@ -292,7 +290,6 @@ async function clearStorage() {
         // Also clear the NostalgiaOS database completely
         const deleteRequest = indexedDB.deleteDatabase('NostalgiaOS');
         deleteRequest.onsuccess = () => {
-            console.log('IndexedDB database deleted successfully');
         };
         deleteRequest.onerror = (error) => {
             console.error('Error deleting IndexedDB database:', error);
@@ -308,9 +305,5 @@ async function clearStorage() {
     if (window.fileSystemState) {
         delete window.fileSystemState;
     }
-
-    console.log('All storage cleared');
 }
 
-// Show current sessionStorage contents for debugging
-console.log('Current sessionStorage keys:', Object.keys(sessionStorage));

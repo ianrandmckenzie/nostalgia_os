@@ -206,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   const editors = document.querySelectorAll('.letterpad_editor');
-  console.log(`Found ${editors.length} LetterPad editors to initialize`);
 
   for (const container of editors) {
     try {
@@ -247,7 +246,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 // This can be called during window restoration or other scenarios
 async function initializeAllLetterPadEditors() {
   const editors = document.querySelectorAll('.letterpad_editor:not([data-initialized="true"])');
-  console.log(`Found ${editors.length} uninitialized LetterPad editors`);
 
   for (const container of editors) {
     try {

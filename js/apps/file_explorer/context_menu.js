@@ -301,10 +301,8 @@ function editItemName(e, menuItem) {
       item.name = newName;
 
       // Refresh the UI to show the updated name
-      console.log('Refreshing UI after rename, contextPath:', contextPath);
       if (contextPath === "C://Desktop") {
         // For desktop, refresh desktop icons
-        console.log('Refreshing desktop icons');
         if (typeof renderDesktopIcons === 'function') {
           renderDesktopIcons();
         } else {
@@ -312,7 +310,6 @@ function editItemName(e, menuItem) {
         }
       } else {
         // For explorer windows, refresh all windows showing this path
-        console.log('Refreshing explorer windows for path:', contextPath);
         if (typeof refreshAllExplorerWindows === 'function') {
           refreshAllExplorerWindows(contextPath);
         } else {
@@ -328,7 +325,6 @@ function editItemName(e, menuItem) {
 
       // Force additional refresh after a short delay to ensure everything updates
       setTimeout(() => {
-        console.log('Additional delayed refresh for path:', contextPath);
         if (contextPath === "C://Desktop" && typeof renderDesktopIcons === 'function') {
           renderDesktopIcons();
         } else if (typeof refreshAllExplorerWindows === 'function') {
@@ -452,7 +448,6 @@ function deleteItem(e) {
 
     // If a music file was deleted from C://Media, refresh the media player playlist
     if (isMediaFile && isFromMediaFolder) {
-      console.log('🎵 DELETE: Media file deleted from C://Media, refreshing media player playlist');
       if (typeof window.refreshMediaPlayerPlaylist === 'function') {
         setTimeout(() => {
           window.refreshMediaPlayerPlaylist();
@@ -1072,16 +1067,13 @@ function makeField(labelText, control) {
 
 // Comprehensive function to refresh all explorer windows showing a specific path
 function refreshAllExplorerWindows(targetPath) {
-  console.log('Refreshing all explorer windows for path:', targetPath);
 
   // Find all explorer windows that are currently showing the target path
   const allExplorerWindows = document.querySelectorAll('.file-explorer-window');
-  console.log('Found explorer windows:', allExplorerWindows.length);
 
   let refreshedCount = 0;
   allExplorerWindows.forEach((explorerDiv, index) => {
     const currentPath = explorerDiv.getAttribute('data-current-path');
-    console.log(`Window ${index}: current path = "${currentPath}", target path = "${targetPath}"`);
 
     if (currentPath === targetPath) {
       try {
@@ -1097,7 +1089,6 @@ function refreshAllExplorerWindows(targetPath) {
           // Ensure the data-current-path is preserved
           explorerDiv.setAttribute('data-current-path', targetPath);
           refreshedCount++;
-          console.log(`Refreshed window ${index} successfully`);
         } else {
           console.warn(`Failed to get new explorer content for window ${index}`);
         }
@@ -1107,7 +1098,6 @@ function refreshAllExplorerWindows(targetPath) {
     }
   });
 
-  console.log(`Refreshed ${refreshedCount} explorer windows`);
 
   // Re-setup all event handlers for the refreshed windows
   setTimeout(() => {
@@ -1203,7 +1193,6 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
       destination[fileId].tempObjectURL = tempObjectURL;
       destination[fileId].file = fileObj; // Keep the file object temporarily
       setFileSystemState(fs);
-      console.log('🎵 BINARY: Created temporary object URL for immediate access:', tempObjectURL);
     }
 
     try {
@@ -1232,25 +1221,14 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
         destination[fileId].file = null; // Clear the file object after processing
 
         // Keep the tempObjectURL as backup until dataURL is confirmed working
-        console.log('🎵 BINARY: DataURL stored, keeping tempObjectURL as backup');
       }
 
       // Save updated file system state
       setFileSystemState(currentFS);
       await saveState();
 
-      console.log(`File (${fileSizeInMB.toFixed(2)}MB) stored successfully:`, fileName);
-      console.log('File metadata:', {
-        id: fileId,
-        name: fileName,
-        storageLocation: 'indexeddb',
-        isLargeFile: true,
-        actualSizeInMB: fileSizeInMB
-      });
-
       // If a media file was added to C://Media, refresh the media player playlist
       if (targetPath === 'C://Media' && ['mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
-        console.log('Media file added to C://Media via file upload, refreshing media player playlist');
         if (typeof window.refreshMediaPlayerPlaylist === 'function') {
           // Delay the refresh to ensure the file system state is fully updated
           setTimeout(() => {
@@ -1269,7 +1247,6 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
         destination[fileId].isLargeFile = true;
         destination[fileId].storageLocation = 'failed';
         // Keep tempObjectURL so the file is still accessible even if storage failed
-        console.log('🎵 BINARY: Storage failed but keeping tempObjectURL for access');
         setFileSystemState(currentFS);
       }
 

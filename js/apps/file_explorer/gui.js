@@ -130,7 +130,6 @@ function getExplorerWindowContent(currentPath = 'C://') {
         `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
       );
     } else {
-      console.log('🔍 EXPLORER: Rendering file:', item.name, 'ID:', item.id, 'Full item:', item);
       // Validate that the item has a proper name property
       const displayName = item.name || item.id || 'Unknown File';
       if (!item.name) {
@@ -182,77 +181,55 @@ function getExplorerWindowContent(currentPath = 'C://') {
 /* File-explorer interaction — single place, zero inline JS */
 // Add single-click handler for image selection mode (HIGH PRIORITY - placed first)
 document.addEventListener('click', e => {
-  console.log('Global click detected, target:', e.target);
 
   // First check if we're in image selection mode
   const explorerElem = e.target.closest('.file-explorer-window');
-  console.log('Explorer element found:', explorerElem);
 
   if (explorerElem) {
-    console.log('Explorer mode attribute:', explorerElem.getAttribute('data-image-selection-mode'));
   }
 
   if (explorerElem && explorerElem.getAttribute('data-image-selection-mode') === 'true') {
-    console.log('Click detected in image selection mode, target:', e.target);
 
     const li = e.target.closest('[data-open-file]');
-    console.log('Closest li element:', li);
 
     if (li) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation(); // Stop all other handlers
 
-      console.log('Single-click detected in image selection mode, li:', li);
-      console.log('Li dataset:', li.dataset);
 
       // Get the file info
       const currentPath = explorerElem.getAttribute('data-current-path');
-      console.log('Current path:', currentPath);
 
       const itemsObj = getItemsForPath(currentPath);
-      console.log('Items obj:', itemsObj);
 
       const file = Object.values(itemsObj).find(it => it.id === li.dataset.openFile);
-      console.log('File found:', file);
 
       // Check if it's an image file
       if (file && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
-        console.log('Valid image file selected:', file.name);
 
         // Clear previous selection
         const allFileItems = explorerElem.querySelectorAll('[data-open-file]');
-        console.log('Found file items to clear:', allFileItems.length);
         allFileItems.forEach(item => {
           item.classList.remove('bg-blue-100', 'border-blue-300');
           item.style.backgroundColor = ''; // Clear inline styles
           item.style.border = '';
-          console.log('Cleared selection from:', item);
         });
 
         // Highlight selected item with both classes and inline styles for visibility
-        console.log('Adding highlight classes to:', li);
         li.classList.add('bg-blue-100', 'border-blue-300');
         li.style.backgroundColor = '#dbeafe'; // Light blue background
         li.style.border = '2px solid #93c5fd'; // Blue border
         li.style.borderRadius = '4px';
-        console.log('Li classes after adding:', li.className);
-        console.log('Li styles after adding:', li.style.cssText);
 
         // Update selection info
         const selectedNameSpan = document.getElementById('selected-image-name');
         const openButton = document.getElementById('open-selected-image');
 
-        console.log('UI elements found:', {
-          selectedNameSpan: !!selectedNameSpan,
-          openButton: !!openButton
-        });
-
         if (selectedNameSpan && openButton) {
           selectedNameSpan.textContent = `Selected: ${file.name}`;
           openButton.disabled = false;
           window.watercolourSelectedFile = file;
-          console.log('Selection UI updated successfully');
         } else {
           console.error('Selection UI elements not found', {
             selectedNameSpan,
@@ -260,10 +237,6 @@ document.addEventListener('click', e => {
           });
         }
       } else {
-        console.log('Not an image file or file not found', {
-          file,
-          contentType: file?.content_type
-        });
         // Show message for non-image files
         const selectedNameSpan = document.getElementById('selected-image-name');
         if (selectedNameSpan) {
@@ -272,7 +245,6 @@ document.addEventListener('click', e => {
       }
       return; // Exit early
     } else {
-      console.log('No [data-open-file] element found for click target');
     }
   }
 }, true); // Use capture phase to ensure this runs first
@@ -286,7 +258,6 @@ document.addEventListener('dblclick', e => {
   if (explorerElem && explorerElem.getAttribute('data-image-selection-mode') === 'true') {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Double-click disabled in image selection mode');
     return false;
   }
 
@@ -418,13 +389,6 @@ function openFile(incoming_file, e) {
       content = file.content || file.contents || `<p style="padding:10px;">Empty HTML file.</p>`;
     } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(file.content_type)) {
       // Handle UGC image files
-      console.log('Opening image file:', file.name, 'Properties:', {
-        dataURL: !!file.dataURL,
-        isLargeFile: file.isLargeFile,
-        storageLocation: file.storageLocation,
-        fileObj: !!file.file,
-        id: file.id
-      });
 
       if (file.dataURL) {
         content = `<img src="${file.dataURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
@@ -436,9 +400,7 @@ function openFile(incoming_file, e) {
         // Load the image data from IndexedDB after window creation
         setTimeout(async () => {
           try {
-            console.log('Attempting to load image data from IndexedDB for file:', file.id);
             const imageData = await storage.getItem(`file_data_${file.id}`);
-            console.log('Retrieved image data:', !!imageData, 'Length:', imageData?.length);
             if (imageData) {
               const img = `<img src="${imageData}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
               const win = document.getElementById(file.id);
@@ -468,36 +430,11 @@ function openFile(incoming_file, e) {
         const imageURL = URL.createObjectURL(file.file);
         content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
       } else {
-        console.error('Image file properties insufficient for display:', {
-          name: file.name,
-          id: file.id,
-          dataURL: !!file.dataURL,
-          isLargeFile: file.isLargeFile,
-          storageLocation: file.storageLocation,
-          fileObj: !!file.file,
-          contentType: file.content_type
-        });
         content = `<p style="padding:10px;">Image file not found or invalid.<br>Debug: isLargeFile=${file.isLargeFile}, storage=${file.storageLocation}</p>`;
       }
     } else if (['mp3', 'wav', 'ogg'].includes(file.content_type)) {
-      // Handle UGC audio files
-      console.log('🔍 AUDIO: Opening audio file:', {
-        name: file.name,
-        id: file.id,
-        dataURL: !!file.dataURL,
-        tempObjectURL: file.tempObjectURL ? 'EXISTS' : 'MISSING',
-        tempObjectURLValue: file.tempObjectURL,
-        isLargeFile: file.isLargeFile,
-        storageLocation: file.storageLocation,
-        fileObj: !!file.file,
-        isDefault: file.isDefault,
-        isSystemFile: file.isSystemFile,
-        path: file.path,
-        contentType: file.content_type
-      });
 
       if (file.dataURL) {
-        console.log('🔍 AUDIO: Using dataURL (permanent storage)');
         content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
               <source src="${file.dataURL}" type="audio/mpeg">
               Your browser does not support the audio element.
@@ -543,10 +480,7 @@ function openFile(incoming_file, e) {
             </audio>`;
       } else if (file.tempObjectURL) {
         // Handle files with temporary object URLs (uploaded files being processed)
-        console.log('🔍 AUDIO: Using tempObjectURL:', file.tempObjectURL);
         content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;"
-                     onloadstart="console.log('🔍 AUDIO: Audio element started loading')"
-                     oncanplay="console.log('🔍 AUDIO: Audio can start playing')"
                      onerror="console.error('🔍 AUDIO: Audio element error:', event.target.error)">
               <source src="${file.tempObjectURL}" type="audio/mpeg">
               Your browser does not support the audio element.
@@ -559,16 +493,6 @@ function openFile(incoming_file, e) {
               Your browser does not support the audio element.
             </audio>`;
       } else {
-        console.error('Audio file missing required properties:', {
-          name: file.name,
-          id: file.id,
-          dataURL: !!file.dataURL,
-          tempObjectURL: file.tempObjectURL,
-          isLargeFile: file.isLargeFile,
-          storageLocation: file.storageLocation,
-          fileObj: !!file.file,
-          contentType: file.content_type
-        });
         content = `<p style="padding:10px;">Audio file not found or invalid.<br>Debug: Missing required properties for audio playback.</p>`;
       }
     } else if (['mp4', 'webm', 'avi', 'mov'].includes(file.content_type)) {
@@ -580,10 +504,7 @@ function openFile(incoming_file, e) {
           </video>`;
       } else if (file.tempObjectURL) {
         // Handle files with temporary object URLs (uploaded files being processed)
-        console.log('🔍 VIDEO: Using tempObjectURL:', file.tempObjectURL);
         content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;"
-                     onloadstart="console.log('🔍 VIDEO: Video element started loading')"
-                     oncanplay="console.log('🔍 VIDEO: Video can start playing')"
                      onerror="console.error('🔍 VIDEO: Video element error:', event.target.error)">
             <source src="${file.tempObjectURL}" type="video/mp4">
             Your browser does not support the video tag.
@@ -885,7 +806,6 @@ async function saveFileExplorerState() {
           timestamp: Date.now()
         };
         await storage.setItem('fileExplorerState', state);
-        console.log('File explorer state saved:', state);
       }
     }
   } catch (error) {
@@ -902,7 +822,6 @@ async function saveFileExplorerState() {
             timestamp: Date.now()
           };
           storage.setItemSync('fileExplorerState', state);
-          console.log('File explorer state saved with fallback:', state);
         }
       }
     } catch (fallbackError) {
@@ -916,7 +835,6 @@ async function loadFileExplorerState() {
   try {
     const state = await storage.getItem('fileExplorerState');
     if (state) {
-      console.log('File explorer state loaded:', state);
       return state;
     }
   } catch (error) {
@@ -925,7 +843,6 @@ async function loadFileExplorerState() {
     try {
       const state = storage.getItemSync('fileExplorerState');
       if (state) {
-        console.log('File explorer state loaded with fallback:', state);
         return state;
       }
     } catch (fallbackError) {
@@ -942,13 +859,11 @@ async function loadFileExplorerState() {
 async function clearFileExplorerState() {
   try {
     await storage.removeItem('fileExplorerState');
-    console.log('File explorer state cleared');
   } catch (error) {
     console.warn('Failed to clear file explorer state:', error);
     // Fallback to sync method if async fails
     try {
       storage.removeItemSync('fileExplorerState');
-      console.log('File explorer state cleared with fallback');
     } catch (fallbackError) {
       console.error('Failed to clear file explorer state with fallback:', fallbackError);
     }
@@ -957,7 +872,6 @@ async function clearFileExplorerState() {
 
 // Initialize file explorer UI (for restoration)
 function initializeFileExplorerUI(win) {
-  console.log('Initializing File Explorer UI, window:', win);
 
   // Restore the saved state
   setTimeout(async () => {
@@ -971,7 +885,6 @@ async function restoreFileExplorerState() {
   const explorerWindow = document.getElementById('explorer-window');
 
   if (explorerWindow && state.currentPath) {
-    console.log('Restoring file explorer to path:', state.currentPath);
 
     // Navigate to the saved path
     const newContent = getExplorerWindowContent(state.currentPath);
@@ -980,7 +893,6 @@ async function restoreFileExplorerState() {
       fileExplorerDiv.outerHTML = newContent;
       // Set up event handlers again
       setTimeout(setupFolderDrop, 100);
-      console.log('File explorer state restored to:', state.currentPath);
     }
   }
 }

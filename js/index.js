@@ -37,9 +37,16 @@ let desktopSettings = {
   bgColor: "#20b1b1", // Default color now set to #20b1b1
   bgImage: ""
 };
+// Global state for Start menu item order - will be initialized from storage
+let startMenuOrder;
 
 /* Global mapping of file IDs to folder paths */
 let fileFolderMapping = {};
+
+// Make variables globally available - but don't set startMenuOrder until loaded
+if (typeof window !== 'undefined') {
+  // Don't set window.startMenuOrder here - wait for storage load
+}
 
 document.getElementById('desktop').addEventListener('click', function (e) {
   if (!e.target.closest('.draggable-icon')) {
@@ -81,5 +88,18 @@ window.addEventListener('load', async function () {
   await restoreWindows();
   await renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
+
+  // Restore Start menu order after a brief delay to ensure DOM is ready
+  setTimeout(() => {
+    if (typeof restoreStartMenuOrder === 'function') {
+      restoreStartMenuOrder();
+    } else {
+      console.error('restoreStartMenuOrder function not available');
+      // Fallback: at least initialize drag and drop
+      if (typeof safeInitializeStartMenuDragDrop === 'function') {
+        safeInitializeStartMenuDragDrop();
+      }
+    }
+  }, 200);
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });

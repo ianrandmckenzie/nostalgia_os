@@ -19,7 +19,6 @@ async function launchWatercolour() {
 
 // Separate function to initialize the Watercolour UI (for restoration)
 async function initializeWatercolourUI(win) {
-  console.log('Initializing Watercolour UI, window:', win);
 
   // Load the watercolour logic immediately for restoration
   await initializeWatercolour();
@@ -180,7 +179,6 @@ async function initializeWatercolour() {
       }
     }, 50);
 
-    console.log('Watercolour initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Watercolour:', error);
   }

@@ -64,12 +64,21 @@ function openFileExplorerForImageSelection(callback) {
   // Open file explorer
   if (typeof getExplorerWindowContent === 'function' && typeof createWindow === 'function') {
     const explorerContent = getExplorerWindowContent('C://Documents');
-    createWindow('Select Image - File Explorer', explorerContent, true, 'explorer-image-select', false, false, { type: 'integer', width: 600, height: 550 }, 'file-explorer');
+    const explorerWindow = createWindow('Select Image - File Explorer', explorerContent, true, 'explorer-image-select', false, false, { type: 'integer', width: 600, height: 550 }, 'file-explorer');
+
+    // Ensure this window has the highest z-index (but only by 1)
+    setTimeout(() => {
+      const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
+      if (elementsWithZIndex.length > 0) {
+        const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
+          getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
+        );
+        explorerWindow.style.zIndex = `${parseInt(getComputedStyle(highestZIndex).zIndex) + 1}`;
+      }
+    }, 50);
 
     // Add instructions and selection UI
     setTimeout(() => {
-      const explorerWindow = document.getElementById('explorer-image-select');
-
       if (explorerWindow) {
         // Find the file-explorer-window div within the window and mark it for image selection mode
         const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
@@ -90,32 +99,62 @@ function openFileExplorerForImageSelection(callback) {
 
           // Add selection UI at the bottom
           const selectionUI = document.createElement('div');
-          selectionUI.className = 'mt-4 p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between';
+          selectionUI.className = '-mt-2 p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between';
           selectionUI.id = 'watercolour-selection-ui';
+
+          // Create button container
+          const buttonContainer = document.createElement('div');
+          buttonContainer.className = 'flex gap-2';
+
+          // Create Win95 buttons
+          const cancelBtn = makeWin95Button('Cancel');
+          cancelBtn.id = 'cancel-selection';
+
+          const openBtn = makeWin95Button('Open');
+          openBtn.id = 'open-selected-image';
+          openBtn.disabled = true;
+
+          // Add disabled styling for the open button
+          openBtn.style.opacity = '0.5';
+          openBtn.style.cursor = 'not-allowed';
+
+          buttonContainer.appendChild(cancelBtn);
+          buttonContainer.appendChild(openBtn);
+
           selectionUI.innerHTML = `
             <div>
               <span id="selected-image-name" class="text-sm text-gray-600">No image selected</span>
             </div>
-            <div class="flex gap-2">
-              <button id="cancel-selection" class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100">Cancel</button>
-              <button id="open-selected-image" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>Open Selected Image</button>
-            </div>
           `;
+          selectionUI.appendChild(buttonContainer);
           contentDiv.appendChild(selectionUI);
 
           // Add event listeners for the new buttons
-          document.getElementById('cancel-selection').addEventListener('click', () => {
+          cancelBtn.addEventListener('click', () => {
             window.watercolourImageSelectionCallback = null;
             window.watercolourSelectedFile = null;
             closeWindow('explorer-image-select');
           });
 
-          document.getElementById('open-selected-image').addEventListener('click', () => {
+          openBtn.addEventListener('click', () => {
             const selectedFile = window.watercolourSelectedFile;
-            if (selectedFile && window.watercolourImageSelectionCallback) {
+            if (selectedFile && window.watercolourImageSelectionCallback && !openBtn.disabled) {
               handleWatercolourImageSelection(selectedFile);
             }
           });
+
+          // Add a global function to enable/disable the open button (for file explorer GUI to use)
+          window.updateWatercolourImageSelectionButton = function(enabled) {
+            if (enabled) {
+              openBtn.disabled = false;
+              openBtn.style.opacity = '1';
+              openBtn.style.cursor = 'pointer';
+            } else {
+              openBtn.disabled = true;
+              openBtn.style.opacity = '0.5';
+              openBtn.style.cursor = 'not-allowed';
+            }
+          };
 
         }
       } else {

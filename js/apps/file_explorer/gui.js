@@ -224,16 +224,24 @@ document.addEventListener('click', e => {
 
         // Update selection info
         const selectedNameSpan = document.getElementById('selected-image-name');
-        const openButton = document.getElementById('open-selected-image');
 
-        if (selectedNameSpan && openButton) {
+        if (selectedNameSpan) {
           selectedNameSpan.textContent = `Selected: ${file.name}`;
-          openButton.disabled = false;
           window.watercolourSelectedFile = file;
+
+          // Use the global function to enable the button if it exists
+          if (typeof window.updateWatercolourImageSelectionButton === 'function') {
+            window.updateWatercolourImageSelectionButton(true);
+          } else {
+            // Fallback to direct button manipulation
+            const openButton = document.getElementById('open-selected-image');
+            if (openButton) {
+              openButton.disabled = false;
+            }
+          }
         } else {
           console.error('Selection UI elements not found', {
-            selectedNameSpan,
-            openButton
+            selectedNameSpan
           });
         }
       } else {
@@ -241,6 +249,17 @@ document.addEventListener('click', e => {
         const selectedNameSpan = document.getElementById('selected-image-name');
         if (selectedNameSpan) {
           selectedNameSpan.textContent = 'Please select an image file';
+
+          // Use the global function to disable the button if it exists
+          if (typeof window.updateWatercolourImageSelectionButton === 'function') {
+            window.updateWatercolourImageSelectionButton(false);
+          } else {
+            // Fallback to direct button manipulation
+            const openButton = document.getElementById('open-selected-image');
+            if (openButton) {
+              openButton.disabled = true;
+            }
+          }
         }
       }
       return; // Exit early

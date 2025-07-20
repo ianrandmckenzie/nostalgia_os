@@ -146,7 +146,7 @@ function showContextMenu(e, target, fromFullPath) {
 
     const newFileItem = addItem('New File', false, null, true);
     addSubmenu(newFileItem, [
-      { text: 'LetterPad', disabled: false, onclick: ev => createNewLetterpad(ev, fromFullPath) },
+      { text: 'LetterPad', disabled: false, onclick: async ev => await createNewLetterpad(ev, fromFullPath) },
       { text: 'Image', disabled: false, onclick: ev => createNewImage(ev, fromFullPath) },
       { text: 'Audio', disabled: false, onclick: ev => createNewAudio(ev, fromFullPath) },
       { text: 'Video', disabled: false, onclick: ev => createNewVideo(ev, fromFullPath) }
@@ -415,7 +415,7 @@ function deleteItem(e) {
   /* ── handlers ──────────────────────────────────────── */
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
-  deleteBtn.addEventListener('click', () => {
+  deleteBtn.addEventListener('click', async () => {
     // Get the file object before deletion to check if it's a music file
     const deletedFile = folderContents[fileId];
     const isMediaFile = deletedFile && deletedFile.content_type && ['mp3', 'wav', 'ogg', 'audio'].includes(deletedFile.content_type);
@@ -432,6 +432,9 @@ function deleteItem(e) {
     // remove file
     delete folderContents[fileId];
 
+    // Save state first, then update UI
+    await setFileSystemState(fs);
+
     // refresh explorer content
     const explorerWindow = document.getElementById('explorer-window');
     if (explorerWindow) {
@@ -439,10 +442,6 @@ function deleteItem(e) {
         getExplorerWindowContent(contextPath);
       setupFolderDrop();
     }
-    setFileSystemState(fs);
-    saveState().catch(error => {
-      console.error('Failed to save state after deletion:', error);
-    });
     refreshExplorerViews();
     renderDesktopIcons();
 
@@ -497,7 +496,7 @@ function createNewFolder(e, fromFullPath) {
 
   cancelBtn.addEventListener('click', () => closeWindow(winId));
 
-  form.addEventListener('submit', function(ev) {
+  form.addEventListener('submit', async function(ev) {
     ev.preventDefault();
     let folderName = form.folderName.value.trim();
     if (!folderName) folderName = 'Untitled';
@@ -557,8 +556,9 @@ function createNewFolder(e, fromFullPath) {
     fs.folders[newFolderPath] = {};
 
     // Save state first, then refresh UI
-    setFileSystemState(fs);
-    saveState().then(() => {
+    await setFileSystemState(fs);
+    try {
+      await saveState();
       // Refresh the UI to show the new folder after state is saved
       if (fromFullPath === 'C://Desktop') {
         // For desktop, refresh desktop icons
@@ -571,9 +571,9 @@ function createNewFolder(e, fromFullPath) {
           refreshAllExplorerWindows(parentPath);
         }
       }
-    }).catch(error => {
+    } catch (error) {
       console.error('Failed to save state after creating folder:', error);
-    });
+    }
     // Note: refreshExplorerViews() is broken, so we handle refresh above
 
     closeWindow(winId);
@@ -732,7 +732,7 @@ function createNewShortcut(e, fromFullPath) {
     setTimeout(() => closeWindow(winId), 100);
   });
 
-  form.addEventListener('submit', ev => {
+  form.addEventListener('submit', async ev => {
     ev.preventDefault();
     toggleButtonActiveState('submit-shortcut-button', 'Submitting...');
     setTimeout(() => closeWindow(winId), 100);
@@ -760,7 +760,7 @@ function createNewShortcut(e, fromFullPath) {
     };
 
     /* insert into filesystem using unified helper */
-    if (!addItemToFileSystem(newShortcut, fromFullPath)) {
+    if (!(await addItemToFileSystem(newShortcut, fromFullPath))) {
       return; // Error already shown by helper
     }
 
@@ -780,9 +780,11 @@ function createNewShortcut(e, fromFullPath) {
     }
 
     setupFolderDrop();
-    saveState().catch(error => {
+    try {
+      await saveState();
+    } catch (error) {
       console.error('Failed to save state after creating shortcut:', error);
-    });
+    }
     // Note: refreshExplorerViews() is broken, so we handle refresh above
   });
 }
@@ -790,7 +792,7 @@ function createNewShortcut(e, fromFullPath) {
 /* =====================
    Create a new LetterPad file
 ====================== */
-function createNewLetterpad(e, fromFullPath, onCreated = null) {
+async function createNewLetterpad(e, fromFullPath, onCreated = null) {
   if (e) e.stopPropagation();
   hideContextMenu();
 
@@ -812,14 +814,16 @@ function createNewLetterpad(e, fromFullPath, onCreated = null) {
   };
 
   // Insert into filesystem using the unified helper function
-  if (!addItemToFileSystem(newFile, parentPath)) {
+  if (!(await addItemToFileSystem(newFile, parentPath))) {
     return; // Error already shown by helper
   }
 
   // Save filesystem state
-  saveState().catch(error => {
+  try {
+    await saveState();
+  } catch (error) {
     console.error('Failed to save state after creating LetterPad:', error);
-  });
+  }
 
   // Refresh views to show the new file
   if (fromFullPath === 'C://Desktop') {
@@ -1106,7 +1110,7 @@ window.refreshAllExplorerWindows = refreshAllExplorerWindows;
 
    Enhanced version that can handle both simple files and complex file uploads.
 ====================== */
-function addItemToFileSystem(item, targetPath) {
+async function addItemToFileSystem(item, targetPath) {
   const fs = getFileSystemStateSync();
 
   // Safety check to ensure file system state is properly initialized
@@ -1129,7 +1133,7 @@ function addItemToFileSystem(item, targetPath) {
   destination[item.id] = item;
 
   // Save the file system state
-  setFileSystemState(fs);
+  await setFileSystemState(fs);
 
   return true;
 }

@@ -496,7 +496,7 @@ async function createDesktopShortcut(itemData) {
     fs.folders['C://Desktop'][shortcutId] = shortcutItem;
 
     // Save the updated file system
-    setFileSystemState(fs);
+    await setFileSystemState(fs);
     await saveState();
 
     // Refresh desktop icons

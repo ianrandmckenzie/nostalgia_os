@@ -279,8 +279,8 @@ async function renderDesktopIcons() {
       iconElem.addEventListener('dblclick', () => openApp(item.id));
       iconElem.addEventListener('mobiledbltap', () => openApp(item.id));
     } else if (item.type === 'folder') {
-      iconElem.addEventListener('dblclick', () => openExplorer(item.id));
-      iconElem.addEventListener('mobiledbltap', () => openExplorer(item.id));
+      iconElem.addEventListener('dblclick', () => openExplorerInNewWindow(item.id));
+      iconElem.addEventListener('mobiledbltap', () => openExplorerInNewWindow(item.id));
     } else if (item.type === 'shortcut') {
       iconElem.dataset.url = item.url;
       iconSrc = item.icon_url;

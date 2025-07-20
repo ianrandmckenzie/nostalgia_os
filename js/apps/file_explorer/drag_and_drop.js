@@ -195,6 +195,56 @@ async function moveItemToFolder(itemId, folderId) {
 }
 
 /*
+  Moves an item (file or folder) to a specific explorer path.
+  This is used when dragging from desktop to explorer or between explorer windows.
+*/
+async function moveItemToExplorerPath(itemId, targetPath) {
+  let fs = getFileSystemStateSync();
+
+  // Find the dragged item and its parent.
+  const result = findItemAndParentById(itemId, fs);
+  if (!result) {
+    console.error("Item not found:", itemId);
+    return;
+  }
+  const { item, parent } = result;
+
+  // Check if item is moving from desktop for cleanup
+  const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
+
+  // Remove the item from its current parent's contents.
+  delete parent[itemId];
+
+  // Clean up desktop icon position if moving from desktop
+  if (isMovingFromDesktop) {
+    const iconId = 'icon-' + itemId;
+    if (typeof desktopIconsState !== 'undefined' && desktopIconsState[iconId]) {
+      delete desktopIconsState[iconId];
+    }
+  }
+
+  // Ensure target path exists in the file system structure
+  if (!fs.folders[targetPath]) {
+    fs.folders[targetPath] = {};
+  }
+
+  // Add item to target path
+  fs.folders[targetPath][itemId] = item;
+
+  // Update the moved item's fullPath
+  item.fullPath = targetPath + "/" + item.name;
+
+  await setFileSystemState(fs);
+  saveState();
+  refreshExplorerViews();
+
+  // If moving from or to desktop, refresh desktop icons
+  if (targetPath.includes('Desktop') || isMovingFromDesktop) {
+    renderDesktopIcons();
+  }
+}
+
+/*
   After a reordering drag-and-drop, update the underlying file system's order
   for the current folder (as rendered in the explorer window).
 */

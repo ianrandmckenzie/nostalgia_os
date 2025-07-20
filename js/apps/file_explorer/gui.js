@@ -1,8 +1,9 @@
 /* =====================
    openExplorer
-   Now accepts a folderId. It finds the folder’s fullPath and refreshes the explorer.
+   Now accepts a folderId. It finds the folder's fullPath and refreshes the explorer.
+   Updated to support multiple File Explorer windows with optional forceNewWindow parameter.
 ====================== */
-function openExplorer(folderIdOrPath) {
+function openExplorer(folderIdOrPath, forceNewWindow = false) {
   let fullPath;
 
   // Check if it's already a full path (starts with drive letter and contains ://)
@@ -18,33 +19,83 @@ function openExplorer(folderIdOrPath) {
     console.error("Folder not found for id/path:", folderIdOrPath);
     return;
   }
-  let explorerWindow = document.getElementById('explorer-window');
+
   const newContent = getExplorerWindowContent(fullPath);
-  if (explorerWindow) {
-    explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
-    explorerWindow.querySelector('.file-explorer-window').setAttribute('data-current-path', fullPath);
-    setTimeout(setupFolderDrop, 100);
-    // Save state after navigation
-    setTimeout(async () => {
-      await saveFileExplorerState();
-    }, 150);
-  } else {
-    explorerWindow = createWindow(
-      fullPath,
-      newContent,
-      false,
-      'explorer-window',
-      false,
-      false,
-      { type: 'integer', width: 600, height: 400 },
-      "Explorer"
-    );
-    // Save state after initial creation
-    setTimeout(async () => {
-      await saveFileExplorerState();
-    }, 150);
+
+  // If forceNewWindow is false, try to reuse existing explorer window
+  if (!forceNewWindow) {
+    let explorerWindow = document.getElementById('explorer-window');
+    if (explorerWindow) {
+      explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
+      explorerWindow.querySelector('.file-explorer-window').setAttribute('data-current-path', fullPath);
+      setTimeout(setupFolderDrop, 100);
+      // Save state after navigation
+      setTimeout(async () => {
+        await saveFileExplorerState();
+      }, 150);
+      return explorerWindow;
+    }
   }
+
+  // Create new window (either forced or no existing window found)
+  const windowId = forceNewWindow ? `explorer-window-${Date.now()}` : 'explorer-window';
+  const explorerWindow = createWindow(
+    fullPath,
+    newContent,
+    false,
+    windowId,
+    false,
+    false,
+    { type: 'integer', width: 600, height: 400 },
+    "Explorer"
+  );
+
+  // Save state after creation
+  setTimeout(async () => {
+    await saveFileExplorerState();
+  }, 150);
+
+  return explorerWindow;
 }
+
+/* =====================
+   openExplorerInNewWindow
+   Always opens a folder in a new File Explorer window with debouncing
+   to prevent multiple windows from opening on rapid double-clicks
+====================== */
+function openExplorerInNewWindow(folderIdOrPath) {
+  // Debounce mechanism to prevent multiple windows opening rapidly
+  const debounceKey = `openExplorer_${folderIdOrPath}`;
+  const now = Date.now();
+
+  // Check if we've recently opened this folder (within last 500ms)
+  if (window.explorerDebounce && window.explorerDebounce[debounceKey]) {
+    const lastCall = window.explorerDebounce[debounceKey];
+    if (now - lastCall < 500) {
+      return; // Ignore this call
+    }
+  }
+
+  // Initialize debounce tracking if needed
+  if (!window.explorerDebounce) {
+    window.explorerDebounce = {};
+  }
+
+  // Record this call
+  window.explorerDebounce[debounceKey] = now;
+
+  // Clean up old entries to prevent memory leaks
+  setTimeout(() => {
+    if (window.explorerDebounce && window.explorerDebounce[debounceKey] === now) {
+      delete window.explorerDebounce[debounceKey];
+    }
+  }, 1000);
+
+  return openExplorer(folderIdOrPath, true);
+}
+
+// Make function globally available
+window.openExplorerInNewWindow = openExplorerInNewWindow;
 
 // Todo: this shit dont work!
 function refreshExplorerViews() {

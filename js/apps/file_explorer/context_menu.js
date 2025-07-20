@@ -136,6 +136,26 @@ function showContextMenu(e, target, fromFullPath) {
     target.classList.add('right-click-target');
     const isVendor = target.getAttribute('data-is-vendor-application') === 'true';
     const isCompostBin = target.getAttribute('data-item-id') === 'compostbin';
+    const itemId = target.getAttribute('data-item-id');
+
+    // Check if the target is a folder
+    let isFolder = false;
+    if (itemId && !isCompostBin) {
+      const fs = getFileSystemStateSync();
+      if (fs && fs.folders) {
+        // Check in the current path context
+        const explorerElem = target.closest('.file-explorer-window');
+        let contextPath = fromFullPath;
+        if (explorerElem) {
+          contextPath = explorerElem.getAttribute('data-current-path');
+        }
+
+        const folderContents = fs.folders[contextPath];
+        if (folderContents && folderContents[itemId]) {
+          isFolder = folderContents[itemId].type === 'folder';
+        }
+      }
+    }
 
     if (isCompostBin) {
       // Special case for Compost Bin - only show "Empty Compost Bin" option
@@ -147,6 +167,22 @@ function showContextMenu(e, target, fromFullPath) {
         }
       });
     } else {
+      // Add "Open in new window" option for folders
+      if (isFolder) {
+        addItem('Open in new window', false, ev => {
+          ev.stopPropagation();
+          hideContextMenu();
+          const targetElem = document.querySelector('.right-click-target');
+          if (targetElem) {
+            const folderId = targetElem.getAttribute('data-item-id');
+            if (folderId) {
+              openExplorerInNewWindow(folderId);
+            }
+          }
+          targetElem.classList.remove('right-click-target');
+        });
+      }
+
       addItem('Edit Name',  isVendor, ev => editItemName(ev));
       addItem('Delete',     isVendor, ev => deleteItem(ev));
       addItem('New Folder', true);

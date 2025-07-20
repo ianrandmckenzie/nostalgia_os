@@ -332,7 +332,30 @@ document.addEventListener('dblclick', e => {
   }
 
   if (li.dataset.openFolder) {
-    openExplorer(li.dataset.openFolder);
+    // Check if we're within a file explorer window
+    if (explorerElem) {
+      // Navigate within the current window instead of opening a new one or using the main window
+      const folderId = li.dataset.openFolder;
+      let targetPath;
+
+      // Check if it's already a full path (starts with drive letter and contains ://)
+      if (/^[A-Z]:\/\//.test(folderId)) {
+        targetPath = folderId;
+      } else {
+        // It's a folder ID, look up the full path
+        targetPath = findFolderFullPathById(folderId);
+      }
+
+      if (targetPath) {
+        const newContent = getExplorerWindowContent(targetPath);
+        explorerElem.outerHTML = newContent;
+        // Re-setup drag and drop for the updated window
+        setTimeout(setupFolderDrop, 100);
+      }
+    } else {
+      // Fallback to original behavior if not within an explorer window
+      openExplorer(li.dataset.openFolder);
+    }
   } else if (li.dataset.openFile) {
     // Normal file opening
     openFile(li.dataset.openFile, e);
@@ -343,7 +366,24 @@ document.addEventListener('dblclick', e => {
 
 document.addEventListener('click', e => {
   const drive = e.target.closest('[data-open-drive]');
-  if (drive) openExplorer(drive.dataset.openDrive);
+  if (drive) {
+    // Find the file explorer window that contains this drive button
+    const explorerElem = drive.closest('.file-explorer-window');
+    if (explorerElem) {
+      // Navigate within the current window instead of opening a new one or using the main window
+      const drivePath = drive.dataset.openDrive;
+      const newContent = getExplorerWindowContent(drivePath);
+
+      // Update the current explorer window's content
+      explorerElem.outerHTML = newContent;
+
+      // Re-setup drag and drop for the updated window
+      setTimeout(setupFolderDrop, 100);
+    } else {
+      // Fallback to the original behavior if not within an explorer window
+      openExplorer(drive.dataset.openDrive);
+    }
+  }
 });
 
 
@@ -352,7 +392,33 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-path]');
   if (el) {
     e.stopPropagation();
-    openExplorer(el.dataset.path);
+
+    // Find the file explorer window that contains this breadcrumb
+    const explorerElem = el.closest('.file-explorer-window');
+    if (explorerElem) {
+      // Navigate within the current window instead of opening a new one or using the main window
+      let targetPath = el.dataset.path;
+
+      // Check if it's a folder ID that needs to be converted to a full path
+      if (targetPath && !(/^[A-Z]:\/\//.test(targetPath))) {
+        // It's likely a folder ID, convert it to full path
+        const fullPath = findFolderFullPathById(targetPath);
+        if (fullPath) {
+          targetPath = fullPath;
+        }
+      }
+
+      const newContent = getExplorerWindowContent(targetPath);
+
+      // Update the current explorer window's content
+      explorerElem.outerHTML = newContent;
+
+      // Re-setup drag and drop for the updated window
+      setTimeout(setupFolderDrop, 100);
+    } else {
+      // Fallback to the original behavior if not within an explorer window
+      openExplorer(el.dataset.path);
+    }
   }
 });
 

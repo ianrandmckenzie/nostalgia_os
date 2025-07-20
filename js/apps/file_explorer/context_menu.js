@@ -373,19 +373,19 @@ function deleteItem(e) {
     return;
   }
 
-  let folderContents;
-  const isDrive = contextPath.length === 4;
+  // Use the modern unified approach: fs.folders[contextPath] for folder contents
+  let folderContents = fs.folders[contextPath];
 
-  if (isDrive)                    folderContents = fs.folders[contextPath];
-  else if (contextPath === 'C://Desktop')
-                                  folderContents = findFolderObjectByFullPath(contextPath, fs).contents;
-  else {
-    // For all other subdirectories, get the contents property
-    const folderObj = findFolderObjectByFullPath(contextPath, fs);
-    folderContents = folderObj ? folderObj.contents : {};
+  if (!folderContents) {
+    console.error('Folder contents not found for path:', contextPath);
+    console.error('Available folders:', Object.keys(fs.folders));
+    showDialogBox('Folder not found in file system.', 'error');
+    return;
   }
 
   if (!(fileId in folderContents)) {
+    console.error('Item not found in folder:', fileId, 'at path:', contextPath);
+    console.error('Available items:', Object.keys(folderContents));
     showDialogBox('Item not found.', 'error');
     return;
   }
@@ -462,126 +462,97 @@ function createNewFolder(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
   const parentPath = fromFullPath || 'C://';
-  const winId = `window-${Date.now()}`;
 
-  // Build a dialog window for entering the new folder name
-   // blank dialog
-  const win = createWindow(
-    'New Folder', '', false, winId, false, false,
-    { type:'integer', width:300, height:150 }, 'Default'
-  );
-  const box = win.querySelector('.p-2');
-  box.classList.add('p-4');
+  // Use makeWin95Prompt to get folder name from user
+  makeWin95Prompt(
+    'Enter the name for the new folder:',
+    'New Folder',
+    async (folderName) => {
+      // User confirmed - create the folder
+      if (!folderName || !folderName.trim()) {
+        folderName = 'Untitled';
+      }
+      folderName = folderName.trim();
 
-  // build form
-  const form = document.createElement('form');
-  form.id    = 'create-folder-form';
-  form.className = 'flex flex-col space-y-4';
-  box.appendChild(form);
+      let fs = getFileSystemStateSync();
 
-  const nameInput = document.createElement('input');
-  nameInput.type  = 'text';
-  nameInput.name  = 'folderName';
-  nameInput.required = true;
-  nameInput.value = 'New Folder';
-  nameInput.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
-  form.appendChild(makeField('Folder Name', nameInput));
+      // Safety check to ensure file system state is properly initialized
+      if (!fs || !fs.folders) {
+        console.error('File system state not properly initialized:', fs);
+        showDialogBox('File system not initialized. Please refresh the page.', 'error');
+        return;
+      }
 
-  const btnRow = document.createElement('div');
-  btnRow.className = 'flex justify-end space-x-2';
-  const cancelBtn = makeWin95Button('Cancel');
-  const submitBtn = makeWin95Button('Submit');
-  btnRow.append(cancelBtn, submitBtn);
-  form.appendChild(btnRow);
+      const folderId = "folder-" + Date.now();
+      const driveRootRegex = /^[A-Z]:\/\/$/;
+      // Build the correct folder path using the folder name, not the ID
+      let newFolderPath = driveRootRegex.test(parentPath) ? parentPath + folderName : parentPath + "/" + folderName;
+      const newFolderItem = {
+        id: folderId,
+        name: folderName,
+        type: "folder",
+        fullPath: newFolderPath,
+        contents: {}
+      };
 
-  cancelBtn.addEventListener('click', () => closeWindow(winId));
+      // Determine destination by parsing fromFullPath
+      let destination;
 
-  form.addEventListener('submit', async function(ev) {
-    ev.preventDefault();
-    let folderName = form.folderName.value.trim();
-    if (!folderName) folderName = 'Untitled';
-
-    let fs = getFileSystemStateSync();
-
-    // Safety check to ensure file system state is properly initialized
-    if (!fs || !fs.folders) {
-      console.error('File system state not properly initialized:', fs);
-      showDialogBox('File system not initialized. Please refresh the page.', 'error');
-      return;
-    }
-
-    const folderId = "folder-" + Date.now();
-    const driveRootRegex = /^[A-Z]:\/\/$/;
-    // Build the correct folder path using the folder name, not the ID
-    let newFolderPath = driveRootRegex.test(parentPath) ? parentPath + folderName : parentPath + "/" + folderName;
-    const newFolderItem = {
-      id: folderId,
-      name: folderName,
-      type: "folder",
-      fullPath: newFolderPath,
-      contents: {}
-    };
-
-    // Determine destination by parsing fromFullPath
-    let destination;
-
-    // For root directories, insert directly into the drive
-    if (driveRootRegex.test(fromFullPath)) {
-      destination = fs.folders[fromFullPath];
-      if (!destination) {
-        fs.folders[fromFullPath] = {};
+      // For root directories, insert directly into the drive
+      if (driveRootRegex.test(fromFullPath)) {
         destination = fs.folders[fromFullPath];
-      }
-    } else if (fromFullPath === 'C://Desktop') {
-      // Special handling for desktop
-      if (!fs.folders['C://Desktop']) {
-        fs.folders['C://Desktop'] = {};
-      }
-      destination = fs.folders['C://Desktop'];
-    } else {
-      // For subdirectories, use the direct folder contents from fs.folders
-      destination = fs.folders[fromFullPath];
-      if (!destination) {
-        // If the parent folder doesn't exist in fs.folders, create it
-        console.warn('Parent folder contents not found, creating:', fromFullPath);
-        fs.folders[fromFullPath] = {};
-        destination = fs.folders[fromFullPath];
-      }
-    }
-
-    // Insert the new folder into the parent's contents.
-    destination[folderId] = newFolderItem;
-
-    // Initialize the folder's contents in fs.folders
-    fs.folders[newFolderPath] = {};
-
-    // Save state first, then refresh UI
-    await setFileSystemState(fs);
-    try {
-      await saveState();
-      // Refresh the UI to show the new folder after state is saved
-      if (fromFullPath === 'C://Desktop') {
-        // For desktop, refresh desktop icons
-        if (typeof renderDesktopIcons === 'function') {
-          renderDesktopIcons();
+        if (!destination) {
+          fs.folders[fromFullPath] = {};
+          destination = fs.folders[fromFullPath];
         }
+      } else if (fromFullPath === 'C://Desktop') {
+        // Special handling for desktop
+        if (!fs.folders['C://Desktop']) {
+          fs.folders['C://Desktop'] = {};
+        }
+        destination = fs.folders['C://Desktop'];
       } else {
-        // For explorer windows, refresh all windows showing this path
-        if (typeof refreshAllExplorerWindows === 'function') {
-          refreshAllExplorerWindows(parentPath);
+        // For subdirectories, use the direct folder contents from fs.folders
+        destination = fs.folders[fromFullPath];
+        if (!destination) {
+          // If the parent folder doesn't exist in fs.folders, create it
+          console.warn('Parent folder contents not found, creating:', fromFullPath);
+          fs.folders[fromFullPath] = {};
+          destination = fs.folders[fromFullPath];
         }
       }
-    } catch (error) {
-      console.error('Failed to save state after creating folder:', error);
+
+      // Insert the new folder into the parent's contents.
+      destination[folderId] = newFolderItem;
+
+      // Initialize the folder's contents in fs.folders
+      fs.folders[newFolderPath] = {};
+
+      // Save state first, then refresh UI
+      await setFileSystemState(fs);
+      try {
+        await saveState();
+        // Refresh the UI to show the new folder after state is saved
+        if (fromFullPath === 'C://Desktop') {
+          // For desktop, refresh desktop icons
+          if (typeof renderDesktopIcons === 'function') {
+            renderDesktopIcons();
+          }
+        } else {
+          // For explorer windows, refresh all windows showing this path
+          if (typeof refreshAllExplorerWindows === 'function') {
+            refreshAllExplorerWindows(parentPath);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to save state after creating folder:', error);
+      }
+      // Note: refreshExplorerViews() is broken, so we handle refresh above
+    },
+    () => {
+      // User cancelled - do nothing
     }
-    // Note: refreshExplorerViews() is broken, so we handle refresh above
-
-    closeWindow(winId);
-  });
-
-  cancelBtn.addEventListener('click', function() {
-    closeWindow(winId);
-  });
+  );
 }
 
 /* =========================
@@ -798,68 +769,88 @@ async function createNewLetterpad(e, fromFullPath, onCreated = null) {
 
   const parentPath = fromFullPath || 'C://';
 
-  // Generate unique ID and default content
-  const fileId = `file-${Date.now()}`;
-  const fileName = 'New LetterPad.md';
-  const defaultContent = '';
+  // Use makeWin95Prompt to get filename from user
+  makeWin95Prompt(
+    'Enter the name for the new LetterPad document:',
+    'New LetterPad.md',
+    async (fileName) => {
+      // User confirmed - create the file
+      if (!fileName || !fileName.trim()) {
+        fileName = 'New LetterPad.md';
+      }
+      fileName = fileName.trim();
 
-  // Create LetterPad file in the filesystem
-  const newFile = {
-    id: fileId,
-    name: fileName,
-    type: 'ugc-file',
-    content: defaultContent,
-    content_type: 'markdown',
-    icon_url: 'image/doc.png'
-  };
+      // Ensure it has .md extension if not provided
+      if (!fileName.endsWith('.md')) {
+        fileName = fileName + '.md';
+      }
 
-  // Insert into filesystem using the unified helper function
-  if (!(await addItemToFileSystem(newFile, parentPath))) {
-    return; // Error already shown by helper
-  }
+      // Generate unique ID and default content
+      const fileId = `file-${Date.now()}`;
+      const defaultContent = '';
 
-  // Save filesystem state
-  try {
-    await saveState();
-  } catch (error) {
-    console.error('Failed to save state after creating LetterPad:', error);
-  }
+      // Create LetterPad file in the filesystem
+      const newFile = {
+        id: fileId,
+        name: fileName,
+        type: 'ugc-file',
+        content: defaultContent,
+        content_type: 'markdown',
+        icon_url: 'image/doc.png'
+      };
 
-  // Refresh views to show the new file
-  if (fromFullPath === 'C://Desktop') {
-    // For desktop, refresh desktop icons
-    renderDesktopIcons();
-  } else {
-    // For explorer windows, refresh all windows showing this path
-    refreshAllExplorerWindows(parentPath);
-  }
+      // Insert into filesystem using the unified helper function
+      if (!(await addItemToFileSystem(newFile, parentPath))) {
+        return; // Error already shown by helper
+      }
 
-  // Note: refreshExplorerViews() is broken, so we handle refresh above
+      // Save filesystem state
+      try {
+        await saveState();
+      } catch (error) {
+        console.error('Failed to save state after creating LetterPad:', error);
+      }
 
-  // Launch the LetterPad editor directly for immediate editing
-  const win = createWindow(
-    fileName,
-    `<div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${fileId}"></div>`,
-    false,
-    fileId,
-    false,
-    false,
-    { type: 'integer', width: 600, height: 500 },
-    'editor'
-  );
+      // Refresh views to show the new file
+      if (fromFullPath === 'C://Desktop') {
+        // For desktop, refresh desktop icons
+        renderDesktopIcons();
+      } else {
+        // For explorer windows, refresh all windows showing this path
+        refreshAllExplorerWindows(parentPath);
+      }
 
-  // Initialize the editor with the default content
-  setTimeout(() => {
-    const storageKey = `letterpad_${fileId}`;
-    storage.setItemSync(storageKey, { content: defaultContent });
+      // Note: refreshExplorerViews() is broken, so we handle refresh above
 
-    const editorContainer = document.querySelector(`[data-letterpad-editor-id="${fileId}"]`);
-    if (editorContainer && typeof initializeLetterPad === 'function') {
-      initializeLetterPad(editorContainer);
+      // Launch the LetterPad editor directly for immediate editing
+      const win = createWindow(
+        fileName,
+        `<div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${fileId}"></div>`,
+        false,
+        fileId,
+        false,
+        false,
+        { type: 'integer', width: 600, height: 500 },
+        'editor'
+      );
+
+      // Initialize the editor with the default content
+      setTimeout(() => {
+        const storageKey = `letterpad_${fileId}`;
+        storage.setItemSync(storageKey, { content: defaultContent });
+
+        const editorContainer = document.querySelector(`[data-letterpad-editor-id="${fileId}"]`);
+        if (editorContainer && typeof initializeLetterPad === 'function') {
+          initializeLetterPad(editorContainer);
+        }
+      }, 100);
+
+      if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
+    },
+    () => {
+      // User cancelled - do nothing
     }
-  }, 100);
-
-  if (typeof onCreated === 'function') onCreated(newFile.id, newFile);
+  );
 }
 
 /* =========================

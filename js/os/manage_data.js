@@ -183,6 +183,10 @@ async function addFileToFileSystem(fileName, fileContent, targetFolderPath, cont
   // Convert File object to data URL for persistence if it's a binary file
   if (fileObj && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
 
+    // Set initial properties to prevent undefined values
+    newFile.isLargeFile = true;
+    newFile.storageLocation = 'indexeddb';
+
     // Create immediate object URL for instant playback while async processing happens
     const tempObjectURL = URL.createObjectURL(fileObj);
     newFile.tempObjectURL = tempObjectURL;

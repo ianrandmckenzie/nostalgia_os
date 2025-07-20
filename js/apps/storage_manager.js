@@ -550,7 +550,7 @@ async function restoreAllApplications() {
 
     // Check what apps are missing
     const missingAppsInfo = await checkForMissingApps();
-    
+
     if (missingAppsInfo.count === 0) {
       if (typeof showDialogBox === 'function') {
         showDialogBox('All applications are already present in the Start menu.', 'info');
@@ -605,7 +605,7 @@ async function performAppRestore(missingApps) {
     // Define default groupings for restored apps
     const defaultGroupings = {
       'letterpad': 'utilities-group',
-      'calcapp': 'utilities-group', 
+      'calcapp': 'utilities-group',
       'sysset': 'utilities-group',
       'storageapp': 'utilities-group',
       'abtcomp': 'utilities-group',
@@ -728,7 +728,7 @@ function getDefaultGroupData(groupId) {
       items: []
     },
     'games-group': {
-      id: 'games-group', 
+      id: 'games-group',
       text: 'Games',
       type: 'group',
       items: []

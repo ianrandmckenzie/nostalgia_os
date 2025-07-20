@@ -446,17 +446,31 @@ function handleContextMenuAction(action, itemData, isSubmenuItem, parentGroupId)
 
     case 'shortcut':
       createDesktopShortcut(itemData);
+      // Close start menu after action using proper toggle function
+      if (typeof toggleStartMenu === 'function') {
+        toggleStartMenu();
+      } else {
+        // Fallback to manually closing the menu
+        const startMenu = document.getElementById('start-menu');
+        if (startMenu) {
+          startMenu.classList.add('hidden');
+        }
+      }
       break;
 
     case 'uninstall':
       confirmUninstall(itemData, isSubmenuItem, parentGroupId);
+      // Close start menu after action using proper toggle function
+      if (typeof toggleStartMenu === 'function') {
+        toggleStartMenu();
+      } else {
+        // Fallback to manually closing the menu
+        const startMenu = document.getElementById('start-menu');
+        if (startMenu) {
+          startMenu.classList.add('hidden');
+        }
+      }
       break;
-  }
-
-  // Close start menu after action
-  const startMenu = document.getElementById('start-menu');
-  if (startMenu) {
-    startMenu.classList.add('hidden');
   }
 }
 
@@ -707,7 +721,13 @@ function makeSubmenuItemDraggable(item) {
 
     // Store item data for potential group transfers
     const icon = item.querySelector('img')?.src || '';
-    const text = item.textContent.trim();
+    // Get text content excluding context menu - clone the element and remove context menu to get clean text
+    const tempItem = item.cloneNode(true);
+    const contextMenu = tempItem.querySelector('.start-menu-context-menu');
+    if (contextMenu) {
+      contextMenu.remove();
+    }
+    const text = tempItem.textContent.trim();
     dragState.draggedItemData = {
       id: item.id,
       text: text,
@@ -1199,7 +1219,12 @@ function completeDragOperation(e) {
   }
 
   console.log('🎯 Starting main menu drag completion...');
-  console.log('Dragged element:', dragState.draggedElement.id, dragState.draggedElement.textContent?.trim());
+  console.log('Dragged element:', dragState.draggedElement.id, (() => {
+    const tempEl = dragState.draggedElement.cloneNode(true);
+    const contextMenu = tempEl.querySelector('.start-menu-context-menu');
+    if (contextMenu) contextMenu.remove();
+    return tempEl.textContent?.trim();
+  })());
 
   // Remove visual feedback using Tailwind classes
   dragState.draggedElement.classList.remove('opacity-50', 'cursor-grabbing');
@@ -1212,10 +1237,15 @@ function completeDragOperation(e) {
     // Moving main menu item to submenu
     console.log('📥 Moving main menu item to submenu:', targetGroupId);
 
-    // Get item data before removing
+    // Get item data before removing - exclude context menu from text
+    const tempElement = dragState.draggedElement.cloneNode(true);
+    const contextMenu = tempElement.querySelector('.start-menu-context-menu');
+    if (contextMenu) {
+      contextMenu.remove();
+    }
     const itemData = {
       id: dragState.draggedElement.id,
-      text: dragState.draggedElement.textContent.trim(),
+      text: tempElement.textContent.trim(),
       icon: dragState.draggedElement.querySelector('img')?.src || ''
     };
 
@@ -1290,12 +1320,26 @@ async function saveStartMenuOrder() {
       const submenuContainer = item.querySelector('[data-submenu-container]');
 
       if (trigger && submenuContainer && groupId) {
-        const groupName = trigger.textContent.trim();
-        const submenuItems = Array.from(submenuContainer.querySelectorAll('.submenu-item')).map(subItem => ({
-          id: subItem.id,
-          text: subItem.textContent.trim(),
-          icon: subItem.querySelector('img')?.src || ''
-        }));
+        // Extract group name excluding any context menu text
+        const tempTrigger = trigger.cloneNode(true);
+        const contextMenu = tempTrigger.querySelector('.start-menu-context-menu');
+        if (contextMenu) {
+          contextMenu.remove();
+        }
+        const groupName = tempTrigger.textContent.trim();
+        const submenuItems = Array.from(submenuContainer.querySelectorAll('.submenu-item')).map(subItem => {
+          // Extract submenu item text excluding context menu
+          const tempSubItem = subItem.cloneNode(true);
+          const subContextMenu = tempSubItem.querySelector('.start-menu-context-menu');
+          if (subContextMenu) {
+            subContextMenu.remove();
+          }
+          return {
+            id: subItem.id,
+            text: tempSubItem.textContent.trim(),
+            icon: subItem.querySelector('img')?.src || ''
+          };
+        });
 
         const groupData = {
           type: 'group',
@@ -1479,7 +1523,15 @@ window.debugStartMenuState = async function() {
   // Check DOM structure
   const startMenu = document.getElementById('start-menu');
   const menuList = startMenu?.querySelector('ul');
-  const currentOrder = Array.from(menuList?.children || []).map(item => ({ id: item.id, text: item.textContent?.trim() }));
+  const currentOrder = Array.from(menuList?.children || []).map(item => {
+    // Extract text excluding context menu for debug output
+    const tempItem = item.cloneNode(true);
+    const contextMenu = tempItem.querySelector('.start-menu-context-menu');
+    if (contextMenu) {
+      contextMenu.remove();
+    }
+    return { id: item.id, text: tempItem.textContent?.trim() };
+  });
   console.log('Current DOM order:', currentOrder);
 
   // Check global variables

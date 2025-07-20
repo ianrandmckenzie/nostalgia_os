@@ -296,16 +296,18 @@ async function initializeWatercolour() {
     });
 
     newBtn.addEventListener('click', () => {
-      if (confirm('Clear canvas? Unsaved work will be lost.')) {
-        const cssWidth = canvas.offsetWidth;
-        const cssHeight = canvas.offsetHeight;
-        ctx.clearRect(0, 0, cssWidth, cssHeight);
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, cssWidth, cssHeight);
-        savedImage = canvas.toDataURL();
-        commitState();
-        currentFile = null;
-      }
+      showDialogBox('Clear canvas? Unsaved work will be lost.', 'confirmation',
+        () => {
+          const cssWidth = canvas.offsetWidth;
+          const cssHeight = canvas.offsetHeight;
+          ctx.clearRect(0, 0, cssWidth, cssHeight);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, cssWidth, cssHeight);
+          savedImage = canvas.toDataURL();
+          commitState();
+          currentFile = null;
+        }
+      );
     });
 
     exportBtn.addEventListener('click', () => {
@@ -352,15 +354,17 @@ async function initializeWatercolour() {
     });
 
     newBtn.addEventListener('click', () => {
-      if (confirm('Clear canvas? Unsaved work will be lost.')) {
-        const cssWidth = canvas.offsetWidth;
-        const cssHeight = canvas.offsetHeight;
-        ctx.clearRect(0, 0, cssWidth, cssHeight);
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, cssWidth, cssHeight);
-        savedImage = canvas.toDataURL();
-        commitState();
-      }
+      showDialogBox('Clear canvas? Unsaved work will be lost.', 'confirmation',
+        () => {
+          const cssWidth = canvas.offsetWidth;
+          const cssHeight = canvas.offsetHeight;
+          ctx.clearRect(0, 0, cssWidth, cssHeight);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, cssWidth, cssHeight);
+          savedImage = canvas.toDataURL();
+          commitState();
+        }
+      );
     });
 
     exportBtn.addEventListener('click', () => {
@@ -760,63 +764,7 @@ async function initializeWatercolour() {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
-  // New save functions for File menu
-  async function saveToCurrentFile() {
-    if (!currentFile) {
-      console.error('saveToCurrentFile called but no current file exists');
-      return;
-    }
-
-    try {
-      // Get canvas as data URL
-      const dataURL = canvas.toDataURL('image/png');
-
-      // Check if we have access to the global storage and file system functions
-      const storage = globalStorage;
-      const addFileToFileSystem = globalAddFileToFileSystem;
-
-      if (!storage) {
-        alert('Cannot access storage. Please ensure the main OS is loaded.');
-        return;
-      }
-
-      // Update in IndexedDB if we have a storage key
-      if (currentFile.storageKey) {
-        await storage.setItem(currentFile.storageKey, dataURL);
-      }
-
-      // Update in file system
-      if (addFileToFileSystem) {
-        const response = await fetch(dataURL);
-        const blob = await response.blob();
-        const file = new File([blob], currentFile.name, { type: 'image/png' });
-
-        const result = await addFileToFileSystem(currentFile.name, dataURL, currentFile.path, 'png', file);
-
-        // Force refresh of views
-        if (refreshExplorerViews) {
-          refreshExplorerViews();
-        }
-
-        if (currentFile.path === 'C://Desktop' && renderDesktopIcons) {
-          renderDesktopIcons();
-        }
-
-        // Update current file data
-        currentFile.data = dataURL;
-
-        alert(`"${currentFile.name}" saved successfully!`);
-      } else {
-        alert('File system not available. Could not save file.');
-      }
-    } catch (error) {
-      console.error('Error saving to current file:', error);
-      alert('Error saving file: ' + error.message);
-    }
-  }
-
   async function saveAsNewFile() {
-
     try {
       // Get canvas as data URL
       const dataURL = canvas.toDataURL('image/png');
@@ -826,7 +774,7 @@ async function initializeWatercolour() {
       const addFileToFileSystem = globalAddFileToFileSystem;
 
       if (!storage) {
-        alert('Cannot access storage. Please ensure the main OS is loaded.');
+        showDialogBox('Cannot access storage. Please ensure the main OS is loaded.', 'error');
         return;
       }
 
@@ -839,50 +787,57 @@ async function initializeWatercolour() {
       await storage.setItem(storageKey, dataURL);
 
       // Prompt for filename and save to file system
-      const fileName = prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`);
-      if (fileName) {
-        // Ensure .png extension
-        const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
+      makeWin95Prompt('Enter a filename for your drawing:', `drawing_${timestamp}.png`,
+        async (fileName) => {
+          if (fileName) {
+            // Ensure .png extension
+            const finalFileName = fileName.endsWith('.png') ? fileName : fileName + '.png';
 
-        // Get the current folder path
-        const currentPath = getCurrentFolderPath();
+            // Get the current folder path
+            const currentPath = getCurrentFolderPath();
 
-        // Add file to file system
-        if (addFileToFileSystem) {
-          // Create a blob from the dataURL to simulate a file object
-          const response = await fetch(dataURL);
-          const blob = await response.blob();
-          const file = new File([blob], finalFileName, { type: 'image/png' });
+            // Add file to file system
+            if (addFileToFileSystem) {
+              // Create a blob from the dataURL to simulate a file object
+              const response = await fetch(dataURL);
+              const blob = await response.blob();
+              const file = new File([blob], finalFileName, { type: 'image/png' });
 
-          const result = await addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
+              const result = await addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);
 
-          // Update current file tracking
-          currentFile = {
-            name: finalFileName,
-            path: currentPath,
-            storageKey: storageKey,
-            data: dataURL
-          };
+              // Update current file tracking
+              currentFile = {
+                name: finalFileName,
+                path: currentPath,
+                storageKey: storageKey,
+                data: dataURL
+              };
 
-          // Force refresh of views
-          if (refreshExplorerViews) {
-            refreshExplorerViews();
+              // Force refresh of views
+              if (refreshExplorerViews) {
+                refreshExplorerViews();
+              }
+
+              if (currentPath === 'C://Desktop' && renderDesktopIcons) {
+                renderDesktopIcons();
+              }
+
+              showDialogBox(`Drawing saved as "${finalFileName}" in ${currentPath}!`, 'info');
+            } else {
+              showDialogBox('File system not available. Drawing saved to storage only.', 'info');
+            }
+          } else {
+            showDialogBox('Drawing saved to storage but not added to file system.', 'info');
           }
-
-          if (currentPath === 'C://Desktop' && renderDesktopIcons) {
-            renderDesktopIcons();
-          }
-
-          alert(`Drawing saved as "${finalFileName}" in ${currentPath}!`);
-        } else {
-          alert('File system not available. Drawing saved to storage only.');
+        },
+        () => {
+          // User canceled - drawing is still saved to storage, just not to file system
+          showDialogBox('Drawing saved to storage but not added to file system.', 'info');
         }
-      } else {
-        alert('Drawing saved to storage but not added to file system.');
-      }
+      );
     } catch (error) {
       console.error('Error saving drawing:', error);
-      alert('Error saving drawing: ' + error.message);
+      showDialogBox('Error saving drawing: ' + error.message, 'error');
     }
   }
 
@@ -908,9 +863,9 @@ async function initializeWatercolour() {
         const explorerContent = getExplorerWindowContent('C://Documents');
         createWindow('Select Image - File Explorer', explorerContent, true, 'explorer-watercolour-load', false, false, { type: 'integer', width: 600, height: 500 }, 'file-explorer');
 
-        alert('Select an image file from the file explorer to load it onto the canvas.');
+        showDialogBox('Select an image file from the file explorer to load it onto the canvas.', 'info');
       } else {
-        alert('File explorer not available. Please ensure the main OS is loaded.');
+        showDialogBox('File explorer not available. Please ensure the main OS is loaded.', 'error');
       }
     }
   }
@@ -945,7 +900,7 @@ async function initializeWatercolour() {
     };
     img.onerror = () => {
       console.error('Error loading selected image.');
-      alert('Error loading selected image.');
+      showDialogBox('Error loading selected image.', 'error');
     };
     img.src = imageData;
   }

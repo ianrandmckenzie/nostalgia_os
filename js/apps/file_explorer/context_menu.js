@@ -1044,17 +1044,6 @@ function createNewVideo(e, fromFullPath, onCreated = null) {
   fileInput.click();
 }
 
-// Create a menu/form button with Win-95 raised edges
-function makeWin95Button(label) {
-  const btn  = document.createElement('button');
-  btn.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
-  const span = document.createElement('span');
-  span.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
-  span.textContent = label;
-  btn.appendChild(span);
-  return btn;
-}
-
 // Conventional field builder: <label> + control
 function makeField(labelText, control) {
   const wrap  = document.createElement('div');

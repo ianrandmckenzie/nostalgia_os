@@ -162,6 +162,117 @@ function openFileExplorerForImageSelection(callback) {
       }
     }, 100);
   } else {
-    alert('File explorer functionality not available.');
+    showDialogBox('File explorer functionality not available.', 'error');
   }
+}
+
+// Create a menu/form button with Win-95 raised edges
+function makeWin95Button(label) {
+  const btn  = document.createElement('button');
+  btn.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
+  const span = document.createElement('span');
+  span.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
+  span.textContent = label;
+  btn.appendChild(span);
+  return btn;
+}
+
+// Windows 95-style prompt dialog replacement
+function makeWin95Prompt(message, defaultValue = '', onConfirm = null, onCancel = null) {
+  const uniqueWindowId = 'promptWindow-' + Date.now();
+
+  // Create the dialog window content
+  const dialogWindow = createWindow('💬 Input Required', '', false, uniqueWindowId, false, false, { type: 'integer', width: 400, height: 200 }, "default");
+
+  // Get the content area
+  const contentDiv = dialogWindow.querySelector('.p-2');
+  if (contentDiv) {
+    // Clear existing content
+    contentDiv.innerHTML = '';
+
+    // Create the prompt content
+    const promptContainer = document.createElement('div');
+    promptContainer.className = 'flex flex-col p-4 h-full justify-between';
+
+    // Message area
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'mb-4';
+    messageDiv.innerHTML = `<p class="text-sm mb-3">${message}</p>`;
+
+    // Input field with Win95 styling
+    const inputField = document.createElement('input');
+    inputField.type = 'text';
+    inputField.id = `${uniqueWindowId}-input`;
+    inputField.value = defaultValue;
+    inputField.className = 'w-full px-2 py-1 border-2 border-gray-400 bg-white';
+    inputField.style.borderTopColor = '#808080';
+    inputField.style.borderLeftColor = '#808080';
+    inputField.style.borderBottomColor = '#ffffff';
+    inputField.style.borderRightColor = '#ffffff';
+    inputField.style.borderStyle = 'inset';
+
+    messageDiv.appendChild(inputField);
+    promptContainer.appendChild(messageDiv);
+
+    // Button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'flex gap-2 justify-center';
+
+    // Create Win95 buttons
+    const okBtn = makeWin95Button('OK');
+    okBtn.id = `${uniqueWindowId}-ok-button`;
+
+    const cancelBtn = makeWin95Button('Cancel');
+    cancelBtn.id = `${uniqueWindowId}-cancel-button`;
+
+    buttonContainer.appendChild(okBtn);
+    buttonContainer.appendChild(cancelBtn);
+    promptContainer.appendChild(buttonContainer);
+
+    contentDiv.appendChild(promptContainer);
+
+    // Focus on the input field
+    setTimeout(() => {
+      inputField.focus();
+      inputField.select();
+    }, 100);
+
+    // Add event listeners
+    setTimeout(() => {
+      // OK button handler
+      okBtn.addEventListener('click', () => {
+        const inputValue = inputField.value;
+        closeWindow(uniqueWindowId);
+        if (onConfirm) onConfirm(inputValue);
+      });
+
+      // Cancel button handler
+      cancelBtn.addEventListener('click', () => {
+        closeWindow(uniqueWindowId);
+        if (onCancel) onCancel(null);
+      });
+
+      // Enter key handler
+      inputField.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const inputValue = inputField.value;
+          closeWindow(uniqueWindowId);
+          if (onConfirm) onConfirm(inputValue);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          closeWindow(uniqueWindowId);
+          if (onCancel) onCancel(null);
+        }
+      });
+    }, 150);
+  }
+
+  // Ensure dialog is always on top
+  bringToFront(dialogWindow);
+  setTimeout(() => {
+    bringToFront(dialogWindow);
+  }, 10);
+
+  return dialogWindow;
 }

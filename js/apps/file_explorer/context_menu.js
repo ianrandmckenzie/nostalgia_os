@@ -135,12 +135,24 @@ function showContextMenu(e, target, fromFullPath) {
   if (target) {
     target.classList.add('right-click-target');
     const isVendor = target.getAttribute('data-is-vendor-application') === 'true';
+    const isCompostBin = target.getAttribute('data-item-id') === 'compostbin';
 
-    addItem('Edit Name',  isVendor, ev => editItemName(ev));
-    addItem('Delete',     isVendor, ev => deleteItem(ev));
-    addItem('New Folder', true);
-    addItem('New File',   true);
-    addItem('New Shortcut', true);
+    if (isCompostBin) {
+      // Special case for Compost Bin - only show "Empty Compost Bin" option
+      addItem('Empty Compost Bin', false, ev => {
+        ev.stopPropagation();
+        hideContextMenu();
+        if (typeof emptyCompostBin === 'function') {
+          emptyCompostBin();
+        }
+      });
+    } else {
+      addItem('Edit Name',  isVendor, ev => editItemName(ev));
+      addItem('Delete',     isVendor, ev => deleteItem(ev));
+      addItem('New Folder', true);
+      addItem('New File',   true);
+      addItem('New Shortcut', true);
+    }
   } else {
     addItem('New Folder',   false, ev => createNewFolder  (ev, fromFullPath));
 

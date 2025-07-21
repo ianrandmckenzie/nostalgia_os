@@ -7,6 +7,8 @@ export function toggleStartMenu() {
   menu.classList.toggle('hidden');
   toggleButtonActiveState('start-button');
 
+  toggleStartIcon();
+
   // Initialize drag and drop when menu is opened
   if (!menu.classList.contains('hidden')) {
     setTimeout(() => {
@@ -131,3 +133,12 @@ document.getElementById('min-all-btn').addEventListener('click', () => {
 document.getElementById('start-button').addEventListener('click', () => {
   toggleStartMenu();
 });
+
+function toggleStartIcon() {
+  const btnIcon = document.getElementById('start-button').querySelector('img');
+  if (btnIcon.src.includes('image/door-closed.png')) {
+    btnIcon.src = btnIcon.src.replace('door-closed', 'door-open');
+  } else {
+    btnIcon.src = btnIcon.src.replace('door-open', 'door-closed');
+  }
+}

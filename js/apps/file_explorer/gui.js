@@ -6,8 +6,9 @@
 import { getItemsForPath } from './storage.js'
 import { findFolderFullPathById, findFolderObjectByFullPath } from './main.js';
 import { setupFolderDrop } from './drag_and_drop.js';
-import { saveState } from '../../os/manage_data.js';
-import { createWindow, bringToFront } from '../../gui/window.js';
+import { saveState, windowStates } from '../../os/manage_data.js';
+import { createWindow, bringToFront, showDialogBox, closeWindow } from '../../gui/window.js';
+import { storage } from '../../os/indexeddb_storage.js';
 
 export function openExplorer(folderIdOrPath, forceNewWindow = false) {
   let fullPath;
@@ -1014,6 +1015,7 @@ async function clearFileExplorerState() {
 
 // Initialize file explorer UI (for restoration)
 function initializeFileExplorerUI(win) {
+  console.log('🔧 Initializing File Explorer UI for restoration');
 
   // Restore the saved state
   setTimeout(async () => {
@@ -1023,18 +1025,42 @@ function initializeFileExplorerUI(win) {
 
 // Restore file explorer state
 async function restoreFileExplorerState() {
+  console.log('🔄 Restoring File Explorer state...');
   const state = await loadFileExplorerState();
+  console.log('📁 Loaded File Explorer state:', state);
+
   const explorerWindow = document.getElementById('explorer-window');
 
   if (explorerWindow && state.currentPath) {
+    console.log('🗂️ Restoring File Explorer to path:', state.currentPath);
 
     // Navigate to the saved path
     const newContent = getExplorerWindowContent(state.currentPath);
+    console.log('📄 Generated new content for path:', state.currentPath);
+
     const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
     if (fileExplorerDiv) {
+      console.log('🔄 Replacing File Explorer content...');
       fileExplorerDiv.outerHTML = newContent;
       // Set up event handlers again
-      setTimeout(setupFolderDrop, 100);
+      setTimeout(() => {
+        console.log('🎯 Setting up folder drop handlers...');
+        setupFolderDrop();
+      }, 100);
+      console.log('✅ File Explorer state restored successfully');
+    } else {
+      console.warn('⚠️ Could not find .file-explorer-window element');
     }
+  } else {
+    console.warn('⚠️ No explorer window found or no current path in state');
   }
+}
+
+// Export functions needed by other modules
+export { openShortcut, initializeFileExplorerUI, restoreFileExplorerState };
+
+// Make restoration functions globally available for window restoration
+if (typeof window !== 'undefined') {
+  window.initializeFileExplorerUI = initializeFileExplorerUI;
+  window.restoreFileExplorerState = restoreFileExplorerState;
 }

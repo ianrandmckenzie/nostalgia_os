@@ -1,5 +1,4 @@
 import { storage } from './indexeddb_storage.js';
-import { applyDesktopSettings } from '../gui/desktop.js'
 
 export let fileSystemState = {
   folders: {
@@ -180,7 +179,7 @@ export function updateContent(windowId, newContent) {
 }
 
 // Utility function to add a file to the file system
-async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
+export async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
   const fs = await getFileSystemState();
 
   // Ensure file system is initialized with proper structure
@@ -430,6 +429,8 @@ window.globalAddFileToFileSystem = addFileToFileSystem;
    This ensures compost bin and other desktop items appear correctly.
 ====================== */
 function migrateFileSystemToUnifiedStructure(fs) {
+  console.log('=== Migration starting ===');
+  console.log('Input filesystem state:', fs);
 
   // Ensure the unified structure exists
   if (!fs.folders) {
@@ -441,28 +442,40 @@ function migrateFileSystemToUnifiedStructure(fs) {
 
   // Check for old nested structure
   if (fs.folders['C://'] && typeof fs.folders['C://'] === 'object') {
+    console.log('Found C:// contents for migration:', Object.keys(fs.folders['C://']), fs.folders['C://']);
 
-    // Migrate all default folders from nested to unified structure
+    // Migrate all items (folders, files, shortcuts) from nested to unified structure
     const driveContents = fs.folders['C://'];
-    for (const [folderName, folderObj] of Object.entries(driveContents)) {
-      if (folderObj && typeof folderObj === 'object' && folderObj.type === 'folder') {
-        const unifiedPath = `C://${folderName}`;
+    for (const [itemKey, itemObj] of Object.entries(driveContents)) {
+      if (itemObj && typeof itemObj === 'object') {
+        console.log('Processing item:', itemKey, 'type:', itemObj.type);
 
-        // If this folder doesn't exist in unified structure, migrate it
-        if (!fs.folders[unifiedPath]) {
+        if (itemObj.type === 'folder') {
+          // Handle folder migration
+          const unifiedPath = `C://${itemObj.name || itemKey}`;
 
-          // Create the folder in unified structure with its contents
-          fs.folders[unifiedPath] = folderObj.contents || {};
-          migrationNeeded = true;
+          // If this folder doesn't exist in unified structure, migrate it
+          if (!fs.folders[unifiedPath]) {
+            // Create the folder in unified structure with its contents
+            fs.folders[unifiedPath] = itemObj.contents || {};
+            migrationNeeded = true;
+            console.log('Migrated folder to:', unifiedPath);
 
-          // Also recursively migrate any nested folder contents
-          if (folderObj.contents) {
-            Object.values(folderObj.contents).forEach(item => {
-              if (item.type === 'folder' && item.fullPath) {
-                migrateNestedContents(item.fullPath, item, fs);
-              }
-            });
+            // Also recursively migrate any nested folder contents
+            if (itemObj.contents) {
+              Object.values(itemObj.contents).forEach(item => {
+                if (item.type === 'folder' && item.fullPath) {
+                  migrateNestedContents(item.fullPath, item, fs);
+                }
+              });
+            }
           }
+        } else {
+          // Handle non-folder items (shortcuts, files, etc.)
+          // These should remain in the drive root, so we don't need to do anything special
+          // The unified structure already has them in fs.folders['C://']
+          // Just ensure they're preserved during migration
+          console.log('Preserving non-folder item in C://:', itemKey, itemObj.type, itemObj.name);
         }
       }
     }
@@ -474,6 +487,7 @@ function migrateFileSystemToUnifiedStructure(fs) {
     if (!fs.folders[folderPath]) {
       fs.folders[folderPath] = {};
       migrationNeeded = true;
+      console.log('Created essential folder:', folderPath);
     }
   }
 
@@ -496,8 +510,13 @@ function migrateFileSystemToUnifiedStructure(fs) {
   }
 
   if (migrationNeeded) {
+    console.log('Migration completed with changes');
   } else {
+    console.log('No migration needed');
   }
+
+  console.log('Final migrated filesystem state:', fs);
+  console.log('=== Migration complete ===');
 
   return fs;
 }
@@ -646,7 +665,9 @@ export async function initializeAppState() {
 
 
     // Apply desktop settings after loading them
-    applyDesktopSettings();
+    if (typeof window !== 'undefined' && typeof window.applyDesktopSettings === 'function') {
+      window.applyDesktopSettings();
+    }
 
     // Check if default song exists in Media folder, add if not (for migration)
     setTimeout(async () => {
@@ -1193,7 +1214,9 @@ async function restoreDesktopSettings() {
     const storedState = appStateData;
     if (storedState.desktopSettings) {
       desktopSettings = storedState.desktopSettings;
-      applyDesktopSettings();
+      if (typeof window !== 'undefined' && typeof window.applyDesktopSettings === 'function') {
+        window.applyDesktopSettings();
+      }
     }
   }
 }

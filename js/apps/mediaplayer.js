@@ -1,6 +1,7 @@
 // Import required functions
 import { createWindow } from '../gui/window.js';
 import { getFileSystemStateSync } from './file_explorer/storage.js';
+import { addFileToFileSystem } from '../os/manage_data.js'
 
 function launchMediaPlayer() {
   // Check if media player window already exists

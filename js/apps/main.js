@@ -1,3 +1,14 @@
+import { launchMailbox } from './mailbox.js';
+import { launchTubeStream } from './tube_stream.js';
+import { launchWatercolour } from './watercolour/main.js';
+import { launchCalculator } from './calculator.js';
+import { launchSolitaire } from './solitaire.js';
+import { launchChess } from './chess.js';
+import { launchBombbroomer } from './bombbroomer.js';
+import { launchMediaPlayer } from './mediaplayer.js';
+import { launchCompostBin } from './compost_bin.js';
+import { launchStorageManager } from './storage_manager.js';
+
 export function openApp(id) {
   const existingWindow = document.getElementById(id);
   if (existingWindow) {

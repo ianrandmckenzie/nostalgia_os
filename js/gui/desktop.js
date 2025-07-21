@@ -1,6 +1,9 @@
-import { getFileSystemState, saveState, desktopIconsState, fileSystemState, setFileSystemState } from '../os/manage_data.js';
+import { getFileSystemState, saveState, desktopIconsState, fileSystemState, setFileSystemState, initializeAppState, desktopSettings } from '../os/manage_data.js';
 import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
-import { setupFolderDrop, setupDesktopDrop } from '../apps/file_explorer/drag_and_drop.js';
+import { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorerPath } from '../apps/file_explorer/drag_and_drop.js';
+import { moveItemToCompostBin } from '../apps/compost_bin.js';
+import { openFile, openShortcut, openExplorerInNewWindow } from '../apps/file_explorer/gui.js';
+import { openApp } from '../apps/main.js';
 
 export function makeIconDraggable(icon) {
   let isDragging = false;
@@ -479,6 +482,7 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
 if (typeof window !== 'undefined') {
   window.renderDesktopIcons = renderDesktopIcons;
   window.makeIconDraggable = makeIconDraggable;
+  window.applyDesktopSettings = applyDesktopSettings;
 
   // Initialize desktop drop functionality
   setupDesktopDrop();

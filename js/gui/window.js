@@ -152,7 +152,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
 
   // --- Header Bar ---
   const header = document.createElement('div')
-  header.className = 'bg-handlebarBlue sticky top-0 left-0 text-white px-2 py-1 flex justify-between items-center cursor-move'
+  header.className = 'bg-handlebar-blue sticky top-0 left-0 text-white px-2 py-1 flex justify-between items-center cursor-move'
+  header.style.backgroundColor = '#003f7f'
 
   const titleSpan = document.createElement('span')
   titleSpan.textContent = title

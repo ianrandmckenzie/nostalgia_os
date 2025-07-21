@@ -210,9 +210,9 @@ function createGroupItem(item) {
       <div class="flex items-center">
         ${item.text}
       </div>
-      <span class="lg:rotate-0 text-xs">&#9654;</span>
+      <span class="md:rotate-0 text-xs">&#9654;</span>
     </a>
-    <ul class="submenu hidden pl-4 bg-gray-100 lg:pl-0 lg:absolute lg:left-full lg:bottom-0 lg:w-48 lg:bg-white lg:border lg:border-gray-500 lg:shadow-lg" data-submenu-container data-group-id="${item.id}">
+    <ul class="submenu hidden pl-4 bg-gray-100 md:pl-0 md:absolute md:left-full md:bottom-0 md:w-48 md:bg-white md:border md:border-gray-500 md:shadow-lg" data-submenu-container data-group-id="${item.id}">
       ${submenuItems}
     </ul>
   `;

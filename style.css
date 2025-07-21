@@ -1,1 +1,79 @@
 @import "tailwindcss";
+
+*:focus { outline: none; }
+#desktop * {
+  image-rendering: pixelated;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+/* Drag and drop visual feedback */
+.drag-hover-target {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border: 2px dashed #3b82f6 !important;
+  border-radius: 4px;
+}
+
+.dragover {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  border: 2px dashed #22c55e !important;
+}
+
+.dragging {
+  opacity: 0.7 !important;
+}
+
+/* Improve touch/pointer interaction for draggable icons */
+.draggable-icon {
+  touch-action: none; /* Disable default touch actions like scrolling */
+  user-select: none; /* Prevent text selection during drag */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.draggable-icon.dragging {
+  z-index: 1000 !important;
+}
+
+/* Start Menu Context Menu Styles */
+.start-menu-context-menu {
+  animation: contextMenuFadeIn 0.15s ease-out;
+}
+
+.start-menu-context-menu .context-menu-item {
+  transition: background-color 0.1s ease;
+  font-size: 14px;
+}
+
+.start-menu-context-menu .context-menu-item:hover {
+  background-color: #f9fafb !important;
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Prevent context menu from interfering with drag operations */
+.start-menu-context-menu.hidden {
+  display: none !important;
+}
+
+/* Minimal custom CSS for features not available in Tailwind */
+.start-menu-placeholder {
+  list-style: none;
+}
+
+/* Desktop drop zone visual feedback */
+#desktop.drag-hover-target {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  border: 3px dashed #22c55e !important;
+  border-radius: 8px !important;
+}

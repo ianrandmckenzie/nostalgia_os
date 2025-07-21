@@ -1,3 +1,6 @@
+// Import required functions
+import { createWindow } from '../gui/window.js';
+
 async function launchTubeStream() {
   const youtube_url = await loadPrimaryStream(); // Await the async function
   const content = `<iframe width="560" height="315" style="margin:0 auto;" src="${youtube_url}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
@@ -66,3 +69,9 @@ const myPlaylist = {
     }
   ]
 }
+
+// Export functions
+export {
+  launchTubeStream,
+  loadPrimaryStream
+};

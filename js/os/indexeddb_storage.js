@@ -215,7 +215,7 @@ class IndexedDBStorage {
 const idbStorage = new IndexedDBStorage();
 
 // Enhanced storage interface that provides both sync and async methods
-const storage = {
+export const storage = {
   // Ensure storage is ready
   async ensureReady() {
     await idbStorage.ensureDB();
@@ -277,9 +277,12 @@ const storage = {
 };
 
 // Make storage available globally for iframe access immediately
-window.globalStorage = storage;
+if (typeof window !== 'undefined') {
+  window.globalStorage = storage;
+  window.storage = storage; // Also add for backward compatibility
+}
 
-async function clearStorage() {
+export async function clearStorage() {
     // Clear sessionStorage (keeping this as it might still be used elsewhere)
     sessionStorage.clear();
 
@@ -295,10 +298,16 @@ async function clearStorage() {
             console.error('Error deleting IndexedDB database:', error);
         };
 
-        document.getElementById('status').innerHTML = '<p style="color: green;">All storage cleared successfully!</p>';
+        const statusEl = document.getElementById('status');
+        if (statusEl) {
+          statusEl.innerHTML = '<p style="color: green;">All storage cleared successfully!</p>';
+        }
     } catch (error) {
         console.error('Error clearing IndexedDB:', error);
-        document.getElementById('status').innerHTML = '<p style="color: red;">Error clearing storage: ' + error.message + '</p>';
+        const statusEl = document.getElementById('status');
+        if (statusEl) {
+          statusEl.innerHTML = '<p style="color: red;">Error clearing storage: ' + error.message + '</p>';
+        }
     }
 
     // Also clear any cached file system state

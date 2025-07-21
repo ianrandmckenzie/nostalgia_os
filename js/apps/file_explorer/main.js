@@ -1,13 +1,15 @@
+import { getFileSystemStateSync } from './storage.js';
+
 /* =====================
    normalizePath
    Removes trailing slashes (except for drive roots).
 ====================== */
-function normalizePath(path) {
+export function normalizePath(path) {
   if (/^[A-Z]:\/\/$/.test(path)) return path;
   return path.replace(/\/+$/, "");
 }
 
-function getFolderIdByFullPath(fullPath) {
+export function getFolderIdByFullPath(fullPath) {
   // For drive roots, return the fullPath itself.
   if (/^[A-Z]:\/\/$/.test(fullPath)) return fullPath;
   const fs = getFileSystemStateSync();
@@ -36,7 +38,7 @@ function getFolderIdByFullPath(fullPath) {
    Helper: Recursively find a folder object by its fullPath.
    Returns the folder object (which includes name, id, fullPath, etc.)
 ====================== */
-function findFolderObjectByFullPath(fullPath, fileSystem = null) {
+export function findFolderObjectByFullPath(fullPath, fileSystem = null) {
   fullPath = normalizePath(fullPath);
   const fs = fileSystem || getFileSystemStateSync();
 
@@ -77,7 +79,7 @@ function findFolderObjectByFullPath(fullPath, fileSystem = null) {
    Helper: Recursively find the fullPath for a folder given its id.
    For drive roots the id is the fullPath.
 ====================== */
-function findFolderFullPathById(folderId, file = false) {
+export function findFolderFullPathById(folderId, file = false) {
   // If folderId is a drive root, return it.
   if (/^[A-Z]:\/\/$/.test(folderId)) return folderId;
 

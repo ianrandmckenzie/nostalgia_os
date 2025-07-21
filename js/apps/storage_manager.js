@@ -1,4 +1,9 @@
-function launchStorageManager() {
+import { storage } from '../os/indexeddb_storage.js';
+import { createWindow, showDialogBox } from '../gui/window.js';
+import { makeWin95Button, makeWin95Prompt } from '../gui/main.js';
+import { restart } from '../os/restart.js';
+
+export function launchStorageManager() {
   const storageWindow = createWindow(
     'Storage Manager',
     '<div id="storage-content" style="padding: 20px;">Loading storage information...</div>',
@@ -326,7 +331,7 @@ async function analyzeMediaPlayerDB(analysis) {
   });
 }
 
-function refreshStorageData() {
+export function refreshStorageData() {
   const contentDiv = document.getElementById('storage-content');
   if (contentDiv) {
     contentDiv.innerHTML = 'Refreshing storage information...';
@@ -335,18 +340,8 @@ function refreshStorageData() {
 }
 
 // Create a menu/form button with Win-95 raised edges
-function makeWin95Button(label) {
-  const btn  = document.createElement('button');
-  btn.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
-  const span = document.createElement('span');
-  span.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
-  span.textContent = label;
-  btn.appendChild(span);
-  return btn;
-}
-
 // Create a dropdown with Win-95 styling
-function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
+export function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
   const select = document.createElement('select');
   select.className = 'bg-white border-t-2 border-l-2 border-black border-b-2 border-r-2 border-gray-300 px-2 py-1';
 
@@ -379,7 +374,7 @@ function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
   return select;
 }
 
-function openCleanupWindow() {
+export function openCleanupWindow() {
   const cleanupWindow = createWindow(
     'Storage Cleanup',
     '<div id="cleanup-content" style="padding: 20px;">Loading cleanup options...</div>',
@@ -738,7 +733,7 @@ function getDefaultGroupData(groupId) {
   return defaultGroups[groupId] || null;
 }
 
-function fullSystemRestart() {
+export function fullSystemRestart() {
   showDialogBox(
     'This will completely wipe the entire hard drive and reset the system to factory defaults. All your files, settings, and data will be permanently deleted.',
     'confirmation',

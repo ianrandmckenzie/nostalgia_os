@@ -1,4 +1,6 @@
-async function launchWatercolour() {
+import { createWindow } from '../../gui/window.js';
+
+export async function launchWatercolour() {
   // Check if watercolour window already exists
   const existingWindow = document.getElementById('watercolour');
   if (existingWindow) {
@@ -18,13 +20,13 @@ async function launchWatercolour() {
 }
 
 // Separate function to initialize the Watercolour UI (for restoration)
-async function initializeWatercolourUI(win) {
+export async function initializeWatercolourUI(win) {
 
   // Load the watercolour logic immediately for restoration
   await initializeWatercolour();
 }
 
-function getWatercolourHTML() {
+export function getWatercolourHTML() {
   return `
 <div id="watercolour-container" style="background-color: #f3f4f6; position: relative; height: calc(100% - 0.25rem); margin-top: -0.5rem; margin: 0; padding: 0;">
   <!-- Top Menu Bar -->
@@ -144,7 +146,7 @@ function getWatercolourHTML() {
 `;
 }
 
-async function initializeWatercolour() {
+export async function initializeWatercolour() {
   // Add global functions for inline event handlers
   window.toggleFileDropdown = function(event) {
     event.stopPropagation();

@@ -1,4 +1,8 @@
-function toggleStartMenu() {
+import { windowStates, activeMediaWindow, navWindows, desktopSettings } from '../os/manage_data.js';
+import { createWindow, minimizeWindow, bringToFront } from './window.js';
+import { toggleButtonActiveState } from './main.js';
+
+export function toggleStartMenu() {
   const menu = document.getElementById('start-menu');
   menu.classList.toggle('hidden');
   toggleButtonActiveState('start-button');
@@ -17,7 +21,7 @@ function toggleStartMenu() {
   }
 }
 
-function minimizeAllWindows() {
+export function minimizeAllWindows() {
   for (const id in windowStates) {
     minimizeWindow(id);
   }
@@ -26,7 +30,7 @@ function minimizeAllWindows() {
   });
 }
 
-function openNav(title, content = '', dimensions = { type: 'default' }, windowType = 'default') {
+export function openNav(title, content = '', dimensions = { type: 'default' }, windowType = 'default') {
   if (navWindows[title]) {
     const existingWindow = document.getElementById(navWindows[title]);
     if (existingWindow) { bringToFront(existingWindow); return; }
@@ -35,7 +39,7 @@ function openNav(title, content = '', dimensions = { type: 'default' }, windowTy
   createWindow(title, content, true, null, false, false, dimensions, windowType);
 }
 
-function updateClock() {
+export function updateClock() {
   const clockEl = document.getElementById('clock');
   const now = new Date();
   let hours = now.getHours();
@@ -51,7 +55,7 @@ function updateClock() {
   clockEl.textContent = timeStr;
 }
 
-function toggleMediaPlayback() {
+export function toggleMediaPlayback() {
   const mediaEl = getActiveMediaElement();
   if (mediaEl) {
     mediaEl.paused ? mediaEl.play() : mediaEl.pause();
@@ -59,7 +63,7 @@ function toggleMediaPlayback() {
   }
 }
 
-function updateMediaControl() {
+export function updateMediaControl() {
   const mediaEl = getActiveMediaElement();
   const mediaControl = document.getElementById('media-control');
   if (mediaEl) {
@@ -69,7 +73,7 @@ function updateMediaControl() {
   }
 }
 
-function getActiveMediaElement() {
+export function getActiveMediaElement() {
   if (activeMediaWindow) {
     const win = document.getElementById(activeMediaWindow);
     if (win) {

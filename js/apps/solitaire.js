@@ -1,4 +1,7 @@
-function launchSolitaire() {
+import { storage } from '../os/indexeddb_storage.js';
+import { createWindow } from '../gui/window.js';
+
+export function launchSolitaire() {
   // Check if solitaire window already exists
   const existingWindow = document.getElementById('solitaire');
   if (existingWindow) {
@@ -29,7 +32,7 @@ function launchSolitaire() {
 }
 
 // Separate function to initialize the Solitaire UI (for restoration)
-async function initializeSolitaireUI(win) {
+export async function initializeSolitaireUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-green-600 h-full overflow-hidden';

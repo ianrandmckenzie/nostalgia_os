@@ -1,4 +1,8 @@
-function makeIconDraggable(icon) {
+import { getFileSystemState, saveState, desktopIconsState, fileSystemState, setFileSystemState } from '../os/manage_data.js';
+import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
+import { setupFolderDrop, setupDesktopDrop } from '../apps/file_explorer/drag_and_drop.js';
+
+export function makeIconDraggable(icon) {
   let isDragging = false;
   let startX, startY;
   let dragThreshold = 5; // Minimum distance to consider as drag
@@ -160,7 +164,7 @@ function updateDesktopSettings() {
 
 }
 
-async function renderDesktopIcons() {
+export async function renderDesktopIcons() {
   const desktopIconsContainer = document.getElementById('desktop-icons');
   desktopIconsContainer.innerHTML = "";
 
@@ -326,7 +330,7 @@ async function renderDesktopIcons() {
   }
 }
 
-function applyDesktopSettings() {
+export function applyDesktopSettings() {
   const desktop = document.getElementById('desktop');
   if (desktopSettings.bgColor) {
     desktop.style.backgroundColor = desktopSettings.bgColor;
@@ -472,4 +476,10 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
 }
 
 // Make renderDesktopIcons globally available for file management operations
-window.renderDesktopIcons = renderDesktopIcons;
+if (typeof window !== 'undefined') {
+  window.renderDesktopIcons = renderDesktopIcons;
+  window.makeIconDraggable = makeIconDraggable;
+
+  // Initialize desktop drop functionality
+  setupDesktopDrop();
+}

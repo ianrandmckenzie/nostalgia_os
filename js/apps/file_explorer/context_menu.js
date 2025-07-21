@@ -1,3 +1,12 @@
+import { getFileSystemStateSync, setFileSystemState } from './storage.js';
+import { findFolderFullPathById, findFolderObjectByFullPath } from './main.js';
+import { refreshExplorerViews, openExplorer } from './gui.js';
+import { setupFolderDrop } from './drag_and_drop.js';
+import { saveState } from '../../os/manage_data.js';
+import { createWindow } from '../../gui/window.js';
+import { makeWin95Button, toggleButtonActiveState } from '../../gui/main.js';
+import { renderDesktopIcons } from '../../gui/desktop.js';
+
 /* =====================
    Context Menu & Creation Functions
    (They now accept an optional fromFullPath parameter to determine the parent folder.)
@@ -49,7 +58,7 @@ document.addEventListener('click', function () {
   hideContextMenu();
 });
 
-function showContextMenu(e, target, fromFullPath) {
+export function showContextMenu(e, target, fromFullPath) {
   const menu = document.getElementById('context-menu');
 
   // clear old entries
@@ -208,7 +217,7 @@ function showContextMenu(e, target, fromFullPath) {
   menu.classList.remove('hidden');
 }
 
-function hideContextMenu() {
+export function hideContextMenu() {
   const menu = document.getElementById('context-menu');
   menu.classList.add('hidden');
 }
@@ -506,7 +515,7 @@ function deleteItem(e) {
   });
 }
 
-function createNewFolder(e, fromFullPath) {
+export function createNewFolder(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
   const parentPath = fromFullPath || 'C://';
@@ -606,7 +615,7 @@ function createNewFolder(e, fromFullPath) {
 /* =========================
    Create a new UGC file — no innerHTML
    ========================= */
-function createNewFile(e, fromFullPath, onCreated = null) {
+export function createNewFile(e, fromFullPath, onCreated = null) {
   if (e) e.stopPropagation();
   hideContextMenu();
 
@@ -1098,7 +1107,7 @@ function makeField(labelText, control) {
 }
 
 // Comprehensive function to refresh all explorer windows showing a specific path
-function refreshAllExplorerWindows(targetPath) {
+export function refreshAllExplorerWindows(targetPath) {
 
   // Find all explorer windows that are currently showing the target path
   const allExplorerWindows = document.querySelectorAll('.file-explorer-window');

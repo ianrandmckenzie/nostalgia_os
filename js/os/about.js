@@ -1,4 +1,6 @@
-async function openAboutWindow() {
+import { createWindow } from '../gui/window.js';
+
+export async function openAboutWindow() {
   const isReddit = window.location.href.includes('reddit.com');
   // Fetch version from package.json
   let version = '1.0.0'; // fallback version

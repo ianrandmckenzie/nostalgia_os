@@ -1,5 +1,7 @@
+import { storage } from '../os/indexeddb_storage.js';
+
 // Function to initialize a single editor container
-async function initializeLetterPad(container) {
+export async function initializeLetterPad(container) {
   // Skip if already initialized
   if (container.dataset.initialized === "true") return;
   container.dataset.initialized = "true";
@@ -244,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 // Global function to initialize any uninitialized LetterPad editors
 // This can be called during window restoration or other scenarios
-async function initializeAllLetterPadEditors() {
+export async function initializeAllLetterPadEditors() {
   const editors = document.querySelectorAll('.letterpad_editor:not([data-initialized="true"])');
 
   for (const container of editors) {
@@ -260,7 +262,7 @@ async function initializeAllLetterPadEditors() {
 window.initializeAllLetterPadEditors = initializeAllLetterPadEditors;
 
 // Helper to apply formatting (bold, italic, etc.)
-function applyFormatting(symbol, textarea) {
+export function applyFormatting(symbol, textarea) {
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
 
@@ -298,7 +300,7 @@ function applyFormatting(symbol, textarea) {
 
 
 // --- Markdown Conversion Function ---
-function convertMarkdownToHTML(text) {
+export function convertMarkdownToHTML(text) {
   let html = text;
   // Convert **bold** syntax
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');

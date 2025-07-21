@@ -1,4 +1,7 @@
-let fileSystemState = {
+import { storage } from './indexeddb_storage.js';
+import { applyDesktopSettings } from '../gui/desktop.js'
+
+export let fileSystemState = {
   folders: {
     "C://": {
       "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
@@ -21,9 +24,94 @@ let fileSystemState = {
   }
 };
 
+// Global state for windows (keyed by window id)
+export let windowStates = {};
+// Global state for desktop icons positions
+export let desktopIconsState = {};
+// Mapping for navigation windows to avoid duplicates
+export let navWindows = {};
+// Global desktop settings (background, clock seconds)
+export let desktopSettings = {
+  clockSeconds: false,
+  bgColor: "#20b1b1", // Default color now set to #20b1b1
+  bgImage: ""
+};
+// Global state for Start menu item order - will be initialized from storage
+export let startMenuOrder;
+/* Global mapping of file IDs to folder paths */
+export let fileFolderMapping = {};
+
+// Window management state
+export let highestZ = 100;
+export let activeMediaWindow = null; // ID of the active window with media
+
+// Setter functions for mutable module variables
+export function setStartMenuOrder(newOrder) {
+  startMenuOrder = newOrder;
+  if (typeof window !== 'undefined') {
+    window.startMenuOrder = newOrder;
+  }
+}
+
+export function setHighestZ(newValue) {
+  highestZ = newValue;
+  if (typeof window !== 'undefined') {
+    window.highestZ = newValue;
+  }
+}
+
+export function setActiveMediaWindow(newValue) {
+  activeMediaWindow = newValue;
+  if (typeof window !== 'undefined') {
+    window.activeMediaWindow = newValue;
+  }
+}
+
+export function setWindowStates(newStates) {
+  Object.assign(windowStates, newStates);
+  if (typeof window !== 'undefined') {
+    window.windowStates = windowStates;
+  }
+}
+
+export function setDesktopIconsState(newState) {
+  Object.assign(desktopIconsState, newState);
+  if (typeof window !== 'undefined') {
+    window.desktopIconsState = desktopIconsState;
+  }
+}
+
+export function setDesktopSettings(newSettings) {
+  Object.assign(desktopSettings, newSettings);
+  if (typeof window !== 'undefined') {
+    window.desktopSettings = desktopSettings;
+  }
+}
+
+export function clearWindowStates() {
+  Object.keys(windowStates).forEach(key => delete windowStates[key]);
+  if (typeof window !== 'undefined') {
+    window.windowStates = windowStates;
+  }
+}
+
+export function clearDesktopIconsState() {
+  Object.keys(desktopIconsState).forEach(key => delete desktopIconsState[key]);
+  if (typeof window !== 'undefined') {
+    window.desktopIconsState = desktopIconsState;
+  }
+}
+
 // Expose globally for consistency across modules
 if (typeof window !== 'undefined') {
   window.fileSystemState = fileSystemState;
+  window.windowStates = windowStates;
+  window.desktopIconsState = desktopIconsState;
+  window.navWindows = navWindows;
+  window.desktopSettings = desktopSettings;
+  window.fileFolderMapping = fileFolderMapping;
+  window.highestZ = highestZ;
+  window.activeMediaWindow = activeMediaWindow;
 }
 
 // Flag to prevent saving during initialization
@@ -34,7 +122,7 @@ if (typeof window !== 'undefined') {
   window.isInitializing = isInitializing;
 }
 
-async function saveState() {
+export async function saveState() {
   if (isInitializing) {
     return;
   }
@@ -72,11 +160,11 @@ if (typeof window !== 'undefined') {
   window.saveState = saveState;
 }
 
-function getFileSystemState() {
+export function getFileSystemState() {
   return fileSystemState;
 }
 
-function setFileSystemState(newState) {
+export function setFileSystemState(newState) {
   fileSystemState = newState;
   // Also expose globally for consistency
   if (typeof window !== 'undefined') {
@@ -84,7 +172,7 @@ function setFileSystemState(newState) {
   }
 }
 
-function updateContent(windowId, newContent) {
+export function updateContent(windowId, newContent) {
   if (windowStates[windowId]) {
     windowStates[windowId].content = newContent;
     saveState(); // Fire and forget - this is not critical for data integrity
@@ -414,7 +502,7 @@ function migrateFileSystemToUnifiedStructure(fs) {
   return fs;
 }
 
-async function initializeAppState() {
+export async function initializeAppState() {
   isInitializing = true; // Prevent saves during initialization
   if (typeof window !== 'undefined') {
     window.isInitializing = true;
@@ -619,7 +707,7 @@ async function restoreFileSystemState() {
   }
 }
 
-async function restoreWindows() {
+export async function restoreWindows() {
   // Window states are already loaded in windowStates during initializeAppState()
   // Just need to recreate the windows from the loaded state
   if (windowStates && Object.keys(windowStates).length > 0) {
@@ -1046,14 +1134,20 @@ async function simulateRestart() {
 }
 
 // Make debug functions globally available
-window.debugWindowStates = debugWindowStates;
-window.forceSaveState = forceSaveState;
-window.testAppRestoration = testAppRestoration;
-window.testAppReinitialization = testAppReinitialization;
-window.testBombbroomerInit = testBombbroomerInit;
-window.testDataIntegrity = testDataIntegrity;
-window.testSessionPersistence = testSessionPersistence;
-window.simulateRestart = simulateRestart;// Add beforeunload handler to ensure data is saved before page closes
+if (typeof window !== 'undefined') {
+  window.debugWindowStates = debugWindowStates;
+  window.forceSaveState = forceSaveState;
+  window.testAppRestoration = testAppRestoration;
+  window.testAppReinitialization = testAppReinitialization;
+  window.testBombbroomerInit = testBombbroomerInit;
+  window.testDataIntegrity = testDataIntegrity;
+  window.testSessionPersistence = testSessionPersistence;
+  window.simulateRestart = simulateRestart;
+  window.saveState = saveState;
+  window.getFileSystemState = getFileSystemState;
+  window.setFileSystemState = setFileSystemState;
+  window.updateContent = updateContent;
+}// Add beforeunload handler to ensure data is saved before page closes
 window.addEventListener('beforeunload', async (event) => {
   try {
     // Force immediate save using sync method to ensure it completes before unload
@@ -1079,7 +1173,7 @@ setInterval(async () => {
   }
 }, 30000); // Save every 30 seconds
 
-async function restoreDesktopIcons() {
+export async function restoreDesktopIcons() {
   // Desktop icon positions are already loaded into desktopIconsState during initializeAppState()
   // Just apply them to the existing icons
   for (const iconId in desktopIconsState) {

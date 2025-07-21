@@ -1,5 +1,6 @@
-// Mailbox app – no innerHTML anywhere
-function launchMailbox() {
+import { createWindow, closeWindow } from '../gui/window.js';
+
+export function launchMailbox() {
   // Check if running in Reddit context and prevent launch
   const isReddit = window.location.href.includes('reddit.com');
   if (isReddit) {

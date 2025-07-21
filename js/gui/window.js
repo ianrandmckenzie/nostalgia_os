@@ -1,5 +1,9 @@
+import { saveState, windowStates, navWindows, highestZ, activeMediaWindow, setHighestZ, setActiveMediaWindow } from '../os/manage_data.js';
+import { setupFolderDrop } from '../apps/file_explorer/drag_and_drop.js';
+import { toggleButtonActiveState } from './main.js';
+
 // Function to get app icon based on window ID or title
-function getAppIcon(windowId, title) {
+export function getAppIcon(windowId, title) {
   // Map of app window IDs to their icons
   const appIconMap = {
     'calculator': 'image/calculator.png',
@@ -111,7 +115,7 @@ function getAppIcon(windowId, title) {
   return null;
 }
 
-function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white') {
+export function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white') {
   let contentToPrint = content;
   if (!windowId) {
     windowId = 'window-' + Date.now();
@@ -318,7 +322,7 @@ function createWindow(title, content, isNav = false, windowId = null, initialMin
   return win;
 }
 
-function minimizeWindow(windowId) {
+export function minimizeWindow(windowId) {
   const win = document.getElementById(windowId);
   if (win) {
     win.style.display = 'none';
@@ -333,7 +337,7 @@ function minimizeWindow(windowId) {
   }
 }
 
-function bringToFront(win) {
+export function bringToFront(win) {
   if (win.style.display === 'none') {
     win.style.display = 'block';
     if (windowStates[win.id]) {
@@ -341,7 +345,7 @@ function bringToFront(win) {
       saveState();
     }
   }
-  highestZ++;
+  setHighestZ(highestZ + 1);
   win.style.zIndex = highestZ;
   document.querySelectorAll('#window-tabs > div').forEach(tab => tab.classList.remove('bg-gray-50'));
   const activeTab = document.getElementById('tab-' + win.id);
@@ -349,18 +353,18 @@ function bringToFront(win) {
     activeTab.classList.add('bg-gray-50');
   }
   if (win.querySelector("video, audio")) {
-    activeMediaWindow = win.id;
+    setActiveMediaWindow(win.id);
     updateMediaControl();
   }
 }
 
-function closeWindow(windowId) {
+export function closeWindow(windowId) {
   const win = document.getElementById(windowId);
   if (win) win.remove();
   const tab = document.getElementById('tab-' + windowId);
   if (tab) tab.remove();
   if (activeMediaWindow === windowId) {
-    activeMediaWindow = null;
+    setActiveMediaWindow(null);
     updateMediaControl();
   }
   delete windowStates[windowId];
@@ -425,7 +429,7 @@ function makeResizable(el) {
   });
 }
 
-function toggleFullScreen(winId) {
+export function toggleFullScreen(winId) {
   const win = document.getElementById(winId);
   if (!win) return;
   let state = windowStates[winId];
@@ -463,7 +467,7 @@ function openWindow(id, content = '', dimensions = { type: 'default' }, windowTy
   return createWindow(id, content === '' ? 'Content for ' + id : content, false, null, false, false, dimensions, windowType, parentWin);
 }
 
-function showDialogBox(message, dialogType, onConfirm = null, onCancel = null) {
+export function showDialogBox(message, dialogType, onConfirm = null, onCancel = null) {
   const uniqueWindowId = 'dialogWindow-' + Date.now();
 
   // Determine if this is a confirmation dialog that needs OK/Cancel buttons

@@ -1,3 +1,5 @@
+import { storage } from '../../os/indexeddb_storage.js';
+
 /* =====================
    Getter & Setter for fileSystemState
    Always retrieve and update state from IndexedDB.
@@ -23,7 +25,7 @@ async function getFileSystemState() {
   return fileSystemState;
 }
 
-async function setFileSystemState(newFS) {
+export async function setFileSystemState(newFS) {
   try {
     const appState = await storage.getItem('appState') || {};
     appState.fileSystemState = newFS;
@@ -43,7 +45,7 @@ async function setFileSystemState(newFS) {
   }
 }
 
-function getFileSystemStateSync() {
+export function getFileSystemStateSync() {
   try {
     const appState = storage.getItemSync('appState');
     if (appState && appState.fileSystemState) {
@@ -75,7 +77,7 @@ function getFileSystemStateSync() {
    Since each folder’s contents are stored under its fullPath key,
    we simply return fs.folders[fullPath] or {} if not present.
 ====================== */
-function getItemsForPath(fullPath) {
+export function getItemsForPath(fullPath) {
   fullPath = normalizePath(fullPath);
   const fs = getFileSystemStateSync();
   if (fs.initialized !== true) fetchDocumentsSync();

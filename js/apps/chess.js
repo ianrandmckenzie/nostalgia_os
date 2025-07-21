@@ -1,4 +1,7 @@
-function launchChess() {
+import { storage } from '../os/indexeddb_storage.js';
+import { createWindow } from '../gui/window.js';
+
+export function launchChess() {
   // Check if chess window already exists
   const existingWindow = document.getElementById('chess');
   if (existingWindow) {
@@ -31,7 +34,7 @@ function launchChess() {
 }
 
 // Separate function to initialize the Chess UI (for restoration)
-async function initializeChessUI(win) {
+export async function initializeChessUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-4 bg-white h-full overflow-hidden';

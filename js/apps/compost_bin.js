@@ -1,6 +1,11 @@
 // Compost Bin - A parody successor to the Recycle Bin
+import { getFileSystemStateSync, setFileSystemState } from './file_explorer/storage.js';
+import { saveState } from '../os/manage_data.js';
+import { createWindow, showDialogBox } from '../gui/window.js';
+import { renderDesktopIcons } from '../gui/desktop.js';
+import { makeWin95Button } from '../gui/main.js';
 
-function launchCompostBin() {
+export function launchCompostBin() {
   // Check if compost bin window already exists
   const existingWindow = document.getElementById('compost-bin');
   if (existingWindow) {
@@ -74,7 +79,7 @@ function launchCompostBin() {
   content.appendChild(binContainer);
 }
 
-function loadCompostBinContents(container) {
+export function loadCompostBinContents(container) {
   const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']
@@ -203,7 +208,7 @@ async function moveItemToCompostBin(itemId, fromPath) {
   }
 }
 
-function emptyCompostBin() {
+export function emptyCompostBin() {
   const fs = getFileSystemStateSync();
 
   // Use unified structure: look for compost bin in fs.folders['C://Desktop']

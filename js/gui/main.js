@@ -1,4 +1,4 @@
-function toggleButtonActiveState(id, rename = null) {
+export function toggleButtonActiveState(id, rename = null) {
   let btn;
   if (typeof id !== 'string') {
     btn = id;
@@ -56,7 +56,7 @@ window.addEventListener('unhandledrejection', function(event) {
 })
 
 // Global helper function for Watercolour app to open file explorer for image selection
-function openFileExplorerForImageSelection(callback) {
+export function openFileExplorerForImageSelection(callback) {
   // Store the callback globally so file selection can access it
   window.watercolourImageSelectionCallback = callback;
   window.watercolourSelectedFile = null; // Reset selection
@@ -167,7 +167,7 @@ function openFileExplorerForImageSelection(callback) {
 }
 
 // Create a menu/form button with Win-95 raised edges
-function makeWin95Button(label) {
+export function makeWin95Button(label) {
   const btn  = document.createElement('button');
   btn.className = 'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
   const span = document.createElement('span');
@@ -178,7 +178,7 @@ function makeWin95Button(label) {
 }
 
 // Windows 95-style prompt dialog replacement
-function makeWin95Prompt(message, defaultValue = '', onConfirm = null, onCancel = null) {
+export function makeWin95Prompt(message, defaultValue = '', onConfirm = null, onCancel = null) {
   const uniqueWindowId = 'promptWindow-' + Date.now();
 
   // Create the dialog window content

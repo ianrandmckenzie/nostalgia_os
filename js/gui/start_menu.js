@@ -1,3 +1,6 @@
+import { startMenuOrder, saveState } from '../os/manage_data.js';
+import { storage } from '../os/indexeddb_storage.js';
+
 // Start Menu Drag and Drop Functionality
 
 // Default start menu configuration
@@ -1605,7 +1608,7 @@ window.testRestore = function() {
 };
 
 // Initialize start menu on page load
-function initializeStartMenu() {
+export function initializeStartMenu() {
   console.log('🚀 Initializing start menu system...');
 
   // Generate initial menu or restore from saved state

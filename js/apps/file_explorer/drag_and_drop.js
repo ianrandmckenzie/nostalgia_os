@@ -1,3 +1,5 @@
+import { getFileSystemStateSync } from './storage.js'
+
 function setupFolderDrop() {
   // Use requestAnimationFrame to ensure DOM is ready
   requestAnimationFrame(() => {
@@ -533,9 +535,6 @@ function setupDesktopDrop() {
   }
 }
 
-// Call setupDesktopDrop when the script loads
-setupDesktopDrop();
-
 // Function to move an item from file explorer to desktop
 async function moveItemToDesktop(itemId) {
   const fs = getFileSystemStateSync();
@@ -575,5 +574,5 @@ async function moveItemToDesktop(itemId) {
   renderDesktopIcons();
 }
 
-// Call setupDesktopDrop when the script loads
-setupDesktopDrop();
+// Export functions for use by other modules
+export { setupFolderDrop, setupDesktopDrop };

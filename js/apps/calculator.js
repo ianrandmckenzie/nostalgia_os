@@ -1,4 +1,7 @@
-function launchCalculator() {
+import { storage } from '../os/indexeddb_storage.js';
+import { createWindow } from '../gui/window.js';
+
+export function launchCalculator() {
   // Check if calculator window already exists
   const existingWindow = document.getElementById('calculator');
   if (existingWindow) {
@@ -31,7 +34,7 @@ function launchCalculator() {
 }
 
 // Separate function to initialize the Calculator UI (for restoration)
-async function initializeCalculatorUI(win) {
+export async function initializeCalculatorUI(win) {
 
   // Get the content area
   const content = win.querySelector('.p-2');

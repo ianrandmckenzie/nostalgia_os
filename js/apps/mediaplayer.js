@@ -1,3 +1,7 @@
+// Import required functions
+import { createWindow } from '../gui/window.js';
+import { getFileSystemStateSync } from './file_explorer/storage.js';
+
 function launchMediaPlayer() {
   // Check if media player window already exists
   const existingWindow = document.getElementById('mediaplayer');
@@ -788,3 +792,13 @@ async function clearMediaPlayerState() {
     }
   }
 }
+
+// Export functions
+export {
+  launchMediaPlayer,
+  initializeMediaPlayerUI,
+  restoreMediaPlayerSession,
+  saveMediaPlayerState,
+  loadMediaPlayerState,
+  clearMediaPlayerState
+};

@@ -1,4 +1,4 @@
-function openApp(id) {
+export function openApp(id) {
   const existingWindow = document.getElementById(id);
   if (existingWindow) {
     const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));

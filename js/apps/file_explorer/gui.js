@@ -3,7 +3,13 @@
    Now accepts a folderId. It finds the folder's fullPath and refreshes the explorer.
    Updated to support multiple File Explorer windows with optional forceNewWindow parameter.
 ====================== */
-function openExplorer(folderIdOrPath, forceNewWindow = false) {
+import { getItemsForPath } from './storage.js'
+import { findFolderFullPathById, findFolderObjectByFullPath } from './main.js';
+import { setupFolderDrop } from './drag_and_drop.js';
+import { saveState } from '../../os/manage_data.js';
+import { createWindow, bringToFront } from '../../gui/window.js';
+
+export function openExplorer(folderIdOrPath, forceNewWindow = false) {
   let fullPath;
 
   // Check if it's already a full path (starts with drive letter and contains ://)
@@ -63,7 +69,7 @@ function openExplorer(folderIdOrPath, forceNewWindow = false) {
    Always opens a folder in a new File Explorer window with debouncing
    to prevent multiple windows from opening on rapid double-clicks
 ====================== */
-function openExplorerInNewWindow(folderIdOrPath) {
+export function openExplorerInNewWindow(folderIdOrPath) {
   // Debounce mechanism to prevent multiple windows opening rapidly
   const debounceKey = `openExplorer_${folderIdOrPath}`;
   const now = Date.now();
@@ -98,7 +104,7 @@ function openExplorerInNewWindow(folderIdOrPath) {
 window.openExplorerInNewWindow = openExplorerInNewWindow;
 
 // Todo: this shit dont work!
-function refreshExplorerViews() {
+export function refreshExplorerViews() {
   document.querySelectorAll('.file-explorer-window').forEach(explorer => {
     const currentPath = explorer.getAttribute('data-current-path');
     const newElementTxt = getExplorerWindowContent(currentPath);
@@ -114,7 +120,7 @@ function refreshExplorerViews() {
  * Each <span> has data-path="…" so the global delegated
  * click-handler (see §3) still works.
  */
-function getBreadcrumbsHtml(fullPath) {
+export function getBreadcrumbsHtml(fullPath) {
   fullPath = normalizePath(fullPath);
 
   const m = fullPath.match(/^([A-Z]:\/\/)(.*)/);
@@ -144,7 +150,7 @@ function getBreadcrumbsHtml(fullPath) {
    File Explorer Window Content
    Returns HTML for a file explorer window given a fullPath.
 ====================== */
-function getExplorerWindowContent(currentPath = 'C://') {
+export function getExplorerWindowContent(currentPath = 'C://') {
   currentPath = normalizePath(currentPath);
 
   /* ─────────────────────────────────────────────────────────
@@ -423,7 +429,7 @@ document.addEventListener('click', e => {
 });
 
 // Looks up a file by its ID (from desktop or current folder) and opens it.
-function openFile(incoming_file, e) {
+export function openFile(incoming_file, e) {
   const existingWindow = document.getElementById(incoming_file);
   if (existingWindow) {
     const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
@@ -839,7 +845,7 @@ function openShortcut(target) {
 }
 
 // Enhanced file opening that can handle image selection for Watercolour
-function handleWatercolourImageSelection(file) {
+export function handleWatercolourImageSelection(file) {
   if (!file || !window.watercolourImageSelectionCallback) {
     return false;
   }
@@ -930,7 +936,7 @@ function getCurrentPath() {
 ====================== */
 
 // Save file explorer state to IndexedDB
-async function saveFileExplorerState() {
+export async function saveFileExplorerState() {
   try {
     const explorerWindow = document.getElementById('explorer-window');
     if (explorerWindow) {

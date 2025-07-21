@@ -1,4 +1,7 @@
-function launchBombbroomer() {
+import { storage } from '../os/indexeddb_storage.js';
+import { createWindow } from '../gui/window.js';
+
+export function launchBombbroomer() {
   // Check if bombbroomer window already exists
   const existingWindow = document.getElementById('bombbroomer');
   if (existingWindow) {
@@ -31,7 +34,7 @@ function launchBombbroomer() {
 }
 
 // Separate function to initialize the Bombbroomer UI (for restoration)
-async function initializeBombbroomerUI(win) {
+export async function initializeBombbroomerUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-gray-200 h-full overflow-hidden';

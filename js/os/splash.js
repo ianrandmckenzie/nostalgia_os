@@ -1,4 +1,4 @@
-function showSplash() {
+export function showSplash() {
   const splashDiv = document.createElement('div');
   splashDiv.className = 'w-3xl fixed left-0 top-0 h-full w-full bg-gradient-to-b from-40% from-blue-500 to-cyan-500';
   splashDiv.id = "splash-screen";
@@ -36,7 +36,7 @@ function showSplash() {
   });
 }
 
-function showOSLoading() {
+export function showOSLoading() {
   const splashDiv = document.createElement('div');
   splashDiv.className = 'w-3xl fixed left-0 top-0 h-full w-full bg-gradient-to-b from-blue-500 to-cyan-500';
   splashDiv.id = "splash-screen";
@@ -52,6 +52,12 @@ function showOSLoading() {
   setTimeout(function () {
     splashDiv.remove();
   }, 3000);
+}
+
+// Make functions globally available for backward compatibility
+if (typeof window !== 'undefined') {
+  window.showSplash = showSplash;
+  window.showOSLoading = showOSLoading;
 }
 
 // showOSLoading();

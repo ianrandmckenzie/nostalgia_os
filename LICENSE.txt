@@ -1,4 +1,4 @@
-Copyright © Ian Rand McKenzie unless otherwise stated elsewhere in this repository.
+Copyright © Ian Rand McKenzie, All Rights Reserved Where Applicable.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

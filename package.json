@@ -3,27 +3,48 @@
   "version": "1.0.0",
   "description": "A website in the style of old-school operating systems.",
   "main": "cache.tailwind.js",
+  "private": true,
   "scripts": {
-    "dev": "python3 -m http.server 8888",
-    "build": "echo 'No build step needed for static HTML'",
+    "dev": "vite",
+    "build": "vite build --outDir docs",
+    "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "android:init": "tauri android init",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build",
+    "android:build:release": "tauri android build --release",
+    "ios:init": "tauri ios init",
+    "ios:dev": "tauri ios dev",
+    "ios:build": "tauri ios build",
+    "ios:build:release": "tauri ios build --release",
+    "lint": "eslint js/**/*.js",
+    "lint:security": "eslint --ext .js js/ --config .eslintrc.json",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "security-check": "npm run lint:security && npm run audit"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ianrandmckenzie/nostalgia_os.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "author": "Ian Rand McKenzie",
+  "license": "Copyright © Ian Rand McKenzie 2025, All Rights Reserved where applicable.",
   "bugs": {
     "url": "https://github.com/ianrandmckenzie/nostalgia_os/issues"
   },
-  "homepage": "https://github.com/ianrandmckenzie/nostalgia_os#readme",
+  "type": "module",
+  "homepage": "https://nos.relentlesscurious.com",
   "devDependencies": {
-    "@tauri-apps/cli": "^2.6.2"
+    "@tailwindcss/vite": "^4.1.10",
+    "@tauri-apps/cli": "^2.6.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.1",
+    "eslint-plugin-security": "^1.7.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.10",
+    "vite": "^6.3.5"
   }
 }

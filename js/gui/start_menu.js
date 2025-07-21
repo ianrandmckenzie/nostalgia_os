@@ -212,7 +212,7 @@ function createGroupItem(item) {
       </div>
       <span class="lg:rotate-0 text-xs">&#9654;</span>
     </a>
-    <ul class="submenu hidden lg:group-hover:block pl-4 bg-gray-100 lg:pl-0 lg:absolute lg:left-full lg:bottom-0 lg:w-48 lg:border-r lg:border-t lg:border-b lg:border-gray-500" data-submenu-container data-group-id="${item.id}">
+    <ul class="submenu hidden pl-4 bg-gray-100 lg:pl-0 lg:absolute lg:left-full lg:bottom-0 lg:w-48 lg:bg-white lg:border lg:border-gray-500 lg:shadow-lg" data-submenu-container data-group-id="${item.id}">
       ${submenuItems}
     </ul>
   `;
@@ -234,6 +234,58 @@ function createGroupItem(item) {
       setupContextMenu(subLi, subItemData, true, item.id);
     }
   });
+
+  // Add responsive submenu behavior
+  const submenuTrigger = li.querySelector('[data-submenu-trigger]');
+  const submenuContainer = li.querySelector('[data-submenu-container]');
+
+  if (submenuTrigger && submenuContainer) {
+    let hoverTimeout;
+
+    // Check if device has hover capability (desktop)
+    const hasHover = window.matchMedia('(hover: hover)').matches;
+
+    if (hasHover) {
+      // Desktop behavior: hover to show submenu to the right
+      li.addEventListener('mouseenter', () => {
+        clearTimeout(hoverTimeout);
+        submenuContainer.classList.remove('hidden');
+        submenuContainer.classList.add('block');
+      });
+
+      li.addEventListener('mouseleave', () => {
+        hoverTimeout = setTimeout(() => {
+          submenuContainer.classList.add('hidden');
+          submenuContainer.classList.remove('block');
+        }, 100);
+      });
+    } else {
+      // Mobile behavior: tap to toggle submenu below
+      submenuTrigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const isVisible = !submenuContainer.classList.contains('hidden');
+
+        // Hide all other submenus first
+        document.querySelectorAll('[data-submenu-container]').forEach(menu => {
+          if (menu !== submenuContainer) {
+            menu.classList.add('hidden');
+            menu.classList.remove('block');
+          }
+        });
+
+        // Toggle this submenu
+        if (isVisible) {
+          submenuContainer.classList.add('hidden');
+          submenuContainer.classList.remove('block');
+        } else {
+          submenuContainer.classList.remove('hidden');
+          submenuContainer.classList.add('block');
+        }
+      });
+    }
+  }
 
   return li;
 }
@@ -711,7 +763,8 @@ function setupStartMenuDropZones() {
       const submenus = startMenu.querySelectorAll('[data-submenu-container]');
       submenus.forEach(submenu => {
         submenu.classList.remove('block');
-        submenu.classList.add('hidden', 'lg:group-hover:block');
+        // Don't add 'hidden' class as it conflicts with lg:group-hover:block
+        // The initial 'hidden' class in the HTML is sufficient
       });
     }
   });

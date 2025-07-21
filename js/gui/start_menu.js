@@ -8,6 +8,12 @@ const DEFAULT_START_MENU_ITEMS = [
     icon: 'image/computer.png',
     type: 'item'
   },
+  // {
+  //   id: 'mailapp',
+  //   text: 'Mailbox',
+  //   icon: 'image/mail.png',
+  //   type: 'item'
+  // },
   {
     id: 'mediaapp',
     text: 'Media Player',
@@ -261,6 +267,9 @@ function handleStartMenuItemClick(itemId) {
     case 'storageapp':
       if (typeof openApp === 'function') openApp('storage');
       break;
+    // case 'mailapp':
+    //   if (typeof launchMailbox === 'function') launchMailbox();
+    //   break;
     case 'watercolourapp':
       if (typeof openApp === 'function') openApp('watercolour');
       break;

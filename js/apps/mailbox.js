@@ -1,7 +1,8 @@
 // Mailbox app – no innerHTML anywhere
 function launchMailbox() {
   // Check if running in Reddit context and prevent launch
-  if (!isReddit) {
+  const isReddit = window.location.href.includes('reddit.com');
+  if (isReddit) {
     // Check if error dialog is already open to prevent duplicates
     if (document.getElementById('mailbox-error')) {
       return;
@@ -89,187 +90,39 @@ function launchMailbox() {
   detailPane.appendChild(placeholder);
 
   // ──────────────────────────────────────────────────────
-  // 4.  Fetch and render message list
+  // 4.  Fetch and render message list from API
   // ──────────────────────────────────────────────────────
-  const messageData = {
-    "submissions": [
-      {
-        "id": "13c7d1b4-20d6-4ad9-8e9a-fd1b9efb947c",
-        "email": "user1@aol.com",
-        "textarea": "Hey, you have to see this new site I found on the World Wide Web — it's got dancing baby GIFs and everything!",
-        "subject": "You've Got Mail!",
-        "public": false,
-        "files": {
-          "file-111": {
-            "id": "file-111",
-            "name": "dancing_baby",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "url": "./dancing_baby.jpeg"
-          },
-          "file-222": {
-            "id": "file-222",
-            "name": "trip_photo",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "contents": "./trip_photo.jpeg"
-          }
-        }
-      },
-      {
-        "id": "9dcf2790-4a88-46e2-8f25-b1219872c3d0",
-        "email": "user2@aol.com",
-        "textarea": "Forward this email to 10 friends or you'll have bad luck for 7 years. I'm not kidding, it happened to my cousin!",
-        "subject": "Check Out This New Website",
-        "public": false,
-        "files": {
-          "file-333": {
-            "id": "file-333",
-            "name": "y2k_notes",
-            "type": "ugc-file",
-            "content_type": "txt",
-            "contents": "./y2k_notes.txt"
-          }
-        }
-      },
-      {
-        "id": "c4aab6ea-cd12-42ef-8800-296cf85c84ec",
-        "email": "user3@aol.com",
-        "textarea": "I'm using Internet Explorer 5 now, and it's kinda slow... should I go back to Netscape Navigator?",
-        "subject": "Funny Chain Email 😂",
-        "public": false,
-        "files": {
-          "file-111": {
-            "id": "file-111",
-            "name": "dancing_baby",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "url": "./dancing_baby.jpeg"
-          }
-        }
-      },
-      {
-        "id": "287d4d2a-b8a4-4f2a-82e9-d802d6f3c487",
-        "email": "user4@aol.com",
-        "textarea": "Attached are some photos from the party. Scanned them with my HP scanner, took forever!",
-        "subject": "AOL Keyword: Cool",
-        "public": false,
-        "files": {
-          "file-222": {
-            "id": "file-222",
-            "name": "trip_photo",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "contents": "./trip_photo.jpeg"
-          }
-        }
-      },
-      {
-        "id": "19e34e2d-d257-4e9a-b589-50f70114c010",
-        "email": "user5@aol.com",
-        "textarea": "Can you help me center this animated GIF on my homepage? The <marquee> tag keeps messing it up.",
-        "subject": "Netscape 4.5 Update",
-        "public": false,
-        "files": {
-          "file-333": {
-            "id": "file-333",
-            "name": "y2k_notes",
-            "type": "ugc-file",
-            "content_type": "txt",
-            "contents": "./y2k_notes.txt"
-          }
-        }
-      },
-      {
-        "id": "1f839e50-8c86-4b68-b9e1-87a93d567689",
-        "email": "user6@aol.com",
-        "textarea": "Winamp really *does* whip the llama's ass. Try the new skin I made!",
-        "subject": "Winamp Skin Attached",
-        "public": false,
-        "files": {
-          "file-111": {
-            "id": "file-111",
-            "name": "dancing_baby",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "url": "./dancing_baby.jpeg"
-          },
-          "file-333": {
-            "id": "file-333",
-            "name": "y2k_notes",
-            "type": "ugc-file",
-            "content_type": "txt",
-            "contents": "./y2k_notes.txt"
-          }
-        }
-      },
-      {
-        "id": "80f8f0e7-fb30-44fc-bd7d-6d35cd1c2edc",
-        "email": "user7@aol.com",
-        "textarea": "Here's my new ICQ number. Add me: 127385439!",
-        "subject": "Need Help With My Angelfire Page",
-        "public": false,
-        "files": {
-          "file-222": {
-            "id": "file-222",
-            "name": "trip_photo",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "contents": "./trip_photo.jpeg"
-          }
-        }
-      },
-      {
-        "id": "8cd56ac4-31f5-4497-b768-91eacc315769",
-        "email": "user8@aol.com",
-        "textarea": "This Y2K thing is getting serious. My uncle's stocking up on water and canned goods.",
-        "subject": "Pics From Our Trip!",
-        "public": false,
-        "files": {
-          "file-333": {
-            "id": "file-333",
-            "name": "y2k_notes",
-            "type": "ugc-file",
-            "content_type": "txt",
-            "contents": "./y2k_notes.txt"
-          }
-        }
-      },
-      {
-        "id": "e91a4743-89cc-44df-a99e-96c81283f146",
-        "email": "user9@aol.com",
-        "textarea": "AOL's charging for every minute now?! Thinking of switching to Earthlink.",
-        "subject": "Re: Y2K Concerns",
-        "public": false,
-        "files": {
-          "file-222": {
-            "id": "file-222",
-            "name": "trip_photo",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "contents": "./trip_photo.jpeg"
-          }
-        }
-      },
-      {
-        "id": "6643c74d-00c8-4291-a1b3-d080e8c03cb6",
-        "email": "user10@aol.com",
-        "textarea": "My Geocities site now has a MIDI file playing automatically. Let me know if it's too loud.",
-        "subject": "Geocities Link Inside",
-        "public": false,
-        "files": {
-          "file-111": {
-            "id": "file-111",
-            "name": "dancing_baby",
-            "type": "ugc-file",
-            "content_type": "jpg",
-            "url": "./dancing_baby.jpeg"
-          }
-        }
+
+  // Helper function to parse API submission data
+  function parseSubmissionData(apiData) {
+    const submissionGroups = {};
+
+    apiData.forEach(field => {
+      const submissionId = field.creator_model_id;
+      if (!submissionGroups[submissionId]) {
+        submissionGroups[submissionId] = {
+          id: submissionId,
+          fields: {},
+          created_at: field.created_at,
+          updated_at: field.updated_at
+        };
       }
 
-    ]
-  };
+      submissionGroups[submissionId].fields[field.html_input_label] = {
+        content: field.string_content || '',
+        fieldId: field.id
+      };
+    });
+
+    return Object.values(submissionGroups).map(group => ({
+      id: group.id,
+      email: group.fields.email?.content || group.fields.name?.content || 'Unknown',
+      textarea: group.fields.message?.content || '',
+      subject: group.fields.subject?.content || 'No Subject',
+      public: false,
+      files: {} // Files not supported in this API format
+    }));
+  }
 
   function loadMessages() {
     try {
@@ -278,14 +131,34 @@ function launchMailbox() {
         listPane.removeChild(listPane.lastChild);
       }
 
-      messageData.submissions.forEach(sub => {
-        const item = document.createElement('div');
-        item.className =
-          'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
-        item.textContent = sub.subject || sub.email;
-        item.addEventListener('click', () => showMessage(sub));
-        listPane.appendChild(item);
-      });
+      // Fetch messages from API
+      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch submissions');
+          }
+          return response.json();
+        })
+        .then(result => {
+          const submissions = parseSubmissionData(result.data);
+
+          submissions.forEach(sub => {
+            const item = document.createElement('div');
+            item.className =
+              'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
+            item.textContent = sub.subject || sub.email;
+            item.addEventListener('click', () => showMessage(sub));
+            listPane.appendChild(item);
+          });
+        })
+        .catch(err => {
+          console.error('Error loading messages:', err);
+          // Add error message to UI
+          const errorItem = document.createElement('div');
+          errorItem.className = 'p-2 text-red-500 text-sm';
+          errorItem.textContent = 'Failed to load messages';
+          listPane.appendChild(errorItem);
+        });
     } catch (err) {
       console.error('Error loading messages:', err);
     }
@@ -419,13 +292,23 @@ function launchMailbox() {
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Message', msgArea));
 
-    // Attachment
-    const fileInput = document.createElement('input');
-    fileInput.type  = 'file';
-    fileInput.name  = 'attachment';
-    fileInput.required = true;
-    fileInput.className = 'mt-1 block w-full';
-    form.appendChild(makeField('Attachment (at least one required)', fileInput));
+    // Phone (optional)
+    const phoneInput = document.createElement('input');
+    phoneInput.type  = 'tel';
+    phoneInput.name  = 'phone';
+    phoneInput.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2';
+    form.appendChild(makeField('Phone (optional)', phoneInput));
+
+    // Company (optional)
+    const companyInput = document.createElement('input');
+    companyInput.type  = 'text';
+    companyInput.name  = 'company';
+    companyInput.className =
+      'mt-1 block w-full border border-gray-300 rounded p-2';
+    form.appendChild(makeField('Company (optional)', companyInput));
+
+    // Remove attachment field as API doesn't support files
 
     // Buttons
     const btnRow  = document.createElement('div');
@@ -453,18 +336,45 @@ function launchMailbox() {
     form.addEventListener('submit', e => {
       e.preventDefault();
       const fd = new FormData(form);
-      if (!fd.get('attachment') || !fd.get('attachment').name) {
-        showDialogBox('Please attach at least one file.', 'error');
-        return;
-      }
-      fetch('/api/submissions', { method: 'POST', body: fd })
+
+      // Prepare data for API submission
+      const formData = {
+        name: fd.get('from'),
+        email: fd.get('from'),
+        subject: fd.get('subject') || 'No Subject',
+        message: fd.get('message'),
+        phone: fd.get('phone') || '',
+        company: fd.get('company') || ''
+      };
+
+      const data = {
+        creator_model: {
+          title: `Contact: ${formData.subject}`,
+          creator_fields_attributes: {
+            "0": { html_input_label: "name", string_content: formData.name },
+            "1": { html_input_label: "email", string_content: formData.email },
+            "2": { html_input_label: "phone", string_content: formData.phone },
+            "3": { html_input_label: "company", string_content: formData.company },
+            "4": { html_input_label: "subject", string_content: formData.subject },
+            "5": { html_input_label: "message", string_content: formData.message }
+          }
+        }
+      };
+
+      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
         .then(r => {
           if (r.ok) {
             showDialogBox('Message sent successfully!', 'success');
             loadMessages();
             closeWindow('Compose Message');
           } else {
-            showDialogBox('Error sending message.', 'error');
+            throw new Error('Failed to submit form');
           }
         })
         .catch(() => showDialogBox('Error sending message.', 'error'));
@@ -479,3 +389,53 @@ function launchMailbox() {
   composeBtn.addEventListener('click', openCompose);
   loadMessages();
 }
+
+/* ENDPOINTS INFO
+
+📚 API Documentation
+Contact Form API - Easy integration for developers
+
+🚀 Quick Start
+Our Contact Form API allows you to easily integrate contact form functionality into any website or application. Simply POST form data to our endpoint and we'll handle the rest.
+
+Base URL: https://endpoints.relentlesscurious.com
+📝 Submit Contact Form
+POST Submit a new contact form
+https://endpoints.relentlesscurious.com/end_data/public/contact-form-create
+Parameters
+Field	Type	Required	Description
+name	string	Required	Full name of the person contacting
+email	string	Required	Email address for response
+subject	string	Required	Subject of the inquiry
+message	string	Required	The message content
+phone	string	Optional	Phone number for contact
+company	string	Optional	Company name
+JavaScript Example
+async function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (response.ok) { const result = await response.json(); console.log('Success:', result); return result; } else { throw new Error('Failed to submit form'); } } catch (error) { console.error('Error:', error); throw error; } } // Usage example: const formData = { name: 'John Doe', email: 'john@example.com', subject: 'General Inquiry', message: 'Hello, I have a question about your services.', phone: '555-123-4567', company: 'Example Corp' }; submitContactForm(formData) .then(result => console.log('Form submitted successfully')) .catch(error => console.error('Submission failed:', error));
+
+jQuery Example
+function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; return $.ajax({ url: 'https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', method: 'POST', contentType: 'application/json', data: JSON.stringify(data) }); } // Usage with jQuery: $('#contactForm').on('submit', function(e) { e.preventDefault(); const formData = { name: $('#name').val(), email: $('#email').val(), subject: $('#subject').val(), message: $('#message').val(), phone: $('#phone').val(), company: $('#company').val() }; submitContactForm(formData) .done(function(result) { alert('Thank you! Your message has been sent.'); $('#contactForm')[0].reset(); }) .fail(function() { alert('Sorry, there was an error sending your message.'); }); });
+
+📊 List Submissions (Public)
+GET Retrieve contact form submissions
+https://endpoints.relentlesscurious.com/end_data/public/contact-form-data
+This endpoint returns all contact form submissions. Note: In a production environment, you may want to add authentication to this endpoint.
+
+JavaScript Example
+async function getContactSubmissions() { try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data'); if (response.ok) { const result = await response.json(); const submissions = parseSubmissionData(result.data); return submissions; } else { throw new Error('Failed to fetch submissions'); } } catch (error) { console.error('Error:', error); throw error; } } function parseSubmissionData(apiData) { const submissionGroups = {}; apiData.forEach(field => { const submissionId = field.creator_model_id; if (!submissionGroups[submissionId]) { submissionGroups[submissionId] = { id: submissionId, fields: {}, created_at: field.created_at, updated_at: field.updated_at }; } submissionGroups[submissionId].fields[field.html_input_label] = { content: field.string_content || '', fieldId: field.id }; }); return Object.values(submissionGroups).map(group => ({ id: group.id, name: group.fields.name?.content || 'Unknown', email: group.fields.email?.content || '', phone: group.fields.phone?.content || '', company: group.fields.company?.content || '', subject: group.fields.subject?.content || 'No Subject', message: group.fields.message?.content || '', created_at: group.created_at, updated_at: group.updated_at })); } // Usage: getContactSubmissions() .then(submissions => { console.log('Retrieved submissions:', submissions); // Process submissions here }) .catch(error => console.error('Failed to get submissions:', error));
+
+🔒 Authentication Required Endpoints
+The following endpoints require authentication and appropriate user roles (Manager or Admin):
+
+PUT Update a submission
+https://endpoints.relentlesscurious.com/end_data/contact-form-update
+DELETE Delete a submission
+https://endpoints.relentlesscurious.com/end_data/contact-form-delete?id={submission_id}
+Note: These endpoints require user authentication and appropriate permissions. Contact your system administrator for access.
+📝 Response Format
+Success Response
+{ "data": { "id": 123, "title": "Contact: General Inquiry", "created_at": "2025-07-20T18:30:00Z", "updated_at": "2025-07-20T18:30:00Z" }, "message": "Data created successfully" }
+Error Response
+{ "error": "Validation failed: Email can't be blank" }
+
+*/

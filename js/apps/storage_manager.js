@@ -19,7 +19,7 @@ export function launchStorageManager() {
   setTimeout(loadStorageData, 100);
 }
 
-async function loadStorageData() {
+export async function loadStorageData() {
   const contentDiv = document.getElementById('storage-content');
   if (!contentDiv) return;
 

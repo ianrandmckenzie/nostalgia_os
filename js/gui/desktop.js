@@ -153,7 +153,7 @@ export function makeIconDraggable(icon) {
   });
 }
 
-function updateDesktopSettings() {
+export function updateDesktopSettings() {
   const color = document.getElementById('bgColorInput').value;
   const image = document.getElementById('bgImageInput').value.trim();
   const clockSec = document.getElementById('clockSecondsInput').checked;
@@ -347,7 +347,7 @@ export function applyDesktopSettings() {
   }
 }
 
-function getSettingsContent() {
+export function getSettingsContent() {
   return `
     <div class="space-y-4">
       <div>

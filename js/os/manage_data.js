@@ -1,4 +1,5 @@
 import { storage } from './indexeddb_storage.js';
+import { loadStorageData } from '../apps/storage_manager.js'
 
 export let fileSystemState = {
   folders: {

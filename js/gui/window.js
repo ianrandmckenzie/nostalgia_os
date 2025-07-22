@@ -1,6 +1,7 @@
 import { saveState, windowStates, navWindows, highestZ, activeMediaWindow, setHighestZ, setActiveMediaWindow } from '../os/manage_data.js';
 import { setupFolderDrop } from '../apps/file_explorer/drag_and_drop.js';
 import { toggleButtonActiveState } from './main.js';
+import { getSettingsContent, updateDesktopSettings } from './desktop.js';
 
 // Function to get app icon based on window ID or title
 export function getAppIcon(windowId, title) {

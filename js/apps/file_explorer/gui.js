@@ -6,8 +6,8 @@
 import { getItemsForPath } from './storage.js'
 import { findFolderFullPathById, findFolderObjectByFullPath } from './main.js';
 import { setupFolderDrop } from './drag_and_drop.js';
-import { saveState, windowStates } from '../../os/manage_data.js';
-import { createWindow, bringToFront, showDialogBox, closeWindow } from '../../gui/window.js';
+import { saveState, windowStates, updateContent } from '../../os/manage_data.js';
+import { createWindow, showDialogBox, closeWindow } from '../../gui/window.js';
 import { storage } from '../../os/indexeddb_storage.js';
 
 export function openExplorer(folderIdOrPath, forceNewWindow = false) {
@@ -35,6 +35,10 @@ export function openExplorer(folderIdOrPath, forceNewWindow = false) {
     if (explorerWindow) {
       explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
       explorerWindow.querySelector('.file-explorer-window').setAttribute('data-current-path', fullPath);
+
+      // Update window state to persist the navigation
+      updateContent(explorerWindow.id, newContent);
+
       setTimeout(setupFolderDrop, 100);
       // Save state after navigation
       setTimeout(async () => {
@@ -356,6 +360,13 @@ document.addEventListener('dblclick', e => {
       if (targetPath) {
         const newContent = getExplorerWindowContent(targetPath);
         explorerElem.outerHTML = newContent;
+
+        // Update window state to persist the navigation
+        const windowElem = explorerElem.closest('.window');
+        if (windowElem && windowElem.id) {
+          updateContent(windowElem.id, newContent);
+        }
+
         // Re-setup drag and drop for the updated window
         setTimeout(setupFolderDrop, 100);
       }
@@ -383,6 +394,12 @@ document.addEventListener('click', e => {
 
       // Update the current explorer window's content
       explorerElem.outerHTML = newContent;
+
+      // Update window state to persist the navigation
+      const windowElem = explorerElem.closest('.window');
+      if (windowElem && windowElem.id) {
+        updateContent(windowElem.id, newContent);
+      }
 
       // Re-setup drag and drop for the updated window
       setTimeout(setupFolderDrop, 100);
@@ -419,6 +436,12 @@ document.addEventListener('click', e => {
 
       // Update the current explorer window's content
       explorerElem.outerHTML = newContent;
+
+      // Update window state to persist the navigation
+      const windowElem = explorerElem.closest('.window');
+      if (windowElem && windowElem.id) {
+        updateContent(windowElem.id, newContent);
+      }
 
       // Re-setup drag and drop for the updated window
       setTimeout(setupFolderDrop, 100);

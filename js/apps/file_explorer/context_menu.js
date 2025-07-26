@@ -1,7 +1,6 @@
 import { getFileSystemStateSync } from './storage.js';
-import { setFileSystemState } from '../../os/manage_data.js';
-import { findFolderFullPathById, findFolderObjectByFullPath } from './main.js';
-import { refreshExplorerViews, openExplorer, openExplorerInNewWindow, getExplorerWindowContent } from './gui.js';
+import { setFileSystemState, updateContent } from '../../os/manage_data.js';
+import { refreshExplorerViews, openExplorerInNewWindow, getExplorerWindowContent } from './gui.js';
 import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, highestZ } from '../../os/manage_data.js';
 import { createWindow, showDialogBox, closeWindow } from '../../gui/window.js';
@@ -498,8 +497,12 @@ function deleteItem(e) {
     // refresh explorer content
     const explorerWindow = document.getElementById('explorer-window');
     if (explorerWindow) {
-      explorerWindow.querySelector('.file-explorer-window').outerHTML =
-        getExplorerWindowContent(contextPath);
+      const newContent = getExplorerWindowContent(contextPath);
+      explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
+
+      // Update window state to persist the content change
+      updateContent(explorerWindow.id, newContent);
+
       setupFolderDrop();
     }
     refreshExplorerViews();
@@ -829,7 +832,12 @@ function createNewShortcut(e, fromFullPath) {
         if (fileExplorerDiv) {
           const oldPath = fileExplorerDiv.getAttribute('data-current-path');
           console.log('Current explorer path:', oldPath);
-          fileExplorerDiv.outerHTML = getExplorerWindowContent(parentPath);
+          const newContent = getExplorerWindowContent(parentPath);
+          fileExplorerDiv.outerHTML = newContent;
+
+          // Update window state to persist the content change
+          updateContent(explorerWin.id, newContent);
+
           console.log('Explorer window content refreshed');
         } else {
           console.warn('No .file-explorer-window found in explorer window');
@@ -1163,6 +1171,13 @@ export function refreshAllExplorerWindows(targetPath) {
           explorerDiv.innerHTML = newExplorerDiv.innerHTML;
           // Ensure the data-current-path is preserved
           explorerDiv.setAttribute('data-current-path', targetPath);
+
+          // Update window state to persist the content change
+          const windowElem = explorerDiv.closest('.window');
+          if (windowElem && windowElem.id) {
+            updateContent(windowElem.id, newContent);
+          }
+
           refreshedCount++;
         } else {
           console.warn(`Failed to get new explorer content for window ${index}`);

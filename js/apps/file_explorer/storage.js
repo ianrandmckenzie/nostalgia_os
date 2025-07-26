@@ -158,38 +158,7 @@ export function getItemsForPath(fullPath) {
 
 // System files preloaded by vendor
 const myDocuments = {
-  "files": [
-    {
-      "id": "abc",
-      "description": "A (possibly doctored) image of a really cool website",
-      "file_type": "jpg",
-      "url": "inspo.jpg"
-    },
-    {
-      "id": "xyz",
-      "description": "",
-      "file_type": "mp3",
-      "url": "mail.mp3"
-    },
-    {
-      "id": "133323",
-      "description": "",
-      "file_type": "html",
-      "url": "editor.html"
-    },
-    {
-      "id": "789",
-      "description": "",
-      "file_type": "md",
-      "url": "FAQ.md"
-    },
-    {
-      "id": "01101011110011001",
-      "description": "",
-      "file_type": "txt",
-      "url": "contact.txt"
-    }
-  ]
+  "files": []
 };
 
 async function fetchDocuments() {

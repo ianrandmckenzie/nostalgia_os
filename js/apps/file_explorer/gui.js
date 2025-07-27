@@ -369,6 +369,10 @@ document.addEventListener('dblclick', e => {
 
         // Re-setup drag and drop for the updated window
         setTimeout(setupFolderDrop, 100);
+        // Persist the new explorer path after navigation
+        setTimeout(async () => {
+          await saveFileExplorerState();
+        }, 150);
       }
     } else {
       // Fallback to original behavior if not within an explorer window
@@ -403,6 +407,10 @@ document.addEventListener('click', e => {
 
       // Re-setup drag and drop for the updated window
       setTimeout(setupFolderDrop, 100);
+      // Persist the new explorer path after navigation
+      setTimeout(async () => {
+        await saveFileExplorerState();
+      }, 150);
     } else {
       // Fallback to the original behavior if not within an explorer window
       openExplorer(drive.dataset.openDrive);

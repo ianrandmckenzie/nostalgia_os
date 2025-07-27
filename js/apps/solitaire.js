@@ -653,7 +653,7 @@ export async function initializeSolitaireUI(win) {
       if (gameTimer) clearInterval(gameTimer);
       saveSolitaireGameState(gameState).catch(console.error); // Save final win state
       setTimeout(() => {
-        showDialogBox('Congratulations! You won!', 'confirmation');
+        triggerWinAnimation();
       }, 500);
     }
   }
@@ -757,4 +757,100 @@ async function clearSolitaireGameState() {
       console.error('Failed to clear Solitaire game state with fallback:', fallbackError);
     }
   }
+}
+
+/**
+ * Triggers a full-screen cascading card animation with gravity, bounce and trail.
+ * Call triggerWinAnimation() in the console to see it.
+ */
+function triggerWinAnimation() {
+  // create canvas
+  const canvas = document.createElement('canvas');
+  canvas.id = 'solitaire-win-canvas';
+  Object.assign(canvas.style, {
+    position: 'fixed',
+    top: 0, left: 0,
+    width: '100vw', height: '100vh',
+    zIndex: 9999,
+    pointerEvents: 'none'
+  });
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // physics & cards
+  const suits = ['♠','♥','♣','♦'];
+  const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const suitColor = {'♠':'black','♣':'black','♥':'red','♦':'red'};
+  const cards = [];
+  const gravity = 0.2;
+  const damping = 0.7;
+  // size and visual tuning
+  const cardWidth = 75;
+  const cardHeight = 100;
+  const trailAlpha = 0.02;
+  let spawned = 0;
+
+  // track animation state
+  let animationId;
+  let running = true;
+
+  // spawn one card every 100ms
+  const spawner = setInterval(() => {
+    if (spawned === 52) return clearInterval(spawner);
+    const suit = suits[spawned % 4];
+    const value = values[Math.floor(spawned/4)];
+    cards.push({
+      x: Math.random()*canvas.width,
+      y: -50,
+      vx: (Math.random()-0.5)*4,
+      vy: Math.random()*2,
+      suit, value, color: suitColor[suit]
+    });
+    spawned++;
+  }, 100);
+
+  // animation loop
+  function loop() {
+    // trail effect: semi-transparent green
+    ctx.fillStyle = `rgba(10,100,10,${trailAlpha})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    cards.forEach(c => {
+      c.vy += gravity;
+      c.x += c.vx;
+      c.y += c.vy;
+      // bounce at bottom
+      if (c.y > canvas.height - cardHeight) {
+        c.y = canvas.height - cardHeight;
+        c.vy *= -damping;
+      }
+      // draw card rectangle
+      ctx.fillStyle = 'white';
+      ctx.fillRect(c.x, c.y, cardWidth, cardHeight);
+      ctx.strokeStyle = '#333';
+      ctx.strokeRect(c.x, c.y, cardWidth, cardHeight);
+      // draw value+suit
+      ctx.fillStyle = c.color;
+      ctx.font = '24px sans-serif';
+      ctx.fillText(c.value + c.suit, c.x + 10, c.y + 30);
+    });
+
+    // schedule next frame if still running
+    if (running) animationId = requestAnimationFrame(loop);
+  }
+
+  // start loop
+  loop();
+
+  // auto-cleanup after 10s
+  setTimeout(() => {
+    // stop spawning and animation
+    running = false;
+    clearInterval(spawner);
+    cancelAnimationFrame(animationId);
+    document.body.removeChild(canvas);
+    showDialogBox('Congratulations! You won!', 'confirmation');
+  }, 8000);
 }

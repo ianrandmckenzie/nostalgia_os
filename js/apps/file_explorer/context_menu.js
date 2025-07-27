@@ -390,8 +390,6 @@ function editItemName(e, menuItem) {
           refreshAllExplorerWindows(contextPath);
         }
       }, 100);
-
-      // Note: refreshExplorerViews() is known to be broken, so we handle refresh above
     }
     closeWindow(winId);
   });
@@ -502,8 +500,6 @@ function deleteItem(e) {
 
       // Update window state to persist the content change
       updateContent(explorerWindow.id, newContent);
-
-      setupFolderDrop();
     }
     refreshExplorerViews();
     renderDesktopIcons();
@@ -823,28 +819,7 @@ function createNewShortcut(e, fromFullPath) {
         console.log('Desktop icons refreshed');
       }, 100);
     } else {
-      // For explorer windows, refresh the current explorer window
-      console.log('Refreshing explorer window for path:', fromFullPath);
-      const explorerWin = document.getElementById('explorer-window');
-      if (explorerWin) {
-        console.log('Found explorer window, refreshing content...');
-        const fileExplorerDiv = explorerWin.querySelector('.file-explorer-window');
-        if (fileExplorerDiv) {
-          const oldPath = fileExplorerDiv.getAttribute('data-current-path');
-          console.log('Current explorer path:', oldPath);
-          const newContent = getExplorerWindowContent(parentPath);
-          fileExplorerDiv.outerHTML = newContent;
-
-          // Update window state to persist the content change
-          updateContent(explorerWin.id, newContent);
-
-          console.log('Explorer window content refreshed');
-        } else {
-          console.warn('No .file-explorer-window found in explorer window');
-        }
-      } else {
-        console.warn('No explorer window found with ID explorer-window');
-      }
+      refreshExplorerViews();
     }
 
     setupFolderDrop();

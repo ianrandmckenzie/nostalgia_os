@@ -1,5 +1,5 @@
-import { getFileSystemStateSync } from './storage.js';
-import { setFileSystemState, updateContent } from '../../os/manage_data.js';
+import { getFileSystemStateSync, setFileSystemState as setFileSystemStateStorage } from './storage.js';
+import { updateContent } from '../../os/manage_data.js';
 import { refreshExplorerViews, openExplorerInNewWindow, getExplorerWindowContent } from './gui.js';
 import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, highestZ } from '../../os/manage_data.js';
@@ -489,20 +489,19 @@ function deleteItem(e) {
     // remove file
     delete folderContents[fileId];
 
+    // Update the filesystem state with the modified folder contents
+    fs.folders[contextPath] = folderContents;
+
     // Save state first, then update UI
-    await setFileSystemState(fs);
+    await setFileSystemStateStorage(fs);
 
-    // refresh explorer content
-    const explorerWindow = document.getElementById('explorer-window');
-    if (explorerWindow) {
-      const newContent = getExplorerWindowContent(contextPath);
-      explorerWindow.querySelector('.file-explorer-window').outerHTML = newContent;
+    // Refresh all explorer windows showing this path
+    refreshAllExplorerWindows(contextPath);
 
-      // Update window state to persist the content change
-      updateContent(explorerWindow.id, newContent);
+    // If deleting from desktop, also refresh desktop icons
+    if (contextPath === 'C://Desktop') {
+      renderDesktopIcons();
     }
-    refreshExplorerViews();
-    renderDesktopIcons();
 
     // If a music file was deleted from C://Media, refresh the media player playlist
     if (isMediaFile && isFromMediaFolder) {

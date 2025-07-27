@@ -9,7 +9,6 @@ import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, windowStates, updateContent } from '../../os/manage_data.js';
 import { createWindow, showDialogBox, closeWindow } from '../../gui/window.js';
 import { storage } from '../../os/indexeddb_storage.js';
-
 export function openExplorer(folderIdOrPath, forceNewWindow = false) {
   let fullPath;
 
@@ -453,6 +452,10 @@ document.addEventListener('click', e => {
 
       // Re-setup drag and drop for the updated window
       setTimeout(setupFolderDrop, 100);
+
+      setTimeout(async () => {
+        await saveFileExplorerState();
+      }, 150);
     } else {
       // Fallback to the original behavior if not within an explorer window
       openExplorer(el.dataset.path);
@@ -1077,6 +1080,7 @@ async function restoreFileExplorerState() {
       setTimeout(() => {
         console.log('🎯 Setting up folder drop handlers...');
         setupFolderDrop();
+        refreshExplorerViews();
       }, 100);
       console.log('✅ File Explorer state restored successfully');
     } else {

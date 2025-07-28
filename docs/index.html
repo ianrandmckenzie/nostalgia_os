@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nostalgia OS</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-96x96-CyIoavz9.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon-DvHNOpHT.svg" />
+  <link rel="shortcut icon" href="/assets/favicon-OWoZKxrB.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-B-oGl5u4.png" />
+  <link rel="manifest" href="/assets/site-BCEYhrGl.webmanifest" />
+
+  <script type="module" crossorigin src="/assets/index-jzWXvaNA.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-QTEQIukb.css">
+</head>
+<body id="desktop" class="containerbox bg-default-bg h-screen w-screen relative overflow-hidden font-mono">
+  <audio id="splash-audio" src="/assets/startup-BIK74C9D.mp3"></audio>
+  <audio id="error-popup-audio" src="/assets/error-pop-up-COO6uOKK.mp3"></audio>
+
+  <!-- Container for Windows (modals) -->
+  <div id="windows-container" class="relative w-full h-[calc(100vh-40px)] overflow-auto"></div>
+
+  <!-- Desktop Icons (rendered dynamically by JS) -->
+  <div id="desktop-icons" class="absolute top-4 left-4 z-10"></div>
+
+  <!-- Context Menu (for right-click) -->
+  <div id="context-menu" class="absolute bg-white border border-gray-500 shadow-lg hidden z-50"></div>
+
+  <!-- Taskbar -->
+  <div class="fixed bottom-0 left-0 right-0 bg-gray-300 border-t border-gray-500 h-12 flex items-center px-2" style="z-index:1000;">
+    <div class="relative">
+      <button id="start-button" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2 text-right">
+        <img src="data:image/png;base64,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" class="border-b-2 border-black h-[2.05rem] w-auto inline py-1.5 pl-3" alt="Start Menu Icon">
+        <span class="border-b-2 border-r-2 border-black inline h-full w-full py-1.5 pl-2 pr-3 -ml-3">Start</span>
+      </button>
+      <div id="start-menu" class="absolute bottom-[2.5rem] -left-2 bg-gray-100 border-r border-t border-gray-500 w-72 hidden">
+        <!-- Start menu items will be generated by JavaScript -->
+      </div>
+    </div>
+    <div id="window-tabs" class="flex-1 flex space-x-2 overflow-x-auto whitespace-nowrap"></div>
+    <div class="flex items-center mx-auto space-x-2 bg-gray-200 border-b-1 my-1 border-r-1 border-gray-400">
+      <div class="h-full w-full border-t border-l border-gray-700 p-1">
+        <div id="media-control" class="cursor-pointer inline-block ml-2"></div>
+        <div class="cursor-pointer inline-block" title="Minimize all windows" id="min-all-btn"><img src="/assets/desktop-ONavjEjN.png" class="h-6 w-6 inline mr-2" alt="Minimize all windows to reveal the desktop"></div>
+        <div id="clock" class="inline-block mr-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="error-overlay" class="hidden fixed inset-0 bg-black z-50">
+    <img src="data:image/png;base64,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" alt="Application Error" class="w-full h-full inset-0 object-contain bg-[#0000aa]">
+  </div>
+
+</body>
+</html>

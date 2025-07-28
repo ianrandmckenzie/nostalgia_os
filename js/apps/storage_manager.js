@@ -344,6 +344,8 @@ export function refreshStorageData() {
 export function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
   const select = document.createElement('select');
   select.className = 'bg-white border-t-2 border-l-2 border-black border-b-2 border-r-2 border-gray-300 px-2 py-1';
+  select.setAttribute('aria-label', 'Select storage cleanup option');
+  select.setAttribute('title', 'Choose which type of data to clean up');
 
   // Add options to the dropdown
   options.forEach(option => {

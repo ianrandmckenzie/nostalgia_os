@@ -14,7 +14,7 @@ export async function openAboutWindow() {
 
   const content = `
     <div class="p-4 gap-y-2 flex flex-col">
-      <img src="./image/startup.png" class="w-48 h-auto mx-auto mb-4">
+      <img src="./image/startup.png" class="w-48 h-auto mx-auto mb-4" alt="Nostalgia OS startup logo">
       <h1 class="text-xl font-bold mb-2">About This Computer</h1>
       <p>Made by multimedia artist Ian McKenzie.</p>
       <p>More shenanigans @ ${isReddit ? 'relentlesscurious.com' : '<a href="https://www.relentlesscurious.com" target="_blank">relentlesscurious.com</a>'}</p>

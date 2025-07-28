@@ -295,6 +295,9 @@ function editItemName(e, menuItem) {
   input.name  = 'newName';
   input.required = true;
   input.value = item.name;
+  input.id = 'rename-input';
+  input.setAttribute('aria-label', 'Enter new file or folder name');
+  input.setAttribute('title', 'Type the new name for this item');
   input.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
   form.appendChild(makeField('New Name', input));
 
@@ -645,6 +648,9 @@ export function createNewFile(e, fromFullPath, onCreated = null) {
   nameInput.name  = 'fileName';
   nameInput.required = true;
   nameInput.value = 'New File.rtf';
+  nameInput.id = 'create-file-name';
+  nameInput.setAttribute('aria-label', 'Enter file name');
+  nameInput.setAttribute('title', 'Enter the name for the new file');
   nameInput.className = 'mt-1 block w-full border border-gray-300 rounded p-2';
   form.appendChild(makeField('File Name', nameInput));
 
@@ -732,6 +738,9 @@ function createNewShortcut(e, fromFullPath) {
   nameInput.type  = 'text';
   nameInput.name  = 'shortcutName';
   nameInput.placeholder = 'Example Website';
+  nameInput.id = 'shortcut-name';
+  nameInput.setAttribute('aria-label', 'Enter shortcut name');
+  nameInput.setAttribute('title', 'Enter a display name for the shortcut');
   nameInput.className =
     'mt-1 block w-full border border-gray-300 rounded p-2';
   form.appendChild(makeField('Shortcut Name', nameInput));
@@ -741,6 +750,9 @@ function createNewShortcut(e, fromFullPath) {
   urlInput.name  = 'shortcutURL';
   urlInput.required = true;
   urlInput.placeholder = 'https://example.com';
+  urlInput.id = 'shortcut-url';
+  urlInput.setAttribute('aria-label', 'Enter website URL');
+  urlInput.setAttribute('title', 'Enter the full URL of the website');
   urlInput.className =
     'mt-1 block w-full border border-gray-300 rounded p-2';
   form.appendChild(makeField('Shortcut URL', urlInput));
@@ -926,6 +938,8 @@ function createNewImage(e, fromFullPath, onCreated = null) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'image/*';
+  fileInput.setAttribute('aria-label', 'Select image file to upload');
+  fileInput.setAttribute('title', 'Choose an image file from your computer');
   fileInput.style.display = 'none';
 
   fileInput.addEventListener('change', async (event) => {
@@ -989,6 +1003,8 @@ function createNewAudio(e, fromFullPath, onCreated = null) {
   fileInput.type = 'file';
   fileInput.accept = 'audio/*';
   fileInput.style.display = 'none';
+  fileInput.setAttribute('aria-label', 'Select audio file to upload');
+  fileInput.setAttribute('title', 'Choose an audio file from your computer');
 
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
@@ -1051,6 +1067,8 @@ function createNewVideo(e, fromFullPath, onCreated = null) {
   fileInput.type = 'file';
   fileInput.accept = 'video/*';
   fileInput.style.display = 'none';
+  fileInput.setAttribute('aria-label', 'Select video file to upload');
+  fileInput.setAttribute('title', 'Choose a video file from your computer');
 
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];

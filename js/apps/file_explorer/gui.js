@@ -182,13 +182,13 @@ export function getExplorerWindowContent(currentPath = 'C://') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
         `data-open-folder="${item.id}" title="${item.name}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}</li>`
+        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${item.name} folder icon"> ${item.name}</li>`
       );
     } else if (item.type === 'shortcut') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
         `data-open-shortcut="true" data-url="${item.url}" title="${item.name}${extraDesc}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${item.name}${extraDesc}</li>`
+        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${item.name} shortcut icon"> ${item.name}${extraDesc}</li>`
       );
     } else {
       // Validate that the item has a proper name property
@@ -199,7 +199,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
         `data-open-file="${item.id}" title="${displayName}${extraDesc}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2"> ${displayName}${extraDesc}</li>`
+        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${displayName} file icon"> ${displayName}${extraDesc}</li>`
       );
     }
   });
@@ -213,7 +213,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
     `<li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" ` +
     `data-open-drive="${d}">` +
     `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0].toLowerCase() === 'a' ? 'floppy' : 'cd'}.png" ` +
-    `class="inline h-4 w-4 mr-2"> ${d}</li>`
+    `class="inline h-4 w-4 mr-2" alt="${d} drive icon"> ${d}</li>`
   ).join('');
 
   const breadcrumbHtml = getBreadcrumbsHtml(currentPath);
@@ -497,7 +497,7 @@ export function openFile(incoming_file, e) {
   if (file.type === "ugc-file") {
     if (file.content_type === 'text' || file.content_type === 'txt') {
       content = `<div id="file-content" style="padding:10px;">
-        <div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;">${file.content || file.contents || "Empty file"}</div>
+        <div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;" role="textbox" aria-label="Text file editor" title="Edit the contents of this text file">${file.content || file.contents || "Empty file"}</div>
       </div>`;
       windowType = 'editor';
 
@@ -792,7 +792,7 @@ export function openFile(incoming_file, e) {
           const win = document.getElementById(file.id);
           const contentDiv = win ? win.querySelector('.p-2') : null;
           if (contentDiv) {
-            contentDiv.innerHTML = `<div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;">${text}</div>`;
+            contentDiv.innerHTML = `<div id="text-editor" contenteditable="true" style="padding:10px; overflow:auto;" role="textbox" aria-label="Text file editor" title="Edit the contents of this text file">${text}</div>`;
             const textEditor = document.getElementById('text-editor');
             textEditor.addEventListener('input', function () {
               updateContent(file.id, this.innerHTML);

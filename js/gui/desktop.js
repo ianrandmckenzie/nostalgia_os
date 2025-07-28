@@ -655,7 +655,7 @@ export async function renderDesktopIcons() {
     });
 
     iconElem.innerHTML = `
-      <img src="${iconSrc}" alt="" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
+      <img src="${iconSrc}" alt="${item.name} icon" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
       <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
     `;
 

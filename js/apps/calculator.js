@@ -1,6 +1,33 @@
 import { storage } from '../os/indexeddb_storage.js';
 import { createWindow } from '../gui/window.js';
 
+// Helper function to get aria labels for calculator buttons
+function getButtonAriaLabel(text, type) {
+  const labelMap = {
+    'C': 'Clear all',
+    'CE': 'Clear entry',
+    '±': 'Change sign',
+    '√': 'Square root',
+    '%': 'Percent',
+    '1/x': 'Reciprocal',
+    '=': 'Equals',
+    '+': 'Plus',
+    '-': 'Minus',
+    '×': 'Multiply',
+    '÷': 'Divide',
+    '.': 'Decimal point'
+  };
+
+  if (labelMap[text]) {
+    return labelMap[text];
+  } else if (type === 'number') {
+    return `Number ${text}`;
+  } else if (type === 'operator') {
+    return `Operator ${text}`;
+  }
+  return text;
+}
+
 export function launchCalculator() {
   // Check if calculator window already exists
   const existingWindow = document.getElementById('calculator');
@@ -110,6 +137,11 @@ export async function initializeCalculatorUI(win) {
     button.style.borderBottomColor = '#808080';
     button.style.borderRightColor = '#808080';
     button.style.transition = 'none';
+
+    // Add accessibility attributes
+    const ariaLabel = getButtonAriaLabel(btn.text, btn.type);
+    button.setAttribute('aria-label', ariaLabel);
+    button.setAttribute('title', ariaLabel);
 
     // Add pressed effect
     button.addEventListener('mousedown', () => {

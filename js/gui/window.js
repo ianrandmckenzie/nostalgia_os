@@ -707,13 +707,13 @@ export function showDialogBox(message, dialogType, onConfirm = null, onCancel = 
   let title = '⚠️ Information';
   if (dialogType === 'confirmation') {
     title = isConfirmationDialog ? '⚠️ Confirmation' : '✅ Success';
-    announceToScreenReader(message, priority = 'polite');
+    announceToScreenReader(message, 'polite');
   }
   if (dialogType === 'error') {
     title = '⚠️ Error';
     const errorAudio = document.getElementById('error-popup-audio');
     if (errorAudio) errorAudio.play();
-    announceToScreenReader(message, priority = 'assertive');
+    announceToScreenReader(message, 'assertive');
   }
 
   const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 350, height: 180 }, "default");

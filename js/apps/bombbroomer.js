@@ -74,10 +74,14 @@ export async function initializeBombbroomerUI(win) {
   const gameMenu = document.createElement('button');
   gameMenu.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
   gameMenu.textContent = 'Game';
+  gameMenu.setAttribute('aria-label', 'Game menu options');
+  gameMenu.setAttribute('title', 'Access game options and settings');
 
   const newGameBtn = document.createElement('button');
   newGameBtn.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
   newGameBtn.textContent = 'New Game';
+  newGameBtn.setAttribute('aria-label', 'Start new game');
+  newGameBtn.setAttribute('title', 'Start a new minesweeper game');
   newGameBtn.addEventListener('click', async () => await startNewGame());
 
   // menuBar.appendChild(gameMenu); // doesn't do anything right now
@@ -99,6 +103,8 @@ export async function initializeBombbroomerUI(win) {
   faceButton.style.borderStyle = 'outset';
   faceButton.id = 'face-button';
   faceButton.textContent = '🙂';
+  faceButton.setAttribute('aria-label', 'New game - Click to restart');
+  faceButton.setAttribute('title', 'Click to start a new game');
   faceButton.addEventListener('click', async () => await startNewGame());
 
   const timerDisplay = document.createElement('div');
@@ -207,6 +213,8 @@ export async function initializeBombbroomerUI(win) {
         cell.style.borderStyle = 'outset';
         cell.dataset.row = row;
         cell.dataset.col = col;
+        cell.setAttribute('aria-label', `Cell row ${row + 1}, column ${col + 1}`);
+        cell.setAttribute('title', `Minesweeper cell at row ${row + 1}, column ${col + 1}`);
 
         const cellData = gameState.grid[row][col];
 

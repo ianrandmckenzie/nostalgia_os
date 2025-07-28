@@ -172,7 +172,7 @@ function createMenuItem(item) {
   li.setAttribute('aria-label', item.text);
 
   li.innerHTML = `
-    <img src="${item.icon}" class="h-6 w-6 inline mr-2" alt="">
+    <img src="${item.icon}" class="h-6 w-6 inline mr-2" alt="${item.text} icon">
     ${item.text}
   `;
 
@@ -202,7 +202,7 @@ function createGroupItem(item) {
   item.items.forEach(subItem => {
     submenuItems += `
       <li id="${subItem.id}" class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center submenu-item relative" data-submenu-item data-parent-group="${item.id}" role="menuitem" tabindex="-1" aria-label="${subItem.text}">
-        <img src="${subItem.icon}" class="h-6 w-6 inline mr-2" alt="">
+        <img src="${subItem.icon}" class="h-6 w-6 inline mr-2" alt="${subItem.text} icon">
         ${subItem.text}
       </li>
     `;

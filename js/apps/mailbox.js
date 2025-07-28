@@ -12,7 +12,7 @@ export function launchMailbox() {
     // Create a simple error dialog without using showDialogBox
     const errorWindow = createWindow(
       '⚠️ Error',
-      '<div class="text-center p-4"><p class="mb-4">Mail app is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
+      '<div class="text-center p-4"><p class="mb-4">Mail app is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8" aria-label="Close error dialog" title="Close this error message"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
       false,
       'mailbox-error',
       false,
@@ -72,6 +72,8 @@ export function launchMailbox() {
   composeBtn.className =
     'p-2 border-b border-gray-300 text-blue-500 hover:bg-gray-100';
   composeBtn.textContent = 'Compose';
+  composeBtn.setAttribute('aria-label', 'Compose new email');
+  composeBtn.setAttribute('title', 'Create and send a new email message');
   listPane.appendChild(composeBtn);
 
   // Container where <div> items for each mail will be added
@@ -263,6 +265,9 @@ export function launchMailbox() {
     fromInput.type  = 'email';
     fromInput.name  = 'from';
     fromInput.required = true;
+    fromInput.id = 'from-email';
+    fromInput.setAttribute('aria-label', 'Your email address');
+    fromInput.setAttribute('aria-describedby', 'from-help');
     fromInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('From', fromInput));
@@ -273,6 +278,8 @@ export function launchMailbox() {
     toInput.name  = 'to';
     toInput.value = 'person@example.com';
     toInput.readOnly = true;
+    toInput.id = 'to-email';
+    toInput.setAttribute('aria-label', 'Recipient email address');
     toInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2 bg-gray-100';
     form.appendChild(makeField('To', toInput));
@@ -281,6 +288,8 @@ export function launchMailbox() {
     const subjInput = document.createElement('input');
     subjInput.type  = 'text';
     subjInput.name  = 'subject';
+    subjInput.id = 'email-subject';
+    subjInput.setAttribute('aria-label', 'Email subject line (optional)');
     subjInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Subject (optional)', subjInput));
@@ -289,6 +298,8 @@ export function launchMailbox() {
     const msgArea = document.createElement('textarea');
     msgArea.name  = 'message';
     msgArea.required = true;
+    msgArea.id = 'email-message';
+    msgArea.setAttribute('aria-label', 'Email message content');
     msgArea.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Message', msgArea));
@@ -297,6 +308,8 @@ export function launchMailbox() {
     const phoneInput = document.createElement('input');
     phoneInput.type  = 'tel';
     phoneInput.name  = 'phone';
+    phoneInput.id = 'phone-number';
+    phoneInput.setAttribute('aria-label', 'Phone number (optional)');
     phoneInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Phone (optional)', phoneInput));
@@ -305,6 +318,8 @@ export function launchMailbox() {
     const companyInput = document.createElement('input');
     companyInput.type  = 'text';
     companyInput.name  = 'company';
+    companyInput.id = 'company-name';
+    companyInput.setAttribute('aria-label', 'Company name (optional)');
     companyInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Company (optional)', companyInput));
@@ -323,6 +338,8 @@ export function launchMailbox() {
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     cancelBtn.innerHTML =
       '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>'; // ⬅︎ ≤-- just markup string; safe & short
+    cancelBtn.setAttribute('aria-label', 'Cancel email composition');
+    cancelBtn.setAttribute('title', 'Cancel and discard email');
     btnRow.appendChild(cancelBtn);
 
     const sendBtn = document.createElement('button');
@@ -331,6 +348,8 @@ export function launchMailbox() {
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     sendBtn.innerHTML =
       '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Send</span>';
+    sendBtn.setAttribute('aria-label', 'Send email');
+    sendBtn.setAttribute('title', 'Send the composed email');
     btnRow.appendChild(sendBtn);
 
     // ─── Compose-form handlers ───────────────────────────

@@ -122,17 +122,17 @@ async function initializeMediaPlayerUI(win) {
   const buttonRow = document.createElement('div');
   buttonRow.className = 'flex justify-center space-x-2 mb-2';
   buttonRow.innerHTML = `
-    <button id="prev-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs">⏮</button>
-    <button id="play-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs">▶</button>
-    <button id="stop-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs">⏹</button>
-    <button id="next-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs">⏭</button>
+    <button id="prev-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs" aria-label="Previous track" title="Play previous track">⏮</button>
+    <button id="play-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs" aria-label="Play" title="Play/pause current track">▶</button>
+    <button id="stop-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs" aria-label="Stop" title="Stop playback">⏹</button>
+    <button id="next-btn" class="px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs" aria-label="Next track" title="Play next track">⏭</button>
   `;
 
   const volumeRow = document.createElement('div');
   volumeRow.className = 'flex items-center justify-center space-x-2';
   volumeRow.innerHTML = `
     <span class="text-xs">🔊</span>
-    <input type="range" id="volume-control" min="0" max="1" step="0.01" value="0.5" class="w-20">
+    <input type="range" id="volume-control" min="0" max="1" step="0.01" value="0.5" class="w-20" aria-label="Volume control" title="Adjust playback volume">
     <span class="text-xs" id="volume-display">50%</span>
   `;
 

@@ -180,6 +180,8 @@ export function makeWin95Button(label) {
   span.className = 'border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3';
   span.textContent = label;
   btn.appendChild(span);
+  btn.setAttribute('aria-label', label);
+  btn.setAttribute('title', label);
   return btn;
 }
 
@@ -216,6 +218,8 @@ export function makeWin95Prompt(message, defaultValue = '', onConfirm = null, on
     inputField.style.borderBottomColor = '#ffffff';
     inputField.style.borderRightColor = '#ffffff';
     inputField.style.borderStyle = 'inset';
+    inputField.setAttribute('aria-label', 'Text input for prompt dialog');
+    inputField.setAttribute('title', 'Enter your response here');
 
     messageDiv.appendChild(inputField);
     promptContainer.appendChild(messageDiv);

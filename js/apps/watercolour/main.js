@@ -135,7 +135,7 @@ export function getWatercolourHTML() {
       <!-- Stroke Size -->
       <div>
         <label for="strokeSize" style="font-size: 0.875rem;">Size</label>
-        <input id="strokeSize" type="range" min="1" max="50" value="5" style="width: 100%;" />
+        <input id="strokeSize" type="range" min="1" max="50" value="5" style="width: 100%;" aria-label="Brush stroke size" title="Adjust brush stroke size" />
       </div>
     </div>
   </div>
@@ -538,6 +538,7 @@ export async function initializeWatercolour() {
   function restoreState(state) {
     const img = new Image();
     img.src = state;
+    img.alt = 'Watercolour painting canvas state';
     img.onload = () => {
       const cssWidth = canvas.offsetWidth;
       const cssHeight = canvas.offsetHeight;
@@ -575,6 +576,7 @@ export async function initializeWatercolour() {
     if (savedImage) {
       const img = new Image();
       img.src = savedImage;
+      img.alt = 'Saved watercolour painting for canvas restoration';
       img.onload = () => {
         ctx.clearRect(0, 0, cssWidth, cssHeight);
         ctx.drawImage(img, 0, 0, cssWidth, cssHeight);
@@ -875,6 +877,7 @@ export async function initializeWatercolour() {
   function loadImageOntoCanvas(imageData, fileInfo = null) {
 
     const img = new Image();
+    img.alt = 'Image to be loaded onto watercolour canvas';
     img.onload = () => {
       const cssWidth = canvas.offsetWidth;
       const cssHeight = canvas.offsetHeight;
@@ -905,6 +908,7 @@ export async function initializeWatercolour() {
       showDialogBox('Error loading selected image.', 'error');
     };
     img.src = imageData;
+    img.alt = 'User-selected image to import into watercolour canvas';
   }
 
   function getCurrentFolderPath() {
@@ -1043,6 +1047,7 @@ export async function initializeWatercolour() {
     const savedImage = watercolourState?.canvasData;
     if (savedImage) {
       const img = new Image();
+      img.alt = 'Saved watercolour canvas state for restoration';
       img.onload = function() {
         ctx.clearRect(0, 0, cssWidth, cssHeight);
         ctx.drawImage(img, 0, 0, cssWidth, cssHeight);

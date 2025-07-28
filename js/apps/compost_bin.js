@@ -62,6 +62,8 @@ export function launchCompostBin() {
   const emptyBinBtn = document.createElement('button');
   emptyBinBtn.className = 'px-3 py-1 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200 text-xs';
   emptyBinBtn.textContent = 'Empty Bin';
+  emptyBinBtn.setAttribute('aria-label', 'Empty all items from compost bin');
+  emptyBinBtn.setAttribute('title', 'Permanently delete all items in the compost bin');
   emptyBinBtn.addEventListener('click', emptyCompostBin);
 
   binActions.appendChild(emptyBinBtn);
@@ -256,10 +258,14 @@ export function emptyCompostBin() {
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'px-4 py-2 bg-gray-300 border-2 border-gray-400 hover:bg-gray-200';
   cancelBtn.textContent = 'Cancel';
+  cancelBtn.setAttribute('aria-label', 'Cancel empty bin operation');
+  cancelBtn.setAttribute('title', 'Cancel and keep items in compost bin');
 
   const emptyBtn = document.createElement('button');
   emptyBtn.className = 'px-4 py-2 bg-red-500 border-2 border-red-600 hover:bg-red-400 text-white';
   emptyBtn.textContent = 'Empty Bin';
+  emptyBtn.setAttribute('aria-label', 'Confirm empty bin operation');
+  emptyBtn.setAttribute('title', 'Permanently delete all items in compost bin');
 
   btnRow.append(cancelBtn, emptyBtn);
 

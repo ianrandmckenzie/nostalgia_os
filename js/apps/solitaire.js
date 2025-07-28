@@ -79,10 +79,14 @@ export async function initializeSolitaireUI(win) {
   const gameMenu = document.createElement('button');
   gameMenu.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
   gameMenu.textContent = 'Game';
+  gameMenu.setAttribute('aria-label', 'Game menu options');
+  gameMenu.setAttribute('title', 'Access game options and settings');
 
   const newGameBtn = document.createElement('button');
   newGameBtn.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
   newGameBtn.textContent = 'New Game';
+  newGameBtn.setAttribute('aria-label', 'Start new solitaire game');
+  newGameBtn.setAttribute('title', 'Start a new game of solitaire');
   newGameBtn.addEventListener('click', startNewGame);
 
   const scoreDisplay = document.createElement('div');

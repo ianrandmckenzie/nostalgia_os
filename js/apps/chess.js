@@ -1155,6 +1155,8 @@ function makeWin95Button(label) {
 function makeWin95Dropdown(options, selectedValue = null, onChange = null) {
   const select = document.createElement('select');
   select.className = 'bg-white border-t-2 border-l-2 border-black border-b-2 border-r-2 border-gray-300 px-2 py-1';
+  select.setAttribute('aria-label', 'Select game difficulty');
+  select.setAttribute('title', 'Choose the difficulty level for the chess game');
 
   // Add options to the dropdown
   options.forEach(option => {

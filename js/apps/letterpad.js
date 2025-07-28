@@ -52,6 +52,9 @@ export async function initializeLetterPad(container) {
   // Dropdown for heading/text type
   const selectHeading = document.createElement('select');
   selectHeading.className = "border rounded p-1";
+  selectHeading.id = "heading-selector";
+  selectHeading.setAttribute('aria-label', 'Select text formatting style');
+  selectHeading.setAttribute('title', 'Choose the text style (paragraph, heading 1, etc.)');
   const options = [
     { value: 'paragraph', text: 'Paragraph' },
     { value: 'h1', text: 'Heading 1' },
@@ -71,6 +74,8 @@ export async function initializeLetterPad(container) {
   boldButton.type = "button";
   boldButton.className = "border rounded p-1 hover:bg-gray-200";
   boldButton.textContent = "Bold";
+  boldButton.setAttribute('aria-label', 'Apply bold formatting');
+  boldButton.setAttribute('title', 'Make selected text bold');
   toolbar.appendChild(boldButton);
 
   // Italic button
@@ -78,6 +83,8 @@ export async function initializeLetterPad(container) {
   italicButton.type = "button";
   italicButton.className = "border rounded p-1 hover:bg-gray-200";
   italicButton.textContent = "Italic";
+  italicButton.setAttribute('aria-label', 'Apply italic formatting');
+  italicButton.setAttribute('title', 'Make selected text italic');
   toolbar.appendChild(italicButton);
 
   // Underline button (using HTML <u> tags)
@@ -85,11 +92,17 @@ export async function initializeLetterPad(container) {
   underlineButton.type = "button";
   underlineButton.className = "border rounded p-1 hover:bg-gray-200";
   underlineButton.textContent = "Underline";
+  underlineButton.setAttribute('aria-label', 'Apply underline formatting');
+  underlineButton.setAttribute('title', 'Underline selected text');
   toolbar.appendChild(underlineButton);
 
   // Editor textarea for Markdown input
   const textarea = document.createElement('textarea');
   textarea.className = "w-full h-40 border rounded p-2 mb-2";
+  textarea.id = "markdown-editor";
+  textarea.setAttribute('aria-label', 'Markdown text editor');
+  textarea.setAttribute('placeholder', 'Type your text here using Markdown formatting...');
+  textarea.setAttribute('title', 'Enter your text with Markdown formatting');
 
   // Preview area (for rendered HTML)
   const previewArea = document.createElement('div');
@@ -99,6 +112,8 @@ export async function initializeLetterPad(container) {
   const toggleButton = document.createElement('button');
   toggleButton.type = "button";
   toggleButton.className = "border rounded p-1 hover:bg-gray-200 self-end";
+  toggleButton.setAttribute('aria-label', 'Toggle between edit and preview mode');
+  toggleButton.setAttribute('title', 'Switch between editing and preview modes');
   if (storedContent) {
     toggleButton.textContent = "Edit";
   } else {

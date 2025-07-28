@@ -733,8 +733,11 @@ export async function restoreWindows() {
   // Window states are already loaded in windowStates during initializeAppState()
   // Just need to recreate the windows from the loaded state
   if (windowStates && Object.keys(windowStates).length > 0) {
-    for (const id in windowStates) {
-      const state = windowStates[id];
+    // Sort windows by z-index to restore in correct order (lowest to highest)
+    const sortedWindows = Object.entries(windowStates)
+      .sort(([,a], [,b]) => (a.zIndex || 0) - (b.zIndex || 0));
+
+    for (const [id, state] of sortedWindows) {
       createWindow(
         state.title,
         state.content,
@@ -745,7 +748,8 @@ export async function restoreWindows() {
         state.dimensions,
         state.windowType,
         null,  // parentWin
-        state.color || 'white'  // Use saved color or default to white
+        state.color || 'white',  // Use saved color or default to white
+        state.zIndex // Pass the saved z-index
       );
 
       // Initialize app-specific functionality for restored windows

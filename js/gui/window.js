@@ -116,7 +116,7 @@ export function getAppIcon(windowId, title) {
   return null;
 }
 
-export function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white') {
+export function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white', zIndex = null) {
   let contentToPrint = content;
   if (!windowId) {
     windowId = 'window-' + Date.now();
@@ -213,6 +213,20 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   // Assemble window
   container.append(header, contentDiv)
   win.appendChild(container)
+
+  // Apply z-index if provided (for restoration)
+  if (zIndex !== undefined && zIndex !== null) {
+    win.style.zIndex = zIndex;
+    // Update highestZ if this restored window has a higher z-index
+    if (parseInt(zIndex) > highestZ) {
+      setHighestZ(parseInt(zIndex));
+    }
+  } else {
+    // New window - assign next z-index
+    setHighestZ(highestZ + 1);
+    win.style.zIndex = highestZ;
+  }
+
   win.addEventListener('click', function () {
     bringToFront(win);
   });
@@ -270,7 +284,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
     windowType: windowType,
     position: savedPosition,
     fullScreen: savedFullScreen,
-    color: color  // Store the background color
+    color: color,  // Store the background color
+    zIndex: parseInt(win.style.zIndex) || highestZ  // Store the z-index
   };
   if (isNav) {
     navWindows[title] = windowId;
@@ -340,15 +355,28 @@ export function minimizeWindow(windowId) {
 }
 
 export function bringToFront(win) {
+  let needsSave = false;
+
   if (win.style.display === 'none') {
     win.style.display = 'block';
     if (windowStates[win.id]) {
       windowStates[win.id].isMinimized = false;
-      saveState();
+      needsSave = true;
     }
   }
   setHighestZ(highestZ + 1);
   win.style.zIndex = highestZ;
+
+  // Save z-index to windowStates
+  if (windowStates[win.id]) {
+    windowStates[win.id].zIndex = highestZ;
+    needsSave = true;
+  }
+
+  if (needsSave) {
+    saveState();
+  }
+
   document.querySelectorAll('#window-tabs > div').forEach(tab => tab.classList.remove('bg-gray-50'));
   const activeTab = document.getElementById('tab-' + win.id);
   if (activeTab) {

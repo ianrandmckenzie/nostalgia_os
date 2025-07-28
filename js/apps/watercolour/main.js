@@ -802,9 +802,14 @@ export async function initializeWatercolour() {
 
             // Add file to file system
             if (addFileToFileSystem) {
-              // Create a blob from the dataURL to simulate a file object
-              const response = await fetch(dataURL);
-              const blob = await response.blob();
+              // Create a blob from the dataURL without using fetch (CSP-friendly)
+              const base64Data = dataURL.split(',')[1];
+              const binaryData = atob(base64Data);
+              const byteArray = new Uint8Array(binaryData.length);
+              for (let i = 0; i < binaryData.length; i++) {
+                byteArray[i] = binaryData.charCodeAt(i);
+              }
+              const blob = new Blob([byteArray], { type: 'image/png' });
               const file = new File([blob], finalFileName, { type: 'image/png' });
 
               const result = await addFileToFileSystem(finalFileName, dataURL, currentPath, 'png', file);

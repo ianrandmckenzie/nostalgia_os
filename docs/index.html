@@ -15,8 +15,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./image/favicons/apple-touch-icon.png" />
   <link rel="manifest" href="./image/favicons/site.webmanifest" />
 
-  <script type="module" crossorigin src="/assets/index-B1ZQUHOO.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Bxglbwz_.css">
+  <script type="module" crossorigin src="/assets/index-C2mKZU9X.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-HWwpUR7e.css">
 </head>
 <body id="desktop" class="containerbox bg-default-bg h-screen w-screen relative overflow-hidden font-mono">
   <div id="sr-announcements" aria-live="polite" aria-atomic="true" class="sr-only"></div>
@@ -39,6 +39,16 @@
 
   <!-- Context Menu (for right-click) -->
   <div id="context-menu" class="absolute bg-white border border-gray-500 shadow-lg hidden z-50" role="menu" aria-hidden="true"></div>
+
+  <!-- Window Cycle Popup -->
+  <div id="window-cycle-popup" class="fixed inset-0 bg-black/10 hidden items-center justify-center" style="z-index: 10000;" role="dialog" aria-label="Window switcher">
+    <div class="bg-gray-200 border-2 border-gray-500 rounded-lg p-4 max-w-md" style="border-style: outset; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);">
+      <div class="text-center mb-3 font-bold text-gray-800">Switch Windows</div>
+      <div id="window-cycle-list" class="flex flex-wrap gap-2 justify-center">
+        <!-- Window items will be populated here -->
+      </div>
+    </div>
+  </div>
 
   <!-- Taskbar -->
   <nav class="fixed bottom-0 left-0 right-0 bg-gray-300 border-t border-gray-500 h-12 flex items-center px-2" style="z-index:1000;" role="navigation" aria-label="System taskbar">

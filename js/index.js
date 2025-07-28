@@ -27,7 +27,8 @@ import {
   getAppIcon,
   cycleWindows,
   closeActiveWindow,
-  minimizeActiveWindow
+  minimizeActiveWindow,
+  completeCurrentWindowCycle
 } from './gui/window.js';
 import {
   toggleStartMenu,
@@ -381,7 +382,7 @@ document.addEventListener('keydown', function(e) {
     switch(e.key) {
       case 'Tab':
         e.preventDefault();
-        // Cycle through open windows
+        // Cycle through open windows with popup
         cycleWindows();
         break;
       case 'F4':
@@ -390,6 +391,17 @@ document.addEventListener('keydown', function(e) {
         closeActiveWindow();
         break;
     }
+  }
+
+  // Handle escape key to cancel window cycling
+  if (e.key === 'Escape') {
+    completeCurrentWindowCycle();
+  }
+
+  // Handle Enter key to select current window
+  if (e.key === 'Enter' && document.getElementById('window-cycle-popup') && !document.getElementById('window-cycle-popup').classList.contains('hidden')) {
+    e.preventDefault();
+    completeCurrentWindowCycle();
   }
 
   if (e.ctrlKey || e.metaKey) {
@@ -402,6 +414,17 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         minimizeActiveWindow();
         break;
+    }
+  }
+});
+
+// Handle Alt key release to complete window cycling
+document.addEventListener('keyup', function(e) {
+  if (e.key === 'Alt') {
+    const popup = document.getElementById('window-cycle-popup');
+    if (popup && !popup.classList.contains('hidden')) {
+      // Complete the cycle when Alt is released
+      completeCurrentWindowCycle();
     }
   }
 });

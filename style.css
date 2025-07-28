@@ -280,3 +280,32 @@
     animation: none;
   }
 }
+
+/* Window cycle popup styling */
+#window-cycle-popup {
+  backdrop-filter: blur(2px);
+}
+
+#window-cycle-popup .bg-gray-200 {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border-style: outset;
+  border-width: 2px;
+}
+
+#window-cycle-list > div {
+  transition: all 0.2s ease;
+}
+
+#window-cycle-list > div:hover {
+  transform: translateY(-1px);
+}
+
+#window-cycle-list > div.border-blue-500 {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Ensure popup appears above everything */
+#window-cycle-popup {
+  z-index: 10000 !important;
+}

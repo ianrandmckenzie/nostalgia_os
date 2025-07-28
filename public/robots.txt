@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://nos.relentlesscurious.com/sitemap.xml
+
+# Optimize crawling
+Crawl-delay: 1

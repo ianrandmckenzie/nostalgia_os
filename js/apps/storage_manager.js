@@ -486,17 +486,17 @@ async function checkForMissingApps() {
   try {
     // Get the complete list of default applications from start menu
     const defaultApps = [
-      { id: 'mycomp', text: 'My Computer', icon: 'image/computer.png' },
-      { id: 'mediaapp', text: 'Media Player', icon: 'image/video.png' },
-      { id: 'watercolourapp', text: 'Watercolour', icon: 'image/watercolour.png' },
-      { id: 'letterpad', text: 'LetterPad', icon: 'image/file.png' },
-      { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.png' },
-      { id: 'sysset', text: 'System Settings', icon: 'image/gears.png' },
-      { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.png' },
-      { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.png' },
-      { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.png' },
-      { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.png' },
-      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.png' }
+      { id: 'mycomp', text: 'My Computer', icon: 'image/computer.webp' },
+      { id: 'mediaapp', text: 'Media Player', icon: 'image/video.webp' },
+      { id: 'watercolourapp', text: 'Watercolour', icon: 'image/watercolour.webp' },
+      { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },
+      { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.webp' },
+      { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
+      { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
+      { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' },
+      { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.webp' },
+      { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.webp' },
+      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' }
     ];
 
     // Get current start menu order

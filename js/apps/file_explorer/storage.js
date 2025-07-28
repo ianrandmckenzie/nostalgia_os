@@ -148,17 +148,17 @@ async function fetchDocuments() {
 
     const fileItems = files.map(file => {
       let content_type = file.file_type.toLowerCase();
-      let icon_url = 'image/file.png';
+      let icon_url = 'image/file.webp';
       if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
-        icon_url = 'image/image.png';
+        icon_url = 'image/image.webp';
       } else if (['mp4', 'webm'].includes(content_type)) {
-        icon_url = 'image/video.png';
+        icon_url = 'image/video.webp';
       } else if (['mp3', 'wav'].includes(content_type)) {
-        icon_url = 'image/audio.png';
+        icon_url = 'image/audio.webp';
       } else if (content_type === 'html') {
-        icon_url = 'image/html.png';
+        icon_url = 'image/html.webp';
       } else if (['md', 'txt'].includes(content_type)) {
-        icon_url = 'image/doc.png';
+        icon_url = 'image/doc.webp';
       }
 
       return {
@@ -208,17 +208,17 @@ function fetchDocumentsSync() {
 
     const fileItems = myDocuments.files.map(file => {
       const content_type = file.url.split('.').pop().toLowerCase();
-      let icon_url = 'image/file.png';
+      let icon_url = 'image/file.webp';
       if (['png', 'jpg', 'jpeg', 'gif'].includes(content_type)) {
-        icon_url = 'image/image.png';
+        icon_url = 'image/image.webp';
       } else if (['mp4', 'webm'].includes(content_type)) {
-        icon_url = 'image/video.png';
+        icon_url = 'image/video.webp';
       } else if (['mp3', 'wav'].includes(content_type)) {
-        icon_url = 'image/audio.png';
+        icon_url = 'image/audio.webp';
       } else if (content_type === 'html') {
-        icon_url = 'image/html.png';
+        icon_url = 'image/html.webp';
       } else if (['md', 'txt'].includes(content_type)) {
-        icon_url = 'image/doc.png';
+        icon_url = 'image/doc.webp';
       }
 
       return {

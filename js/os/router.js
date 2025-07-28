@@ -170,7 +170,7 @@ const routes = {
   '/security-policy': {
     title: 'Security Policy',
     content: SECURITY_POLICY_CONTENT,
-    icon: 'image/info.png'
+    icon: 'image/info.webp'
   }
 };
 

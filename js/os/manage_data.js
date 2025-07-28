@@ -6,7 +6,7 @@ export let fileSystemState = {
     "C://": {
       "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
       "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {
-          "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
+          "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.webp' }
         }
       },
       "Media": { id: 'Media', name: 'Media', type: 'folder', fullPath: 'C://Media', contents: {} },
@@ -242,17 +242,17 @@ export async function addFileToFileSystem(fileName, fileContent, targetFolderPat
   // Files are stored directly in the folder
 
   // Determine appropriate icon based on content type
-  let icon_url = 'image/file.png';
+  let icon_url = 'image/file.webp';
   if (['png', 'jpg', 'jpeg', 'gif'].includes(contentType)) {
-    icon_url = 'image/image.png';
+    icon_url = 'image/image.webp';
   } else if (['mp4', 'webm'].includes(contentType)) {
-    icon_url = 'image/video.png';
+    icon_url = 'image/video.webp';
   } else if (['mp3', 'wav', 'audio'].includes(contentType)) {
-    icon_url = 'image/audio.png';
+    icon_url = 'image/audio.webp';
   } else if (contentType === 'html') {
-    icon_url = 'image/html.png';
+    icon_url = 'image/html.webp';
   } else if (['md', 'txt'].includes(contentType)) {
-    icon_url = 'image/doc.png';
+    icon_url = 'image/doc.webp';
   }
 
   // Create file object
@@ -573,7 +573,7 @@ export async function initializeAppState() {
             type: 'ugc-file',
             fullPath: 'C://Media/too_many_screws_final.mp3',
             content_type: 'mp3',
-            icon: 'image/audio.png',
+            icon: 'image/audio.webp',
             contents: '',
             file: null,
             isDefault: true,
@@ -675,7 +675,7 @@ export async function initializeAppState() {
               type: 'ugc-file',
               fullPath: 'C://Media/too_many_screws_final.mp3',
               content_type: 'mp3',
-              icon: 'image/audio.png',
+              icon: 'image/audio.webp',
               contents: '',
               file: null,
               isDefault: true,

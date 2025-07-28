@@ -7,37 +7,37 @@ import { getSettingsContent, updateDesktopSettings } from './desktop.js';
 export function getAppIcon(windowId, title) {
   // Map of app window IDs to their icons
   const appIconMap = {
-    'calculator': 'image/calculator.png',
-    'mediaplayer': 'image/video.png',
-    'bombbroomer': 'image/bombbroomer.png',
-    'solitaire': 'image/solitaire.png',
-    'chess': 'image/guillotine_chess.png',
-    'mailbox': 'image/mail.png',
-    'watercolour': 'image/watercolour.png',
-    'compostbin': 'image/compost-bin.png',
-    'storage': 'image/drive_c.png',
-    'explorer-window': 'image/computer.png',
-    'tubestream': 'image/video.png'
+    'calculator': 'image/calculator.webp',
+    'mediaplayer': 'image/video.webp',
+    'bombbroomer': 'image/bombbroomer.webp',
+    'solitaire': 'image/solitaire.webp',
+    'chess': 'image/guillotine_chess.webp',
+    'mailbox': 'image/mail.webp',
+    'watercolour': 'image/watercolour.webp',
+    'compostbin': 'image/compost-bin.webp',
+    'storage': 'image/drive_c.webp',
+    'explorer-window': 'image/computer.webp',
+    'tubestream': 'image/video.webp'
   };
 
   // Map of window titles to their icons (for navigation windows and other special cases)
   const titleIconMap = {
-    'Settings': 'image/gears.png',
-    'About This Computer': 'image/info.png',
-    'My Computer': 'image/computer.png',
-    'File Explorer': 'image/computer.png',
-    'Media Player': 'image/video.png',
-    'Calculator': 'image/calculator.png',
-    'Bombbroomer': 'image/bombbroomer.png',
-    'Solitaire': 'image/solitaire.png',
-    'Guillotine Chess': 'image/guillotine_chess.png',
-    'Chess': 'image/guillotine_chess.png',
-    'Inpeek Mailbox': 'image/mail.png',
-    'Watercolour': 'image/watercolour.png',
-    'Compost Bin': 'image/compost-bin.png',
-    'Storage Manager': 'image/drive_c.png',
-    'TubeStream': 'image/video.png',
-    'Security Policy': 'image/info.png'
+    'Settings': 'image/gears.webp',
+    'About This Computer': 'image/info.webp',
+    'My Computer': 'image/computer.webp',
+    'File Explorer': 'image/computer.webp',
+    'Media Player': 'image/video.webp',
+    'Calculator': 'image/calculator.webp',
+    'Bombbroomer': 'image/bombbroomer.webp',
+    'Solitaire': 'image/solitaire.webp',
+    'Guillotine Chess': 'image/guillotine_chess.webp',
+    'Chess': 'image/guillotine_chess.webp',
+    'Inpeek Mailbox': 'image/mail.webp',
+    'Watercolour': 'image/watercolour.webp',
+    'Compost Bin': 'image/compost-bin.webp',
+    'Storage Manager': 'image/drive_c.webp',
+    'TubeStream': 'image/video.webp',
+    'Security Policy': 'image/info.webp'
   };
 
   // Check by window ID first
@@ -59,58 +59,58 @@ export function getAppIcon(windowId, title) {
     // Image files
     if (lowerTitle.match(/\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i) ||
         lowerWindowId.match(/\.(jpg|jpeg|png|gif|webp|avif|bmp)$/i)) {
-      return 'image/image.png';
+      return 'image/image.webp';
     }
 
     // Video files
     if (lowerTitle.match(/\.(mp4|webm|avi|mov|mkv)$/i) ||
         lowerWindowId.match(/\.(mp4|webm|avi|mov|mkv)$/i)) {
-      return 'image/video.png';
+      return 'image/video.webp';
     }
 
     // Audio files
     if (lowerTitle.match(/\.(mp3|wav|ogg|m4a|flac)$/i) ||
         lowerWindowId.match(/\.(mp3|wav|ogg|m4a|flac)$/i)) {
-      return 'image/audio.png';
+      return 'image/audio.webp';
     }
 
     // Text/Document files
     if (lowerTitle.match(/\.(txt|md|doc|docx)$/i) ||
         lowerWindowId.match(/\.(txt|md|doc|docx)$/i) ||
         lowerTitle.includes('letterpad')) {
-      return 'image/file.png';
+      return 'image/file.webp';
     }
 
     // HTML files
     if (lowerTitle.match(/\.(html|htm)$/i) ||
         lowerWindowId.match(/\.(html|htm)$/i)) {
-      return 'image/html.png';
+      return 'image/html.webp';
     }
   }
 
   // Default icons for common window title patterns
   if (title.includes('LetterPad') || title.includes('.md') || title.includes('.txt')) {
-    return 'image/file.png';
+    return 'image/file.webp';
   }
 
   if (title.includes('.jpg') || title.includes('.png') || title.includes('.gif') ||
       title.includes('.webp') || title.includes('.jpeg') || title.includes('.bmp') ||
       title.includes('.avif')) {
-    return 'image/image.png';
+    return 'image/image.webp';
   }
 
   if (title.includes('.mp4') || title.includes('.webm') || title.includes('.avi') ||
       title.includes('.mov') || title.includes('.mkv')) {
-    return 'image/video.png';
+    return 'image/video.webp';
   }
 
   if (title.includes('.mp3') || title.includes('.wav') || title.includes('.ogg') ||
       title.includes('.m4a') || title.includes('.flac')) {
-    return 'image/audio.png';
+    return 'image/audio.webp';
   }
 
   if (title.includes('.html') || title.includes('.htm')) {
-    return 'image/html.png';
+    return 'image/html.webp';
   }
 
   // Return null for unknown window types (will fall back to text-only)

@@ -165,7 +165,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
 
   Object.values(itemsObj).forEach(item => {
     const isFolder  = item.type === 'folder';
-    let   icon      = isFolder ? 'image/folder.png' : 'image/file.png';
+    let   icon      = isFolder ? 'image/folder.webp' : 'image/file.webp';
 
     // Use specific icon if available (check both icon and icon_url for compatibility)
     if (item.icon) {
@@ -212,7 +212,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
   const drivesHtml = ['C://','A://','D://'].map(d =>
     `<li class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 system-folder" ` +
     `data-open-drive="${d}">` +
-    `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0].toLowerCase() === 'a' ? 'floppy' : 'cd'}.png" ` +
+    `<img src="image/${d[0].toLowerCase() === 'c' ? 'drive_c' : d[0].toLowerCase() === 'a' ? 'floppy' : 'cd'}.webp" ` +
     `class="inline h-4 w-4 mr-2" alt="${d} drive icon"> ${d}</li>`
   ).join('');
 

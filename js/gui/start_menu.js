@@ -8,25 +8,25 @@ const DEFAULT_START_MENU_ITEMS = [
   {
     id: 'mycomp',
     text: 'My Computer',
-    icon: 'image/computer.png',
+    icon: 'image/computer.webp',
     type: 'item'
   },
   // {
   //   id: 'mailapp',
   //   text: 'Mailbox',
-  //   icon: 'image/mail.png',
+  //   icon: 'image/mail.webp',
   //   type: 'item'
   // },
   {
     id: 'mediaapp',
     text: 'Media Player',
-    icon: 'image/video.png',
+    icon: 'image/video.webp',
     type: 'item'
   },
   {
     id: 'watercolourapp',
     text: 'Watercolour',
-    icon: 'image/watercolour.png',
+    icon: 'image/watercolour.webp',
     type: 'item'
   },
   {
@@ -34,11 +34,11 @@ const DEFAULT_START_MENU_ITEMS = [
     text: 'Utilities',
     type: 'group',
     items: [
-      { id: 'letterpad', text: 'LetterPad', icon: 'image/file.png' },
-      { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.png' },
-      { id: 'sysset', text: 'System Settings', icon: 'image/gears.png' },
-      { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.png' },
-      { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.png' }
+      { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },
+      { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.webp' },
+      { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
+      { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
+      { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' }
     ]
   },
   {
@@ -46,15 +46,15 @@ const DEFAULT_START_MENU_ITEMS = [
     text: 'Games',
     type: 'group',
     items: [
-      { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.png' },
-      { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.png' },
-      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.png' }
+      { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.webp' },
+      { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.webp' },
+      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' }
     ]
   },
   {
     id: 'rstrtcomp',
     text: 'Restart',
-    icon: 'image/power.png',
+    icon: 'image/power.webp',
     type: 'item',
     fixed: true // This item should always be last and not draggable
   }
@@ -558,7 +558,7 @@ async function createDesktopShortcut(itemData) {
     const shortcutId = `shortcut-${itemData.id}-${Date.now()}`;
 
     // Determine the appropriate icon
-    let shortcutIcon = itemData.icon || 'image/file.png';
+    let shortcutIcon = itemData.icon || 'image/file.webp';
 
     // Create the desktop shortcut item
     const shortcutItem = {

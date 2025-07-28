@@ -324,10 +324,10 @@ function updateCompostBinHeader(compostBinWindow) {
 
 function getDefaultIcon(type) {
   switch (type) {
-    case 'folder': return './image/folder.png';
-    case 'ugc-file': return './image/doc.png';
-    case 'app': return './image/computer.png';
-    default: return './image/file.png';
+    case 'folder': return './image/folder.webp';
+    case 'ugc-file': return './image/doc.webp';
+    case 'app': return './image/computer.webp';
+    default: return './image/file.webp';
   }
 }
 

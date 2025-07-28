@@ -684,7 +684,7 @@ export function createNewFile(e, fromFullPath, onCreated = null) {
       type: 'ugc-file',
       content: '',
       content_type: 'markdown',
-      icon_url: 'image/doc.png',
+      icon_url: 'image/doc.webp',
       description: ''
     };
 
@@ -791,7 +791,7 @@ function createNewShortcut(e, fromFullPath) {
     const shortcutId = `shortcut-${Date.now()}`;
     let faviconURL   = 'https://www.google.com/s2/favicons?sz=64&domain=';
     try   { faviconURL += new URL(shortcutURL).hostname; }
-    catch { faviconURL  = 'image/doc.png'; }
+    catch { faviconURL  = 'image/doc.webp'; }
 
     const newShortcut = {
       id:  shortcutId,
@@ -868,7 +868,7 @@ async function createNewLetterpad(e, fromFullPath, onCreated = null) {
         type: 'ugc-file',
         content: defaultContent,
         content_type: 'markdown',
-        icon_url: 'image/doc.png'
+        icon_url: 'image/doc.webp'
       };
 
       // Insert into filesystem using the unified helper function
@@ -1231,13 +1231,13 @@ async function addBinaryFileToFileSystem(fileName, targetPath, contentType, file
   const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Determine appropriate icon based on content type
-  let icon_url = 'image/file.png';
+  let icon_url = 'image/file.webp';
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'].includes(contentType)) {
-    icon_url = 'image/image.png';
+    icon_url = 'image/image.webp';
   } else if (['mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
-    icon_url = 'image/video.png';
+    icon_url = 'image/video.webp';
   } else if (['mp3', 'wav', 'ogg'].includes(contentType)) {
-    icon_url = 'image/audio.png';
+    icon_url = 'image/audio.webp';
   }
 
   // Create file object

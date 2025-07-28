@@ -147,7 +147,7 @@ document.getElementById('start-button').addEventListener('click', () => {
 
 function toggleStartIcon() {
   const btnIcon = document.getElementById('start-button').querySelector('img');
-  if (btnIcon.src.includes('image/door-closed.png')) {
+  if (btnIcon.src.includes('image/door-closed.webp')) {
     btnIcon.src = btnIcon.src.replace('door-closed', 'door-open');
   } else {
     btnIcon.src = btnIcon.src.replace('door-open', 'door-closed');

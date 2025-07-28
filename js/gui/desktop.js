@@ -467,7 +467,7 @@ export async function renderDesktopIcons() {
             "C://": {
               "Documents": { id: 'Documents', name: 'Documents', type: 'folder', fullPath: 'C://Documents', contents: {}},
               "Desktop": { id: 'Desktop', name: 'Desktop', type: 'folder', fullPath: 'C://Desktop', contents: {
-                  "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.png' }
+                  "compostbin": { id: 'compostbin', name: 'Compost Bin', type: 'app', fullPath: 'C://Desktop/compostbin', content_type: 'html', contents: {}, icon: './image/compost-bin.webp' }
                 }
               },
               "Media": { id: 'Media', name: 'Media', type: 'folder', fullPath: 'C://Media', contents: {} },
@@ -527,7 +527,7 @@ export async function renderDesktopIcons() {
     iconElem.setAttribute('tabindex', '0');
     iconElem.setAttribute('aria-label', `${item.name} - Double-click to open`);
 
-    let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
+    let iconSrc = (item.type === 'folder') ? 'image/folder.webp' : 'image/file.webp';
 
     // Use specific icon if available
     if (item.icon) {

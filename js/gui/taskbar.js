@@ -4,9 +4,16 @@ import { toggleButtonActiveState } from './main.js';
 
 export function toggleStartMenu() {
   const menu = document.getElementById('start-menu');
-  menu.classList.toggle('hidden');
-  toggleButtonActiveState('start-button');
+  const startButton = document.getElementById('start-button');
+  const isHidden = menu.classList.contains('hidden');
 
+  menu.classList.toggle('hidden');
+
+  // Update ARIA attributes
+  startButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  menu.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+
+  toggleButtonActiveState('start-button');
   toggleStartIcon();
 
   // Initialize drag and drop when menu is opened
@@ -70,8 +77,12 @@ export function updateMediaControl() {
   const mediaControl = document.getElementById('media-control');
   if (mediaEl) {
     mediaControl.textContent = mediaEl.paused ? "▶" : "⏸";
+    mediaControl.setAttribute('aria-label', mediaEl.paused ? 'Play media' : 'Pause media');
+    mediaControl.style.display = 'inline-block';
   } else {
     mediaControl.textContent = "";
+    mediaControl.setAttribute('aria-label', 'No media playing');
+    mediaControl.style.display = 'none';
   }
 }
 

@@ -1047,7 +1047,6 @@ async function clearFileExplorerState() {
 
 // Initialize file explorer UI (for restoration)
 function initializeFileExplorerUI(win) {
-  console.log('🔧 Initializing File Explorer UI for restoration');
 
   // Restore the saved state
   setTimeout(async () => {
@@ -1057,30 +1056,23 @@ function initializeFileExplorerUI(win) {
 
 // Restore file explorer state
 async function restoreFileExplorerState() {
-  console.log('🔄 Restoring File Explorer state...');
   const state = await loadFileExplorerState();
-  console.log('📁 Loaded File Explorer state:', state);
 
   const explorerWindow = document.getElementById('explorer-window');
 
   if (explorerWindow && state.currentPath) {
-    console.log('🗂️ Restoring File Explorer to path:', state.currentPath);
 
     // Navigate to the saved path
     const newContent = getExplorerWindowContent(state.currentPath);
-    console.log('📄 Generated new content for path:', state.currentPath);
 
     const fileExplorerDiv = explorerWindow.querySelector('.file-explorer-window');
     if (fileExplorerDiv) {
-      console.log('🔄 Replacing File Explorer content...');
       fileExplorerDiv.outerHTML = newContent;
       // Set up event handlers again
       setTimeout(() => {
-        console.log('🎯 Setting up folder drop handlers...');
         setupFolderDrop();
         refreshExplorerViews();
       }, 100);
-      console.log('✅ File Explorer state restored successfully');
     } else {
       console.warn('⚠️ Could not find .file-explorer-window element');
     }

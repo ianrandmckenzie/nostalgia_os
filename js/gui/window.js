@@ -142,9 +142,19 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   win.style.cssText = styleDimensions;
   win.style.minWidth = "350px";
   win.style.minHeight = "240px";
+
+  // Add ARIA attributes for accessibility
+  win.setAttribute('role', 'dialog');
+  win.setAttribute('aria-label', title);
+  win.setAttribute('aria-modal', 'false'); // Not true modal since multiple windows can be open
+
   if (initialMinimized) {
     win.style.display = 'none';
+    win.setAttribute('aria-hidden', 'true');
+  } else {
+    win.setAttribute('aria-hidden', 'false');
   }
+
   // Clear existing content
   win.textContent = ''
 
@@ -155,20 +165,26 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   const header = document.createElement('div')
   header.className = 'bg-handlebar-blue sticky top-0 left-0 text-white px-2 py-1 flex justify-between items-center cursor-move'
   header.style.backgroundColor = '#003f7f'
+  header.setAttribute('role', 'banner')
 
   const titleSpan = document.createElement('span')
   titleSpan.textContent = title
   titleSpan.className = 'flex-1 truncate pr-2'
   titleSpan.style.maxWidth = 'calc(100% - 120px)' // Reserve space for the 3 buttons (40px each)
+  titleSpan.id = `${windowId}-title`
 
   const buttonContainer = document.createElement('div')
   buttonContainer.className = 'my-1 flex-shrink-0'
+  buttonContainer.setAttribute('role', 'group')
+  buttonContainer.setAttribute('aria-label', 'Window controls')
 
   // Minimize button
   const minimizeBtn = document.createElement('button')
   minimizeBtn.id = `minimizeWindow-${windowId}`
   minimizeBtn.className = 'bg-yellow-500 h-6 w-6 text-white'
   minimizeBtn.textContent = '_'
+  minimizeBtn.setAttribute('aria-label', `Minimize ${title}`)
+  minimizeBtn.setAttribute('title', 'Minimize window')
   minimizeBtn.addEventListener('click', (event) => { minimizeWindow(windowId); event.stopPropagation(); });
 
   // Fullscreen toggle button
@@ -176,6 +192,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   fullscreenBtn.id = `toggleFullScreen-${windowId}`
   fullscreenBtn.className = 'bg-green-500 h-6 w-6 text-white ml-1'
   fullscreenBtn.textContent = '⛶'
+  fullscreenBtn.setAttribute('aria-label', `Toggle fullscreen for ${title}`)
+  fullscreenBtn.setAttribute('title', 'Toggle fullscreen')
   fullscreenBtn.addEventListener('click', (event) => { toggleFullScreen(windowId); event.stopPropagation(); });
 
   // Close button
@@ -183,6 +201,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   closeBtn.id = `closeWindow-${windowId}`
   closeBtn.className = 'bg-red-500 h-6 w-6 text-white ml-1'
   closeBtn.textContent = 'X'
+  closeBtn.setAttribute('aria-label', `Close ${title}`)
+  closeBtn.setAttribute('title', 'Close window')
   closeBtn.addEventListener('click', (event) => { closeWindow(windowId); event.stopPropagation();});
 
   // Append buttons
@@ -193,9 +213,13 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   const contentDiv = document.createElement('div')
   contentDiv.className = `p-2 bg-${color} h-full ${windowType === 'editor' ? 'w-full' : ''} overflow-auto`
   contentDiv.innerHTML = contentToPrint
+  contentDiv.setAttribute('role', 'main')
+  contentDiv.setAttribute('aria-labelledby', `${windowId}-title`)
 
   if (windowType === 'default') {
     contentDiv.contentEditable = 'true'
+    contentDiv.setAttribute('role', 'textbox')
+    contentDiv.setAttribute('aria-label', `Editable content for ${title}`)
     contentDiv.addEventListener('input', () => {
       updateContent(windowId, contentDiv.innerHTML)
     })
@@ -235,6 +259,10 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   const tab = document.createElement('div');
   tab.id = 'tab-' + windowId;
   tab.className = 'bg-gray-200 border border-gray-500 px-2 py-1 cursor-pointer flex items-center';
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-label', `${title} window tab`);
+  tab.setAttribute('aria-pressed', !initialMinimized ? 'true' : 'false');
+  tab.setAttribute('tabindex', '0');
 
   // Get app icon and create tab content
   const appIcon = getAppIcon(windowId, title);
@@ -242,7 +270,7 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
     const iconImg = document.createElement('img');
     iconImg.src = appIcon;
     iconImg.className = 'h-4 w-4 mr-2';
-    iconImg.alt = title;
+    iconImg.alt = '';  // Decorative icon, tab already has aria-label
     tab.appendChild(iconImg);
 
     const titleSpan = document.createElement('span');
@@ -252,13 +280,25 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
     tab.textContent = title;
   }
 
-  tab.onclick = function () {
+  const handleTabActivation = function () {
     if (win.style.display === 'none') {
       bringToFront(win);
+      tab.setAttribute('aria-pressed', 'true');
     } else {
       minimizeWindow(win.id);
+      tab.setAttribute('aria-pressed', 'false');
     }
   };
+
+  tab.onclick = handleTabActivation;
+
+  // Add keyboard support
+  tab.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleTabActivation();
+    }
+  });
 
   // Add right-click context menu for taskbar tabs
   tab.addEventListener('contextmenu', function(e) {
@@ -343,6 +383,7 @@ export function minimizeWindow(windowId) {
   const win = document.getElementById(windowId);
   if (win) {
     win.style.display = 'none';
+    win.setAttribute('aria-hidden', 'true');
     if (windowStates[windowId]) {
       windowStates[windowId].isMinimized = true;
       saveState();
@@ -350,6 +391,7 @@ export function minimizeWindow(windowId) {
     const tab = document.getElementById('tab-' + windowId);
     if (tab) {
       tab.classList.remove('bg-gray-50');
+      tab.setAttribute('aria-pressed', 'false');
     }
   }
 }
@@ -359,9 +401,16 @@ export function bringToFront(win) {
 
   if (win.style.display === 'none') {
     win.style.display = 'block';
+    win.setAttribute('aria-hidden', 'false');
     if (windowStates[win.id]) {
       windowStates[win.id].isMinimized = false;
       needsSave = true;
+    }
+
+    // Update corresponding tab
+    const tab = document.getElementById('tab-' + win.id);
+    if (tab) {
+      tab.setAttribute('aria-pressed', 'true');
     }
   }
   setHighestZ(highestZ + 1);
@@ -385,6 +434,130 @@ export function bringToFront(win) {
   if (win.querySelector("video, audio")) {
     setActiveMediaWindow(win.id);
     updateMediaControl();
+  }
+}
+
+// Global variable to track current window in cycle
+let windowCycleIndex = -1;
+
+export function cycleWindows() {
+  // Get all visible windows (not minimized)
+  const allWindows = Array.from(document.querySelectorAll('#windows-container > div'))
+    .filter(win => win.style.display !== 'none' && win.id !== 'taskbar');
+
+  if (allWindows.length === 0) {
+    return; // No windows to cycle through
+  }
+
+  if (allWindows.length === 1) {
+    // Only one window, just bring it to front
+    bringToFront(allWindows[0]);
+    return;
+  }
+
+  // Sort windows by current z-index to maintain consistent cycling order
+  allWindows.sort((a, b) => {
+    const aZ = parseInt(a.style.zIndex) || 0;
+    const bZ = parseInt(b.style.zIndex) || 0;
+    return bZ - aZ; // Highest z-index first
+  });
+
+  // Increment cycle index
+  windowCycleIndex = (windowCycleIndex + 1) % allWindows.length;
+
+  // Get the next window in cycle
+  const nextWindow = allWindows[windowCycleIndex];
+
+  // Bring the selected window to front
+  bringToFront(nextWindow);
+
+  // Focus the window for screen reader accessibility
+  nextWindow.focus();
+
+  // Announce window switch for accessibility
+  const windowTitle = nextWindow.querySelector('.window-title')?.textContent || 'Unknown Window';
+
+  // Create or update live region for screen reader announcements
+  let announceElement = document.getElementById('window-cycle-announce');
+  if (!announceElement) {
+    announceElement = document.createElement('div');
+    announceElement.id = 'window-cycle-announce';
+    announceElement.className = 'sr-only';
+    announceElement.setAttribute('aria-live', 'polite');
+    announceElement.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(announceElement);
+  }
+
+  announceElement.textContent = `Switched to ${windowTitle}`;
+}
+
+export function closeActiveWindow() {
+  // Find the window with the highest z-index (active window)
+  const allWindows = Array.from(document.querySelectorAll('#windows-container > div'))
+    .filter(win => win.style.display !== 'none' && win.id !== 'taskbar');
+
+  if (allWindows.length === 0) {
+    return; // No windows to close
+  }
+
+  // Sort by z-index and get the top window
+  allWindows.sort((a, b) => {
+    const aZ = parseInt(a.style.zIndex) || 0;
+    const bZ = parseInt(b.style.zIndex) || 0;
+    return bZ - aZ;
+  });
+
+  const activeWindow = allWindows[0];
+  if (activeWindow) {
+    closeWindow(activeWindow.id);
+
+    // Announce window closure for accessibility
+    const windowTitle = activeWindow.querySelector('.window-title')?.textContent || 'Unknown Window';
+    let announceElement = document.getElementById('window-cycle-announce');
+    if (!announceElement) {
+      announceElement = document.createElement('div');
+      announceElement.id = 'window-cycle-announce';
+      announceElement.className = 'sr-only';
+      announceElement.setAttribute('aria-live', 'polite');
+      announceElement.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(announceElement);
+    }
+    announceElement.textContent = `Closed ${windowTitle}`;
+  }
+}
+
+export function minimizeActiveWindow() {
+  // Find the window with the highest z-index (active window)
+  const allWindows = Array.from(document.querySelectorAll('#windows-container > div'))
+    .filter(win => win.style.display !== 'none' && win.id !== 'taskbar');
+
+  if (allWindows.length === 0) {
+    return; // No windows to minimize
+  }
+
+  // Sort by z-index and get the top window
+  allWindows.sort((a, b) => {
+    const aZ = parseInt(a.style.zIndex) || 0;
+    const bZ = parseInt(b.style.zIndex) || 0;
+    return bZ - aZ;
+  });
+
+  const activeWindow = allWindows[0];
+  if (activeWindow) {
+    minimizeWindow(activeWindow.id);
+
+    // Announce window minimization for accessibility
+    const windowTitle = activeWindow.querySelector('.window-title')?.textContent || 'Unknown Window';
+    let announceElement = document.getElementById('window-cycle-announce');
+    if (!announceElement) {
+      announceElement = document.createElement('div');
+      announceElement.id = 'window-cycle-announce';
+      announceElement.className = 'sr-only';
+      announceElement.setAttribute('aria-live', 'polite');
+      announceElement.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(announceElement);
+    }
+    announceElement.textContent = `Minimized ${windowTitle}`;
   }
 }
 
@@ -534,11 +707,13 @@ export function showDialogBox(message, dialogType, onConfirm = null, onCancel = 
   let title = '⚠️ Information';
   if (dialogType === 'confirmation') {
     title = isConfirmationDialog ? '⚠️ Confirmation' : '✅ Success';
+    announceToScreenReader(message, priority = 'polite');
   }
   if (dialogType === 'error') {
     title = '⚠️ Error';
     const errorAudio = document.getElementById('error-popup-audio');
     if (errorAudio) errorAudio.play();
+    announceToScreenReader(message, priority = 'assertive');
   }
 
   const dialogWindow = createWindow(title, dialogContent, false, uniqueWindowId, false, false, { type: 'integer', width: 350, height: 180 }, "default");
@@ -582,6 +757,16 @@ export function showDialogBox(message, dialogType, onConfirm = null, onCancel = 
   }, 100);
 
   return dialogWindow;
+}
+
+function announceToScreenReader(message, priority = 'polite') {
+  const announcer = document.getElementById(priority === 'assertive' ? 'sr-alerts' : 'sr-announcements');
+  announcer.textContent = message;
+
+  // Clear after announcement
+  setTimeout(() => {
+    announcer.textContent = '';
+  }, 1000);
 }
 
 document.addEventListener('click', e => {

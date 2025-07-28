@@ -525,8 +525,6 @@ async function checkForMissingApps() {
     // Find missing apps
     const missingApps = defaultApps.filter(app => !visibleAppIds.has(app.id));
 
-    console.log('🔍 Apps check - Visible:', Array.from(visibleAppIds));
-    console.log('🔍 Apps check - Missing:', missingApps.map(app => app.id));
 
     return {
       count: missingApps.length,
@@ -541,7 +539,6 @@ async function checkForMissingApps() {
 // Restore all missing applications to the Start menu
 async function restoreAllApplications() {
   try {
-    console.log('🔄 Starting application restore...');
 
     // Check what apps are missing
     const missingAppsInfo = await checkForMissingApps();
@@ -582,7 +579,6 @@ async function restoreAllApplications() {
 // Perform the actual restore operation
 async function performAppRestore(missingApps) {
   try {
-    console.log('🔄 Performing app restore for:', missingApps.map(app => app.id));
 
     // Get current start menu order
     let currentOrder = [];
@@ -701,7 +697,6 @@ async function performAppRestore(missingApps) {
       refreshStorageData();
     }, 500);
 
-    console.log('✅ App restore completed successfully');
 
   } catch (error) {
     console.error('❌ Error performing app restore:', error);

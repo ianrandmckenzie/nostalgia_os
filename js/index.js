@@ -14,7 +14,7 @@ import {
   activeMediaWindow
 } from './os/manage_data.js';
 import { renderDesktopIcons, makeIconDraggable } from './gui/desktop.js';
-import { initializeStartMenu } from './gui/start_menu.js';
+import { initializeStartMenu, addStartMenuKeyboardNavigation } from './gui/start_menu.js';
 import { showSplash } from './os/splash.js';
 import { restart, logout } from './os/restart.js';
 import {
@@ -24,7 +24,10 @@ import {
   closeWindow,
   toggleFullScreen,
   showDialogBox,
-  getAppIcon
+  getAppIcon,
+  cycleWindows,
+  closeActiveWindow,
+  minimizeActiveWindow
 } from './gui/window.js';
 import {
   toggleStartMenu,
@@ -93,11 +96,6 @@ import {
 } from './apps/mediaplayer.js';
 
 export const version = '1.0';
-
-// All scripts have been converted to ES modules!
-async function loadLegacyScripts() {
-  console.log('✅ All scripts have been successfully converted to ES modules');
-}
 
 // Initialize storage-dependent code after storage is ready
 async function initializeApp() {
@@ -245,6 +243,67 @@ document.getElementById('desktop').addEventListener('click', function (e) {
   }
 });
 
+// Add keyboard support for interactive elements
+function setupKeyboardSupport() {
+  // Media control keyboard support
+  const mediaControl = document.getElementById('media-control');
+  if (mediaControl) {
+    mediaControl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleMediaPlayback();
+      }
+    });
+  }
+
+  // Start button keyboard support
+  const startButton = document.getElementById('start-button');
+  if (startButton) {
+    startButton.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleStartMenu();
+      }
+    });
+  }
+
+  // Minimize all button keyboard support
+  const minAllBtn = document.getElementById('min-all-btn');
+  if (minAllBtn) {
+    minAllBtn.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        minimizeAllWindows();
+      }
+    });
+  }
+
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Escape key to close start menu and context menus
+    if (e.key === 'Escape') {
+      const startMenu = document.getElementById('start-menu');
+      const contextMenu = document.getElementById('context-menu');
+
+      if (startMenu && !startMenu.classList.contains('hidden')) {
+        const startButton = document.getElementById('start-button');
+        startButton.setAttribute('aria-expanded', 'false');
+        startMenu.classList.add('hidden');
+        startMenu.setAttribute('aria-hidden', 'true');
+        const { toggleButtonActiveState } = window;
+        if (toggleButtonActiveState) {
+          toggleButtonActiveState('start-button');
+        }
+      }
+
+      if (contextMenu && !contextMenu.classList.contains('hidden')) {
+        contextMenu.classList.add('hidden');
+        contextMenu.setAttribute('aria-hidden', 'true');
+      }
+    }
+  });
+}
+
 window.addEventListener('click', async function (e) {
   const startMenu = document.getElementById('start-menu');
   const startButton = document.getElementById('start-button');
@@ -260,9 +319,6 @@ window.addEventListener('click', async function (e) {
 window.addEventListener('load', async function () {
   // Initialize app and storage first
   await initializeApp();
-
-  // Load all legacy scripts
-  await loadLegacyScripts();
 
   // Make main.js functions globally available for legacy scripts
   const { toggleButtonActiveState, makeWin95Button, makeWin95Prompt, openFileExplorerForImageSelection } = await import('./gui/main.js');
@@ -298,5 +354,41 @@ window.addEventListener('load', async function () {
     console.error('initializeStartMenu function not available');
   }
 
+  // Set up keyboard support for interactive elements
+  setupKeyboardSupport();
+
   document.querySelectorAll('.draggable-icon').forEach(icon => makeIconDraggable(icon));
 });
+
+// Add to window.js - keyboard shortcuts for window management
+document.addEventListener('keydown', function(e) {
+  if (e.altKey) {
+    switch(e.key) {
+      case 'Tab':
+        e.preventDefault();
+        // Cycle through open windows
+        cycleWindows();
+        break;
+      case 'F4':
+        e.preventDefault();
+        // Close active window
+        closeActiveWindow();
+        break;
+    }
+  }
+
+  if (e.ctrlKey || e.metaKey) {
+    switch(e.key) {
+      case 'w':
+        e.preventDefault();
+        closeActiveWindow();
+        break;
+      case 'm':
+        e.preventDefault();
+        minimizeActiveWindow();
+        break;
+    }
+  }
+});
+
+addStartMenuKeyboardNavigation();

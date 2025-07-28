@@ -708,7 +708,6 @@ function createNewShortcut(e, fromFullPath) {
   e.stopPropagation();
   hideContextMenu();
 
-  console.log('createNewShortcut called with fromFullPath:', fromFullPath);
 
   const parentPath = fromFullPath || 'C://';
   const winId      = `window-${Date.now()}`;
@@ -775,11 +774,6 @@ function createNewShortcut(e, fromFullPath) {
       nameInput.value.trim() ||
       shortcutURL.replace(shortcutURL.substring(15), '…');
 
-    console.log('=== Shortcut Form Submission ===');
-    console.log('Shortcut URL:', shortcutURL);
-    console.log('Shortcut Name:', shortcutName);
-    console.log('fromFullPath parameter:', fromFullPath);
-    console.log('parentPath variable:', parentPath);
 
     /* build shortcut object */
     const shortcutId = `shortcut-${Date.now()}`;
@@ -797,12 +791,9 @@ function createNewShortcut(e, fromFullPath) {
       fullPath: fromFullPath === 'C://Desktop' ? `C://Desktop/${shortcutName}` : `${fromFullPath}/${shortcutName}`
     };
 
-    console.log('Creating shortcut object:', newShortcut);
-    console.log('Will save to path:', fromFullPath);
 
     /* insert into filesystem using unified helper */
     const saveSuccess = await addItemToFileSystem(newShortcut, fromFullPath);
-    console.log('Save operation result:', saveSuccess);
 
     if (!saveSuccess) {
       console.error('Failed to save shortcut to filesystem');
@@ -812,10 +803,8 @@ function createNewShortcut(e, fromFullPath) {
     /* refresh views */
     if (fromFullPath === 'C://Desktop') {
       // For desktop, refresh desktop icons
-      console.log('Refreshing desktop icons...');
       setTimeout(async () => {
         await renderDesktopIcons();
-        console.log('Desktop icons refreshed');
       }, 100);
     } else {
       refreshExplorerViews();
@@ -824,11 +813,9 @@ function createNewShortcut(e, fromFullPath) {
     setupFolderDrop();
     try {
       await saveState();
-      console.log('Global state saved successfully');
     } catch (error) {
       console.error('Failed to save state after creating shortcut:', error);
     }
-    console.log('=== Shortcut creation complete ===');
     // Note: refreshExplorerViews() is broken, so we handle refresh above
   });
 }
@@ -1182,13 +1169,8 @@ window.refreshAllExplorerWindows = refreshAllExplorerWindows;
    Enhanced version that can handle both simple files and complex file uploads.
 ====================== */
 async function addItemToFileSystem(item, targetPath) {
-  console.log('=== addItemToFileSystem called ===');
-  console.log('Item:', item);
-  console.log('Target path:', targetPath);
 
   const fs = getFileSystemStateSync();
-  console.log('Current filesystem state keys:', fs ? Object.keys(fs) : 'null');
-  console.log('Available folder paths:', fs && fs.folders ? Object.keys(fs.folders) : 'no folders');
 
   // Safety check to ensure file system state is properly initialized
   if (!fs || !fs.folders) {
@@ -1199,35 +1181,26 @@ async function addItemToFileSystem(item, targetPath) {
 
   // Use the unified approach: fs.folders[targetPath] for folder contents
   let destination = fs.folders[targetPath];
-  console.log('Destination folder exists:', !!destination);
 
   if (!destination) {
     // If the parent folder doesn't exist in fs.folders, create it
     console.warn('Parent folder contents not found, creating:', targetPath);
     fs.folders[targetPath] = {};
     destination = fs.folders[targetPath];
-    console.log('Created new destination folder for path:', targetPath);
   }
 
-  console.log('Items in destination before adding:', Object.keys(destination));
 
   // Insert the new item into the parent's contents
   destination[item.id] = item;
 
-  console.log('Added item to filesystem:', item.id, 'type:', item.type, 'to path:', targetPath);
-  console.log('Items in destination after adding:', Object.keys(destination));
 
   // Save the file system state
-  console.log('Saving filesystem state...');
   await setFileSystemState(fs);
-  console.log('Filesystem state saved');
 
   // Verify the item was actually saved
   const verifyFS = getFileSystemStateSync();
   const verifyDestination = verifyFS.folders[targetPath];
-  console.log('Verification - item exists after save:', !!(verifyDestination && verifyDestination[item.id]));
 
-  console.log('=== addItemToFileSystem complete ===');
   return true;
 }
 

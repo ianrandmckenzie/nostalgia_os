@@ -430,8 +430,6 @@ window.globalAddFileToFileSystem = addFileToFileSystem;
    This ensures compost bin and other desktop items appear correctly.
 ====================== */
 function migrateFileSystemToUnifiedStructure(fs) {
-  console.log('=== Migration starting ===');
-  console.log('Input filesystem state:', fs);
 
   // Ensure the unified structure exists
   if (!fs.folders) {
@@ -443,13 +441,11 @@ function migrateFileSystemToUnifiedStructure(fs) {
 
   // Check for old nested structure
   if (fs.folders['C://'] && typeof fs.folders['C://'] === 'object') {
-    console.log('Found C:// contents for migration:', Object.keys(fs.folders['C://']), fs.folders['C://']);
 
     // Migrate all items (folders, files, shortcuts) from nested to unified structure
     const driveContents = fs.folders['C://'];
     for (const [itemKey, itemObj] of Object.entries(driveContents)) {
       if (itemObj && typeof itemObj === 'object') {
-        console.log('Processing item:', itemKey, 'type:', itemObj.type);
 
         if (itemObj.type === 'folder') {
           // Handle folder migration
@@ -460,7 +456,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
             // Create the folder in unified structure with its contents
             fs.folders[unifiedPath] = itemObj.contents || {};
             migrationNeeded = true;
-            console.log('Migrated folder to:', unifiedPath);
 
             // Also recursively migrate any nested folder contents
             if (itemObj.contents) {
@@ -476,7 +471,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
           // These should remain in the drive root, so we don't need to do anything special
           // The unified structure already has them in fs.folders['C://']
           // Just ensure they're preserved during migration
-          console.log('Preserving non-folder item in C://:', itemKey, itemObj.type, itemObj.name);
         }
       }
     }
@@ -488,7 +482,6 @@ function migrateFileSystemToUnifiedStructure(fs) {
     if (!fs.folders[folderPath]) {
       fs.folders[folderPath] = {};
       migrationNeeded = true;
-      console.log('Created essential folder:', folderPath);
     }
   }
 
@@ -511,13 +504,9 @@ function migrateFileSystemToUnifiedStructure(fs) {
   }
 
   if (migrationNeeded) {
-    console.log('Migration completed with changes');
   } else {
-    console.log('No migration needed');
   }
 
-  console.log('Final migrated filesystem state:', fs);
-  console.log('=== Migration complete ===');
 
   return fs;
 }
@@ -847,14 +836,11 @@ async function initializeRestoredApp(windowId) {
     },
     'compost-bin': () => {
       // Compost Bin needs to be reinitialized completely
-      console.log('🗑️ Initializing restored Compost Bin window');
       const compostWindow = document.getElementById('compost-bin');
       if (compostWindow) {
         const content = compostWindow.querySelector('.p-2');
-        console.log('🗑️ Content element found:', !!content, 'Current content:', content?.innerHTML.length, 'chars');
 
         if (content && needsReinitialization(content)) {
-          console.log('🗑️ Compost Bin needs reinitialization - rebuilding UI');
           // Clear existing content and reinitialize the Compost Bin
           content.innerHTML = '';
           content.className = 'p-2 bg-gray-100 h-full flex flex-col';
@@ -898,7 +884,6 @@ async function initializeRestoredApp(windowId) {
 
           // Load compost bin contents
           if (typeof loadCompostBinContents === 'function') {
-            console.log('🗑️ Loading compost bin contents');
             loadCompostBinContents(contentArea);
           } else {
             console.warn('🗑️ loadCompostBinContents function not available');
@@ -907,9 +892,7 @@ async function initializeRestoredApp(windowId) {
           binContainer.appendChild(header);
           binContainer.appendChild(contentArea);
           content.appendChild(binContainer);
-          console.log('🗑️ Compost Bin UI rebuilt successfully');
         } else {
-          console.log('🗑️ Compost Bin content exists, just reloading contents');
           // Content exists, just try to reload the contents
           const contentArea = compostWindow.querySelector('#compost-bin-content');
           if (contentArea && typeof loadCompostBinContents === 'function') {

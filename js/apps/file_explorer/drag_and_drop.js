@@ -292,28 +292,22 @@ async function updateOrderForCurrentPath() {
   Returns an object with the found item and its parent object.
 */
 function findItemAndParentById(itemId, fs) {
-  console.log('Looking for item:', itemId);
-  console.log('File system folders:', Object.keys(fs.folders));
 
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
-    console.log(`Checking folder ${folderPath}:`, Object.keys(folder));
 
     // Check if the item is directly in this folder
     if (folder[itemId]) {
-      console.log('Found item in folder:', folderPath);
       return { item: folder[itemId], parent: folder };
     }
 
     // Check if the item is in the folder's contents
     if (folder.contents && folder.contents[itemId]) {
-      console.log('Found item in folder contents:', folderPath);
       return { item: folder.contents[itemId], parent: folder.contents };
     }
   }
 
-  console.log('Item not found anywhere');
   return null;
 }
 

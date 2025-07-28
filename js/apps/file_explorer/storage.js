@@ -26,8 +26,6 @@ async function getFileSystemState() {
 }
 
 export async function setFileSystemState(newFS) {
-  console.log('=== setFileSystemState called ===');
-  console.log('Saving filesystem with paths:', Object.keys(newFS.folders || {}));
 
   // Log shortcuts being saved
   if (newFS.folders) {
@@ -38,13 +36,6 @@ export async function setFileSystemState(newFS) {
           const item = items[id];
           return item && item.type === 'shortcut';
         });
-        if (shortcuts.length > 0) {
-          console.log(`Saving ${shortcuts.length} shortcuts in ${path}:`, shortcuts.map(id => ({
-            id,
-            name: items[id].name,
-            url: items[id].url
-          })));
-        }
       }
     });
   }
@@ -54,7 +45,6 @@ export async function setFileSystemState(newFS) {
     appState.fileSystemState = newFS;
     await storage.setItem('appState', appState);
     fileSystemState = newFS; // update global variable for consistency
-    console.log('Filesystem state saved to IndexedDB successfully');
   } catch (error) {
     console.warn('Failed to set file system state in IndexedDB:', error);
     // Fallback to sync method
@@ -63,28 +53,22 @@ export async function setFileSystemState(newFS) {
       appState.fileSystemState = newFS;
       storage.setItemSync('appState', appState);
       fileSystemState = newFS;
-      console.log('Filesystem state saved using sync fallback');
     } catch (fallbackError) {
       console.error('Failed to set file system state with fallback:', fallbackError);
     }
   }
-  console.log('=== setFileSystemState complete ===');
 }
 
 export function getFileSystemStateSync() {
-  console.log('=== getFileSystemStateSync called ===');
   try {
     const appState = storage.getItemSync('appState');
-    console.log('Loaded appState from storage:', !!appState);
     if (appState && appState.fileSystemState) {
       const fs = appState.fileSystemState;
-      console.log('Filesystem from storage - available paths:', Object.keys(fs.folders || {}));
 
       // Log some key paths for debugging
       ['C://', 'C://Desktop', 'C://Documents'].forEach(path => {
         if (fs.folders && fs.folders[path]) {
           const items = Object.keys(fs.folders[path]);
-          console.log(`Path ${path} has ${items.length} items:`, items);
 
           // Check for shortcuts specifically
           const shortcuts = items.filter(id => {
@@ -92,17 +76,13 @@ export function getFileSystemStateSync() {
             return item && item.type === 'shortcut';
           });
           if (shortcuts.length > 0) {
-            console.log(`Found ${shortcuts.length} shortcuts in ${path}:`, shortcuts);
           }
         } else {
-          console.log(`Path ${path} not found in filesystem`);
         }
       });
 
-      console.log('=== getFileSystemStateSync returning stored state ===');
       return fs;
     } else {
-      console.log('No fileSystemState in appState, checking fallbacks');
     }
   } catch (error) {
     console.warn('Failed to get file system state sync:', error);

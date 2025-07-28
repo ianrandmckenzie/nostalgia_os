@@ -113,7 +113,6 @@ function generateStartMenuHTML() {
           processedItemIds.add(baseGroup.id);
         } else {
           // This group doesn't exist in defaults anymore, but we can still recreate it
-          console.log('🔄 Recreating custom group:', orderItem.name);
           orderedItems.push({
             id: orderItem.id || `custom-group-${Date.now()}`,
             text: orderItem.name,
@@ -158,7 +157,6 @@ function generateStartMenuHTML() {
   menuContainer.innerHTML = '';
   menuContainer.appendChild(ul);
 
-  console.log('✅ Start menu HTML generated with', itemsToRender.length, 'items');
 }
 
 function createMenuItem(item) {
@@ -168,8 +166,13 @@ function createMenuItem(item) {
     ? 'px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center relative'
     : 'px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center relative';
 
+  // Add ARIA role for accessibility
+  li.setAttribute('role', 'menuitem');
+  li.setAttribute('tabindex', '-1');
+  li.setAttribute('aria-label', item.text);
+
   li.innerHTML = `
-    <img src="${item.icon}" class="h-6 w-6 inline mr-2" alt="${item.text}">
+    <img src="${item.icon}" class="h-6 w-6 inline mr-2" alt="">
     ${item.text}
   `;
 
@@ -198,21 +201,21 @@ function createGroupItem(item) {
   let submenuItems = '';
   item.items.forEach(subItem => {
     submenuItems += `
-      <li id="${subItem.id}" class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center submenu-item relative" data-submenu-item data-parent-group="${item.id}">
-        <img src="${subItem.icon}" class="h-6 w-6 inline mr-2" alt="${subItem.text}">
+      <li id="${subItem.id}" class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center submenu-item relative" data-submenu-item data-parent-group="${item.id}" role="menuitem" tabindex="-1" aria-label="${subItem.text}">
+        <img src="${subItem.icon}" class="h-6 w-6 inline mr-2" alt="">
         ${subItem.text}
       </li>
     `;
   });
 
   li.innerHTML = `
-    <a href="#" data-submenu-trigger class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center justify-between">
+    <a href="#" data-submenu-trigger class="px-4 py-2 hover:bg-gray-50 cursor-grab select-none flex items-center justify-between" role="menuitem" tabindex="-1" aria-label="${item.text}" aria-haspopup="true" aria-expanded="false">
       <div class="flex items-center">
         ${item.text}
       </div>
       <span class="md:rotate-0 text-xs">&#9654;</span>
     </a>
-    <ul class="submenu hidden pl-4 bg-gray-100 md:pl-0 md:absolute md:left-full md:bottom-0 md:w-48 md:bg-white md:border md:border-gray-500 md:shadow-lg" data-submenu-container data-group-id="${item.id}">
+    <ul class="submenu hidden pl-4 bg-gray-100 md:pl-0 md:absolute md:left-full md:bottom-0 md:w-48 md:bg-white md:border md:border-gray-500 md:shadow-lg" data-submenu-container data-group-id="${item.id}" role="menu">
       ${submenuItems}
     </ul>
   `;
@@ -584,7 +587,6 @@ async function createDesktopShortcut(itemData) {
       window.renderDesktopIcons();
     }
 
-    console.log('✅ Desktop shortcut created:', shortcutItem);
 
   } catch (error) {
     console.error('❌ Failed to create desktop shortcut:', error);
@@ -609,7 +611,6 @@ function confirmUninstall(itemData, isSubmenuItem, parentGroupId) {
       },
       () => {
         // Cancelled - do nothing
-        console.log('Uninstall cancelled by user');
       }
     );
   } else {
@@ -622,7 +623,6 @@ function confirmUninstall(itemData, isSubmenuItem, parentGroupId) {
 
 async function performUninstall(itemData, isSubmenuItem, parentGroupId) {
   try {
-    console.log('🗑️ Uninstalling item:', itemData.id, { isSubmenuItem, parentGroupId });
 
     // Get current start menu order
     let currentOrder = [];
@@ -694,7 +694,6 @@ async function performUninstall(itemData, isSubmenuItem, parentGroupId) {
       showDialogBox(`"${itemData.id}" has been uninstalled from the Start menu`, 'info');
     }
 
-    console.log('✅ Item uninstalled successfully');
 
   } catch (error) {
     console.error('❌ Failed to uninstall item:', error);
@@ -719,7 +718,6 @@ function initializeStartMenuDragDrop() {
   const mainMenuItems = startMenu.querySelectorAll('ul > li:not(.group):not(#rstrtcomp)');
   const submenuItems = startMenu.querySelectorAll('.submenu-item');
 
-  console.log('🎯 Initializing drag and drop for', mainMenuItems.length, 'main menu items and', submenuItems.length, 'submenu items');
 
   // Make main menu items draggable
   mainMenuItems.forEach(item => {
@@ -1059,11 +1057,9 @@ function updateSubmenuDropIndicator(e) {
 
 function completeSubmenuDragOperation(e) {
   if (!dragState.placeholder || !dragState.draggedElement || !dragState.draggedItemData) {
-    console.log('❌ Submenu drag operation aborted - missing required elements');
     return;
   }
 
-  console.log('🎯 Completing submenu drag operation...');
 
   // Remove visual feedback
   dragState.draggedElement.classList.remove('opacity-50', 'cursor-grabbing');
@@ -1074,7 +1070,6 @@ function completeSubmenuDragOperation(e) {
 
   if (isMovingToMainMenu) {
     // Moving from submenu to main menu
-    console.log('📤 Moving item from submenu to main menu');
 
     // Remove from original submenu
     dragState.draggedElement.remove();
@@ -1100,7 +1095,6 @@ function completeSubmenuDragOperation(e) {
 
   } else if (targetGroupId && targetGroupId !== dragState.draggedFromGroup) {
     // Moving between different submenus
-    console.log('🔄 Moving item between submenus');
 
     // Remove from original location
     dragState.draggedElement.remove();
@@ -1128,7 +1122,6 @@ function completeSubmenuDragOperation(e) {
 
   } else if (targetGroupId === dragState.draggedFromGroup) {
     // Reordering within same submenu
-    console.log('🔄 Reordering within same submenu');
     targetContainer.insertBefore(dragState.draggedElement, dragState.placeholder);
     dragState.placeholder.remove();
   }
@@ -1137,7 +1130,6 @@ function completeSubmenuDragOperation(e) {
   setTimeout(async () => {
     try {
       await saveStartMenuOrder();
-      console.log('💾 Submenu drag operation saved');
     } catch (error) {
       console.error('❌ Failed to save submenu changes:', error);
     }
@@ -1279,17 +1271,8 @@ function updateDropIndicator(e) {
 
 function completeDragOperation(e) {
   if (!dragState.placeholder || !dragState.draggedElement) {
-    console.log('❌ Drag operation aborted - missing placeholder or dragged element');
     return;
   }
-
-  console.log('🎯 Starting main menu drag completion...');
-  console.log('Dragged element:', dragState.draggedElement.id, (() => {
-    const tempEl = dragState.draggedElement.cloneNode(true);
-    const contextMenu = tempEl.querySelector('.start-menu-context-menu');
-    if (contextMenu) contextMenu.remove();
-    return tempEl.textContent?.trim();
-  })());
 
   // Remove visual feedback using Tailwind classes
   dragState.draggedElement.classList.remove('opacity-50', 'cursor-grabbing');
@@ -1300,7 +1283,6 @@ function completeDragOperation(e) {
 
   if (isMovingToSubmenu) {
     // Moving main menu item to submenu
-    console.log('📥 Moving main menu item to submenu:', targetGroupId);
 
     // Get item data before removing - exclude context menu from text
     const tempElement = dragState.draggedElement.cloneNode(true);
@@ -1345,15 +1327,12 @@ function completeDragOperation(e) {
     dragState.placeholder.remove();
   }
 
-  console.log('✅ DOM manipulation complete, waiting 10ms before save...');
 
   // Add a small delay to ensure DOM is settled before saving
   setTimeout(async () => {
     try {
-      console.log('🔄 Starting save operation...');
       // Save the new order (async)
       await saveStartMenuOrder();
-      console.log('💾 Save operation completed');
     } catch (error) {
       console.error('❌ Failed to save start menu order:', error);
     }
@@ -1415,7 +1394,6 @@ async function saveStartMenuOrder() {
 
         newOrder.push(groupData);
 
-        console.log('🗂️ Saved group structure:', groupData);
       }
     }
   });
@@ -1426,7 +1404,6 @@ async function saveStartMenuOrder() {
     return;
   }
 
-  console.log('💾 Saving start menu order:', newOrder);
 
   // Update global state - ensure both global and window references are updated
   if (typeof window !== 'undefined') {
@@ -1448,15 +1425,12 @@ async function saveStartMenuOrder() {
   try {
     // Save directly to storage first
     await storage.setItem('startMenuOrder', newOrder);
-    console.log('✅ Start menu order saved directly to storage');
 
     // Also save to appState for consistency (but don't rely on it)
     if (typeof saveState === 'function') {
       await saveState();
-      console.log('✅ Start menu order also saved via appState');
     } else if (typeof window.saveState === 'function') {
       await window.saveState();
-      console.log('✅ Start menu order also saved via window.saveState');
     } else {
       console.warn('⚠ saveState function not available, only saved directly');
     }
@@ -1464,9 +1438,7 @@ async function saveStartMenuOrder() {
     // Verify the direct save was successful
     try {
       const savedOrder = await storage.getItem('startMenuOrder');
-      console.log('🔍 Verification: Start menu order in direct storage:', savedOrder);
       if (JSON.stringify(savedOrder) === JSON.stringify(newOrder)) {
-        console.log('✓ Start menu order successfully saved and verified via direct storage');
       } else {
         console.warn('⚠ Start menu order mismatch in direct storage after save');
       }
@@ -1487,9 +1459,7 @@ async function restoreStartMenuOrder() {
     const directOrder = await storage.getItem('startMenuOrder');
     if (directOrder && Array.isArray(directOrder)) {
       currentStartMenuOrder = directOrder;
-      console.log('✅ Loaded start menu order from direct storage:', currentStartMenuOrder);
     } else {
-      console.log('🔍 No direct storage found, trying global variables...');
       // Fallback to global variables
       currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
     }
@@ -1498,9 +1468,6 @@ async function restoreStartMenuOrder() {
     currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
   }
 
-  console.log('🔄 Restoring start menu order:', currentStartMenuOrder);
-  console.log('🔍 Global startMenuOrder:', typeof startMenuOrder !== 'undefined' ? startMenuOrder : 'UNDEFINED');
-  console.log('🔍 Window startMenuOrder:', window.startMenuOrder);
 
   // Update global variables with the loaded order
   if (typeof window !== 'undefined') {
@@ -1525,7 +1492,6 @@ async function restoreStartMenuOrder() {
     safeInitializeStartMenuDragDrop();
   }, 50);
 
-  console.log('✅ Start menu order restored');
 }
 
 function setupStartMenuDropZone() {
@@ -1583,7 +1549,6 @@ window.saveStartMenuOrder = saveStartMenuOrder;
 
 // Debug function to check current state
 window.debugStartMenuState = async function() {
-  console.log('=== START MENU DEBUG STATE ===');
 
   // Check DOM structure
   const startMenu = document.getElementById('start-menu');
@@ -1597,26 +1562,18 @@ window.debugStartMenuState = async function() {
     }
     return { id: item.id, text: tempItem.textContent?.trim() };
   });
-  console.log('Current DOM order:', currentOrder);
 
   // Check global variables
-  console.log('Global startMenuOrder:', typeof startMenuOrder !== 'undefined' ? startMenuOrder : 'UNDEFINED');
-  console.log('Window startMenuOrder:', window.startMenuOrder);
 
   // Check storage
   try {
     const appState = await storage.getItem('appState');
-    console.log('Storage appState.startMenuOrder:', appState?.startMenuOrder);
-    console.log('Full storage keys:', await storage.getAllKeys());
   } catch (error) {
     console.error('Error reading from storage:', error);
   }
 
   // Check if functions exist
-  console.log('saveState function available:', typeof saveState !== 'undefined' || typeof window.saveState !== 'undefined');
-  console.log('storage object available:', typeof storage !== 'undefined');
 
-  console.log('=== END DEBUG STATE ===');
 };
 
 // Test function to manually save current order
@@ -1633,11 +1590,9 @@ window.testBasicSave = async function() {
   if (typeof window.saveState === 'function') {
     try {
       await window.saveState();
-      console.log('✅ Basic save successful');
 
       // Test reading it back
       const appState = await storage.getItem('appState');
-      console.log('Read back:', appState?.startMenuOrder);
     } catch (error) {
       console.error('❌ Basic save failed:', error);
     }
@@ -1648,26 +1603,20 @@ window.testBasicSave = async function() {
 
 // Test the actual DOM-based save
 window.testRealSave = async function() {
-  console.log('🧪 Testing real start menu save...');
   await saveStartMenuOrder();
-  console.log('🧪 Real save test complete');
 };
 
 // Test restoration
 window.testRestore = function() {
-  console.log('🧪 Testing start menu restoration...');
   restoreStartMenuOrder();
-  console.log('🧪 Restoration test complete');
 };
 
 // Initialize start menu on page load
 export function initializeStartMenu() {
-  console.log('🚀 Initializing start menu system...');
 
   // Generate initial menu or restore from saved state
   restoreStartMenuOrder();
 
-  console.log('✅ Start menu system initialized');
 }
 
 // Make initialization function available globally
@@ -1675,57 +1624,43 @@ window.initializeStartMenu = initializeStartMenu;
 
 // Add a comprehensive test function
 window.testFullStartMenuFlow = async function() {
-  console.log('🧪 === FULL START MENU FLOW TEST ===');
 
   // Step 1: Check initial state
-  console.log('Step 1: Initial state check');
   await debugStartMenuState();
 
   // Step 2: Initialize start menu
-  console.log('Step 2: Initializing start menu');
   initializeStartMenu();
 
   // Step 3: Check state after initialization
-  console.log('Step 3: State after initialization');
   await debugStartMenuState();
 
   // Step 4: Save a test order
-  console.log('Step 4: Testing save functionality');
   await testRealSave();
 
   // Step 5: Test restoration
-  console.log('Step 5: Testing restoration');
   testRestore();
 
   // Step 6: Final state check
-  console.log('Step 6: Final state check');
   await debugStartMenuState();
 
-  console.log('🧪 === END FULL FLOW TEST ===');
 };
 
 // New comprehensive test functions for dual storage approach
 window.testStartMenuSave = async function() {
-  console.log('🧪 Testing start menu save functionality...');
 
   // Create a test order
   const testOrder = ['app-calculator', 'app-chess', 'app-mediaplayer'];
-  console.log('📋 Test order to save:', testOrder);
 
   // Save using our function
   await saveStartMenuOrder(testOrder);
 
   // Verify in direct storage
   const directResult = await storage.getItem('startMenuOrder');
-  console.log('📦 Direct storage result:', directResult);
 
   // Verify in appState
   const appStateResult = await storage.getItem('appState');
-  console.log('📦 AppState startMenuOrder:', appStateResult?.startMenuOrder);
 
   // Verify global variables
-  console.log('🌐 Global startMenuOrder:', typeof startMenuOrder !== 'undefined' ? startMenuOrder : 'UNDEFINED');
-  console.log('🌐 Window startMenuOrder:', window.startMenuOrder);
 
   return {
     testOrder,
@@ -1737,7 +1672,6 @@ window.testStartMenuSave = async function() {
 };
 
 window.testStartMenuRestore = async function() {
-  console.log('🧪 Testing start menu restore functionality...');
 
   // Clear global variables first
   if (typeof window !== 'undefined') {
@@ -1751,7 +1685,6 @@ window.testStartMenuRestore = async function() {
     console.warn('Could not clear global startMenuOrder');
   }
 
-  console.log('🧹 Cleared global variables');
 
   // Now restore
   await restoreStartMenuOrder();
@@ -1763,21 +1696,15 @@ window.testStartMenuRestore = async function() {
     menuHTML: document.getElementById('start-menu')?.innerHTML.substring(0, 200) + '...'
   };
 
-  console.log('🔍 Restore results:', results);
   return results;
 };
 
 window.debugStorageContents = async function() {
-  console.log('🔍 Debugging storage contents...');
 
   try {
     const appState = await storage.getItem('appState');
     const directStartMenu = await storage.getItem('startMenuOrder');
 
-    console.log('📦 AppState:', appState);
-    console.log('📦 Direct startMenuOrder:', directStartMenu);
-    console.log('🌐 Global startMenuOrder:', typeof startMenuOrder !== 'undefined' ? startMenuOrder : 'UNDEFINED');
-    console.log('🌐 Window startMenuOrder:', window.startMenuOrder);
 
     return {
       appState,
@@ -1790,3 +1717,109 @@ window.debugStorageContents = async function() {
     return { error: error.message };
   }
 };
+
+function focusMenuItem(index) {
+  const menuItems = document.querySelectorAll('#start-menu [role="menuitem"]');
+
+  // Remove focus from all items
+  menuItems.forEach(item => {
+    item.classList.remove('bg-blue-100', 'focus-visible');
+    item.setAttribute('tabindex', '-1');
+  });
+
+  // Focus the current item
+  if (menuItems[index]) {
+    menuItems[index].classList.add('bg-blue-100', 'focus-visible');
+    menuItems[index].setAttribute('tabindex', '0');
+    menuItems[index].focus();
+
+    // Scroll into view if needed
+    menuItems[index].scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  }
+}
+
+export function addStartMenuKeyboardNavigation() {
+  let currentIndex = 0;
+  let menuItems = [];
+
+  // Function to refresh menu items (needed when menu content changes)
+  function refreshMenuItems() {
+    menuItems = Array.from(document.querySelectorAll('#start-menu [role="menuitem"]'));
+    return menuItems;
+  }
+
+  // Function to reset navigation when menu opens
+  function resetNavigation() {
+    refreshMenuItems();
+    currentIndex = 0;
+    if (menuItems.length > 0) {
+      focusMenuItem(currentIndex);
+    }
+  }
+
+  // Listen for start menu opening
+  const startButton = document.getElementById('start-button');
+  if (startButton) {
+    startButton.addEventListener('click', () => {
+      // Small delay to ensure menu is rendered
+      setTimeout(resetNavigation, 10);
+    });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    const startMenu = document.getElementById('start-menu');
+    if (!startMenu || startMenu.classList.contains('hidden')) {
+      return; // Menu is not open
+    }
+
+    refreshMenuItems(); // Ensure we have current menu items
+
+    if (menuItems.length === 0) {
+      return; // No menu items to navigate
+    }
+
+    switch(e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        currentIndex = (currentIndex + 1) % menuItems.length;
+        focusMenuItem(currentIndex);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        currentIndex = (currentIndex - 1 + menuItems.length) % menuItems.length;
+        focusMenuItem(currentIndex);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (menuItems[currentIndex]) {
+          menuItems[currentIndex].click();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        // Close the start menu
+        if (startMenu) {
+          startMenu.classList.add('hidden');
+          startButton?.focus();
+        }
+        break;
+      case 'Home':
+        e.preventDefault();
+        currentIndex = 0;
+        focusMenuItem(currentIndex);
+        break;
+      case 'End':
+        e.preventDefault();
+        currentIndex = menuItems.length - 1;
+        focusMenuItem(currentIndex);
+        break;
+    }
+  });
+
+  // Initial setup
+  refreshMenuItems();
+}

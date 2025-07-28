@@ -5,6 +5,251 @@ import { moveItemToCompostBin } from '../apps/compost_bin.js';
 import { openFile, openShortcut, openExplorerInNewWindow } from '../apps/file_explorer/gui.js';
 import { openApp } from '../apps/main.js';
 
+// Global state for keyboard drag operations
+let keyboardDragState = {
+  isActive: false,
+  selectedIcon: null,
+  cutIcon: null,
+  moveStep: 20, // pixels to move per arrow key press
+  gridStep: 96 + 16 // icon width + padding for grid snapping
+};
+
+// Keyboard drag and drop functions
+function startKeyboardDrag(iconElement) {
+  keyboardDragState.isActive = true;
+  keyboardDragState.selectedIcon = iconElement;
+
+  // Visual feedback for drag mode
+  iconElement.classList.add('dragging', 'keyboard-dragging');
+  iconElement.style.zIndex = '1000';
+
+  // Add visual feedback for potential drop targets
+  highlightDropTargets(iconElement);
+
+  // Announce to screen readers
+  announceToScreenReader('Drag mode activated. Use arrow keys to move, Enter to drop, or Escape to cancel.');
+
+  // Add visual indicator
+  showKeyboardDragIndicator(iconElement);
+}
+
+function endKeyboardDrag(dropped = false) {
+  if (!keyboardDragState.isActive || !keyboardDragState.selectedIcon) return;
+
+  const iconElement = keyboardDragState.selectedIcon;
+
+  // Remove visual feedback
+  iconElement.classList.remove('dragging', 'keyboard-dragging');
+  iconElement.style.zIndex = '';
+  removeDropTargetHighlights();
+  hideKeyboardDragIndicator();
+
+  if (dropped) {
+    // Save new position
+    constrainIconPosition(iconElement);
+    desktopIconsState[iconElement.id] = {
+      left: iconElement.style.left,
+      top: iconElement.style.top
+    };
+    saveState();
+    announceToScreenReader('Icon moved successfully.');
+  } else {
+    announceToScreenReader('Drag operation cancelled.');
+  }
+
+  // Reset state
+  keyboardDragState.isActive = false;
+  keyboardDragState.selectedIcon = null;
+}
+
+function moveIconWithKeyboard(iconElement, direction) {
+  if (!keyboardDragState.isActive) return;
+
+  const currentLeft = parseInt(iconElement.style.left) || 0;
+  const currentTop = parseInt(iconElement.style.top) || 0;
+  const step = keyboardDragState.moveStep;
+
+  let newLeft = currentLeft;
+  let newTop = currentTop;
+
+  switch(direction) {
+    case 'ArrowUp':
+      newTop = Math.max(16, currentTop - step);
+      break;
+    case 'ArrowDown':
+      newTop = currentTop + step;
+      break;
+    case 'ArrowLeft':
+      newLeft = Math.max(16, currentLeft - step);
+      break;
+    case 'ArrowRight':
+      newLeft = currentLeft + step;
+      break;
+  }
+
+  iconElement.style.left = newLeft + 'px';
+  iconElement.style.top = newTop + 'px';
+
+  // Check for potential drop targets
+  updateDropTargetFeedback(iconElement, newLeft + 48, newTop + 48); // Center of icon
+}
+
+function snapToGrid(iconElement) {
+  if (!keyboardDragState.isActive) return;
+
+  const currentLeft = parseInt(iconElement.style.left) || 0;
+  const currentTop = parseInt(iconElement.style.top) || 0;
+  const gridStep = keyboardDragState.gridStep;
+
+  const snappedLeft = 16 + Math.round((currentLeft - 16) / gridStep) * gridStep;
+  const snappedTop = 16 + Math.round((currentTop - 16) / gridStep) * gridStep;
+
+  iconElement.style.left = Math.max(16, snappedLeft) + 'px';
+  iconElement.style.top = Math.max(16, snappedTop) + 'px';
+
+  announceToScreenReader('Icon snapped to grid.');
+}
+
+function cutIcon(iconElement) {
+  // Clear previous cut icon
+  if (keyboardDragState.cutIcon) {
+    keyboardDragState.cutIcon.classList.remove('cut-icon');
+  }
+
+  keyboardDragState.cutIcon = iconElement;
+  iconElement.classList.add('cut-icon');
+  announceToScreenReader('Icon cut. Navigate to destination and press Ctrl+V to paste.');
+}
+
+function pasteIcon() {
+  if (!keyboardDragState.cutIcon) {
+    announceToScreenReader('No icon to paste.');
+    return;
+  }
+
+  const focusedElement = document.activeElement;
+  const cutIcon = keyboardDragState.cutIcon;
+
+  // If pasting on desktop, move to focused icon's position or last mouse position
+  if (focusedElement && focusedElement.classList.contains('draggable-icon')) {
+    const targetRect = focusedElement.getBoundingClientRect();
+    const desktopRect = document.getElementById('desktop').getBoundingClientRect();
+
+    // Position next to target icon
+    const newLeft = targetRect.left - desktopRect.left + 120; // Offset to avoid overlap
+    const newTop = targetRect.top - desktopRect.top;
+
+    cutIcon.style.left = newLeft + 'px';
+    cutIcon.style.top = newTop + 'px';
+
+    constrainIconPosition(cutIcon);
+    desktopIconsState[cutIcon.id] = {
+      left: cutIcon.style.left,
+      top: cutIcon.style.top
+    };
+    saveState();
+  }
+
+  // Clear cut state
+  cutIcon.classList.remove('cut-icon');
+  keyboardDragState.cutIcon = null;
+  announceToScreenReader('Icon pasted successfully.');
+}
+
+function highlightDropTargets(draggedIcon) {
+  document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
+    const targetItem = getItemFromFileSystem(target.getAttribute('data-item-id'));
+    const targetId = target.getAttribute('data-item-id');
+    if (((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') && target !== draggedIcon) {
+      target.classList.add('drag-hover-target');
+    }
+  });
+}
+
+function removeDropTargetHighlights() {
+  document.querySelectorAll('.drag-hover-target').forEach(target => {
+    target.classList.remove('drag-hover-target');
+  });
+  document.querySelectorAll('.desktop-folder-icon').forEach(target => {
+    target.classList.remove('dragover');
+  });
+}
+
+function showKeyboardDragIndicator(iconElement) {
+  // Create a visual indicator for keyboard drag mode
+  const indicator = document.createElement('div');
+  indicator.id = 'keyboard-drag-indicator';
+  indicator.className = 'fixed bottom-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+  indicator.innerHTML = `
+    <div class="text-sm font-medium">Keyboard Drag Mode</div>
+    <div class="text-xs">↑↓←→ Move • Enter Drop • Esc Cancel • G Grid Snap</div>
+  `;
+
+  document.body.appendChild(indicator);
+}
+
+function hideKeyboardDragIndicator() {
+  const indicator = document.getElementById('keyboard-drag-indicator');
+  if (indicator) {
+    indicator.remove();
+  }
+}
+
+// Screen reader announcement function
+function announceToScreenReader(message, priority = 'polite') {
+  let announcer = document.getElementById('sr-announcements');
+  if (!announcer) {
+    // Create announcer if it doesn't exist
+    announcer = document.createElement('div');
+    announcer.id = 'sr-announcements';
+    announcer.setAttribute('aria-live', 'polite');
+    announcer.setAttribute('aria-atomic', 'true');
+    announcer.className = 'sr-only';
+    document.body.appendChild(announcer);
+  }
+
+  announcer.textContent = message;
+
+  // Clear after announcement
+  setTimeout(() => {
+    announcer.textContent = '';
+  }, 1000);
+}
+
+// Handle keyboard drop operation
+async function handleKeyboardDrop(iconElem) {
+  if (!keyboardDragState.isActive) return;
+
+  const iconRect = iconElem.getBoundingClientRect();
+  const centerX = iconRect.left + iconRect.width / 2;
+  const centerY = iconRect.top + iconRect.height / 2;
+
+  // Find potential drop target at icon center
+  const elementBelow = document.elementFromPoint(centerX, centerY);
+  const dropTarget = elementBelow?.closest('.desktop-folder-icon[data-item-id]');
+
+  if (dropTarget && dropTarget !== iconElem) {
+    const sourceId = iconElem.getAttribute('data-item-id');
+    const targetId = dropTarget.getAttribute('data-item-id');
+    const targetItem = getItemFromFileSystem(targetId);
+
+    if (targetId === 'compostbin') {
+      await moveItemToCompostBin(sourceId, 'C://Desktop');
+      announceToScreenReader('Icon moved to compost bin.');
+      endKeyboardDrag(true);
+      return;
+    } else if (targetItem && targetItem.type === 'folder') {
+      await moveItemToFolder(sourceId, targetId);
+      announceToScreenReader(`Icon moved to ${targetItem.name} folder.`);
+      endKeyboardDrag(true);
+      return;
+    }
+  }
+
+  // Regular position drop
+  endKeyboardDrag(true);
+}
+
 export function makeIconDraggable(icon) {
   let isDragging = false;
   let startX, startY;
@@ -15,6 +260,9 @@ export function makeIconDraggable(icon) {
   icon.addEventListener('pointerdown', function (e) {
     // Only handle primary pointer (left mouse button or first touch)
     if (!e.isPrimary) return;
+
+    // Don't interfere with keyboard drag mode
+    if (keyboardDragState.isActive) return;
 
     // Prevent text selection and other default behaviors
     e.preventDefault();
@@ -28,6 +276,9 @@ export function makeIconDraggable(icon) {
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
+    // Detect touch input for enhanced feedback
+    const isTouch = e.pointerType === 'touch';
+
     function pointerMoveHandler(e) {
       if (!e.isPrimary) return;
 
@@ -37,6 +288,16 @@ export function makeIconDraggable(icon) {
         // Start dragging
         isDragging = true;
         icon.classList.add('dragging');
+
+        // Add touch-specific styling
+        if (isTouch) {
+          icon.classList.add('touch-dragging');
+          // Provide haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+        }
+
         icon.style.zIndex = '1000'; // Bring to front while dragging
 
         // Add visual feedback for potential drop targets
@@ -50,6 +311,9 @@ export function makeIconDraggable(icon) {
 
         // Disable scrolling on the desktop during drag
         document.body.style.overflow = 'hidden';
+
+        // Announce drag start for accessibility
+        announceToScreenReader('Drag started. Move to reposition or drop on a folder.');
       }
 
       if (isDragging) {
@@ -258,6 +522,11 @@ export async function renderDesktopIcons() {
     iconElem.id = "icon-" + item.id;
     iconElem.className = 'flex flex-col items-center cursor-pointer draggable-icon desktop-folder-icon z-10 h-32 truncate-ellipsis w-24 text-wrap absolute';
 
+    // Add accessibility attributes
+    iconElem.setAttribute('role', 'button');
+    iconElem.setAttribute('tabindex', '0');
+    iconElem.setAttribute('aria-label', `${item.name} - Double-click to open`);
+
     let iconSrc = (item.type === 'folder') ? 'image/folder.png' : 'image/file.png';
 
     // Use specific icon if available
@@ -270,6 +539,19 @@ export async function renderDesktopIcons() {
     // Common metadata
     iconElem.setAttribute('data-item-id', item.id);
     iconElem.setAttribute('data-current-path', 'C://Desktop');
+
+    // Set up event handlers based on item type
+    const handleActivation = () => {
+      if (item.type === 'ugc-file' || item.type === 'file') {
+        openFile(item.id, null);
+      } else if (item.type === 'app') {
+        openApp(item.id);
+      } else if (item.type === 'folder') {
+        openExplorerInNewWindow(item.id);
+      } else if (item.type === 'shortcut') {
+        openShortcut(iconElem);
+      }
+    };
 
     if (item.type === 'ugc-file' || item.type === 'file') {
       iconElem.addEventListener('dblclick', e => {
@@ -295,8 +577,85 @@ export async function renderDesktopIcons() {
       iconElem.addEventListener('mobiledbltap', () => openShortcut(iconElem));
     }
 
+    // Add keyboard support
+    iconElem.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (keyboardDragState.isActive && keyboardDragState.selectedIcon === iconElem) {
+          // Drop the icon in drag mode
+          e.preventDefault();
+          handleKeyboardDrop(iconElem);
+        } else if (!keyboardDragState.isActive) {
+          // Normal activation
+          e.preventDefault();
+          handleActivation();
+        }
+      } else if (e.key === 'Escape') {
+        if (keyboardDragState.isActive && keyboardDragState.selectedIcon === iconElem) {
+          e.preventDefault();
+          endKeyboardDrag(false);
+        }
+      } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+        // Ctrl/Cmd + D to start drag mode
+        e.preventDefault();
+        startKeyboardDrag(iconElem);
+      } else if (e.key === 'x' && (e.ctrlKey || e.metaKey)) {
+        // Ctrl/Cmd + X to cut
+        e.preventDefault();
+        cutIcon(iconElem);
+      } else if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+        // Ctrl/Cmd + V to paste
+        e.preventDefault();
+        pasteIcon();
+      } else if (e.key === 'g' && keyboardDragState.isActive && keyboardDragState.selectedIcon === iconElem) {
+        // G to snap to grid while dragging
+        e.preventDefault();
+        snapToGrid(iconElem);
+      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (keyboardDragState.isActive && keyboardDragState.selectedIcon === iconElem) {
+          // Move icon in drag mode
+          e.preventDefault();
+          moveIconWithKeyboard(iconElem, e.key);
+        } else if (e.shiftKey) {
+          // Shift + Arrow for fine positioning without entering drag mode
+          e.preventDefault();
+          const currentLeft = parseInt(iconElem.style.left) || 0;
+          const currentTop = parseInt(iconElem.style.top) || 0;
+          const step = 5; // Fine movement
+
+          let newLeft = currentLeft;
+          let newTop = currentTop;
+
+          switch(e.key) {
+            case 'ArrowUp':
+              newTop = Math.max(16, currentTop - step);
+              break;
+            case 'ArrowDown':
+              newTop = currentTop + step;
+              break;
+            case 'ArrowLeft':
+              newLeft = Math.max(16, currentLeft - step);
+              break;
+            case 'ArrowRight':
+              newLeft = currentLeft + step;
+              break;
+          }
+
+          iconElem.style.left = newLeft + 'px';
+          iconElem.style.top = newTop + 'px';
+
+          constrainIconPosition(iconElem);
+          desktopIconsState[iconElem.id] = {
+            left: iconElem.style.left,
+            top: iconElem.style.top
+          };
+          saveState();
+          announceToScreenReader(`Icon moved to position ${newLeft}, ${newTop}`);
+        }
+      }
+    });
+
     iconElem.innerHTML = `
-      <img src="${iconSrc}" alt="${item.name}" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
+      <img src="${iconSrc}" alt="" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
       <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
     `;
 
@@ -351,18 +710,23 @@ export function getSettingsContent() {
   return `
     <div class="space-y-4">
       <div>
-        <label class="block text-sm">Desktop Background Color:</label>
-        <input id="bgColorInput" type="color" value="${desktopSettings.bgColor}" class="border" />
+        <label for="bgColorInput" class="block text-sm font-medium">Desktop Background Color:</label>
+        <input id="bgColorInput" type="color" value="${desktopSettings.bgColor}" class="border mt-1" aria-describedby="bgColorHelp" />
+        <p id="bgColorHelp" class="text-xs text-gray-600 mt-1">Choose a color for your desktop background</p>
       </div>
       <div>
-        <label class="block text-sm">Background Image URL:</label>
-        <input id="bgImageInput" type="text" placeholder="Enter image URL" value="${desktopSettings.bgImage}" class="border w-full" />
+        <label for="bgImageInput" class="block text-sm font-medium">Background Image URL:</label>
+        <input id="bgImageInput" type="text" placeholder="Enter image URL" value="${desktopSettings.bgImage}" class="border w-full mt-1" aria-describedby="bgImageHelp" />
+        <p id="bgImageHelp" class="text-xs text-gray-600 mt-1">Enter a URL to display an image as your desktop background</p>
       </div>
       <div>
-        <label class="block text-sm">Show Seconds on Clock:</label>
-        <input id="clockSecondsInput" type="checkbox" ${desktopSettings.clockSeconds ? "checked" : ""} />
+        <label for="clockSecondsInput" class="block text-sm font-medium">Show Seconds on Clock:</label>
+        <input id="clockSecondsInput" type="checkbox" ${desktopSettings.clockSeconds ? "checked" : ""} class="mt-1" aria-describedby="clockSecondsHelp" />
+        <p id="clockSecondsHelp" class="text-xs text-gray-600 mt-1">Display seconds in the taskbar clock</p>
       </div>
-      <button id="settings-apply-button" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2">
+      <button id="settings-apply-button"
+              class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2"
+              aria-label="Apply desktop settings changes">
         <span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Apply</span>
       </button>
     </div>

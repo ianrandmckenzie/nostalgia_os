@@ -36,7 +36,8 @@ export function getAppIcon(windowId, title) {
     'Watercolour': 'image/watercolour.png',
     'Compost Bin': 'image/compost-bin.png',
     'Storage Manager': 'image/drive_c.png',
-    'TubeStream': 'image/video.png'
+    'TubeStream': 'image/video.png',
+    'Security Policy': 'image/info.png'
   };
 
   // Check by window ID first

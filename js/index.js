@@ -95,6 +95,13 @@ import {
   clearMediaPlayerState
 } from './apps/mediaplayer.js';
 
+// Import router functions
+import {
+  initializeRouter,
+  handleRoute,
+  openSecurityPolicy
+} from './os/router.js';
+
 export const version = '1.0';
 
 // Initialize storage-dependent code after storage is ready
@@ -228,6 +235,11 @@ if (typeof window !== 'undefined') {
   window.loadMediaPlayerState = loadMediaPlayerState;
   window.clearMediaPlayerState = clearMediaPlayerState;
 
+  // Router functions
+  window.initializeRouter = initializeRouter;
+  window.handleRoute = handleRoute;
+  window.openSecurityPolicy = openSecurityPolicy;
+
   // Restart functions
   window.restart = restart;
   window.logout = logout;
@@ -353,6 +365,9 @@ window.addEventListener('load', async function () {
   } else {
     console.error('initializeStartMenu function not available');
   }
+
+  // Initialize router for URL-based navigation
+  initializeRouter();
 
   // Set up keyboard support for interactive elements
   setupKeyboardSupport();

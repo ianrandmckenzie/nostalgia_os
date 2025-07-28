@@ -1,4 +1,5 @@
 import { storage } from '../os/indexeddb_storage.js';
+import { sanitizeHTML, sanitizeWithWhitelist } from '../utils/sanitizer.js';
 
 // Function to initialize a single editor container
 export async function initializeLetterPad(container) {
@@ -330,5 +331,10 @@ export function convertMarkdownToHTML(text) {
   html = html.replace(/# (.*)/g, '<h1 class="mt-1 mb-2 text-7xl">$1</h1>');
   // Convert newlines to <br> tags for display
   html = html.replace(/\n/g, '<br>');
-  return html;
+
+  // Sanitize the HTML to prevent XSS attacks
+  const allowedTags = ['strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'u'];
+  const allowedAttributes = ['class'];
+
+  return sanitizeWithWhitelist(html, allowedTags, allowedAttributes);
 }

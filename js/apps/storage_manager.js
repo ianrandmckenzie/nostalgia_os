@@ -1,4 +1,5 @@
 import { storage } from '../os/indexeddb_storage.js';
+import { safeSetHTML, escapeHTML } from '../utils/sanitizer.js';
 import { createWindow, showDialogBox } from '../gui/window.js';
 import { makeWin95Button, makeWin95Prompt } from '../gui/main.js';
 import { restart } from '../os/restart.js';
@@ -110,7 +111,11 @@ export async function loadStorageData() {
     }
     document.getElementById('restore-btn-container').appendChild(restoreBtn);
   } catch (error) {
-    contentDiv.innerHTML = `<div class="text-red-500">Error loading storage data: ${error.message}</div>`;
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'text-red-500';
+    errorDiv.textContent = `Error loading storage data: ${error.message}`;
+    contentDiv.innerHTML = '';
+    contentDiv.appendChild(errorDiv);
   }
 }
 

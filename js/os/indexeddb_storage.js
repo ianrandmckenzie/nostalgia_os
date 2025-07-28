@@ -300,13 +300,15 @@ export async function clearStorage() {
 
         const statusEl = document.getElementById('status');
         if (statusEl) {
-          statusEl.innerHTML = '<p style="color: green;">All storage cleared successfully!</p>';
+          statusEl.textContent = 'All storage cleared successfully!';
+          statusEl.style.color = 'green';
         }
     } catch (error) {
         console.error('Error clearing IndexedDB:', error);
         const statusEl = document.getElementById('status');
         if (statusEl) {
-          statusEl.innerHTML = '<p style="color: red;">Error clearing storage: ' + error.message + '</p>';
+          statusEl.textContent = 'Error clearing storage: ' + error.message;
+          statusEl.style.color = 'red';
         }
     }
 

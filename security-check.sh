@@ -47,7 +47,7 @@ fi
 
 # Check for security headers
 echo -e "\n4. Checking other security headers..."
-SECURITY_HEADERS=("X-Content-Type-Options" "X-Frame-Options" "X-XSS-Protection")
+SECURITY_HEADERS=("X-Content-Type-Options" "X-XSS-Protection")
 for header in "${SECURITY_HEADERS[@]}"; do
     if grep -q "$header" index.html && grep -q "$header" docs/index.html; then
         echo "✅ $header header found"

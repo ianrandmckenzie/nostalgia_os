@@ -106,7 +106,6 @@ const SECURITY_POLICY_CONTENT = `
           <ul class="list-disc list-inside text-black text-sm space-y-1 ml-4">
             <li>Content Security Policy (CSP)</li>
             <li>HTTP Strict Transport Security (HSTS)</li>
-            <li>X-Frame-Options protection</li>
             <li>Input validation and sanitization</li>
           </ul>
         </div>

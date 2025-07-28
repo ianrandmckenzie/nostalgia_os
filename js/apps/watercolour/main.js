@@ -73,31 +73,31 @@ export function getWatercolourHTML() {
     <!-- Left Toolbar -->
     <div style="width: 3rem; padding: 0.5rem; background-color: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 0.5rem;">
       <button data-tool="brush" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: #f3f4f6; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/brush.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/brush.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Brush</span>
       </button>
       <button data-tool="line" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/line.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/line.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Line</span>
       </button>
       <button data-tool="rectangle" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/rectangle.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/rectangle.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Rectangle</span>
       </button>
       <button data-tool="ellipse" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/ellipse.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/ellipse.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Ellipse</span>
       </button>
       <button data-tool="eraser" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/eraser.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/eraser.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Eraser</span>
       </button>
       <button data-tool="fill" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/fill.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/fill.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Fill</span>
       </button>
       <button data-tool="picker" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='white'">
-        <img style="height: 1.5rem; width: 1.5rem;" src="./js/apps/watercolour/icons/picker.svg">
+        <img style="height: 1.5rem; width: 1.5rem;" src="./image/watercolour-icons/picker.svg">
         <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">Picker</span>
       </button>
     </div>
@@ -228,7 +228,7 @@ export async function initializeWatercolour() {
 
       currentTool = btn.getAttribute('data-tool');
       // Set canvas cursor with hotspot at 12,12 (assuming 24x24 icon)
-      canvas.style.cursor = `url("./icons/resized_${currentTool}.png"), auto`;
+      canvas.style.cursor = `url("./image/watercolour-icons/resized_${currentTool}.png"), auto`;
       saveWatercolourState().catch(console.error); // Save state after tool change
     });
   });

@@ -9,4 +9,9 @@ export default defineConfig({
     emptyOutDir: false, // Don't empty the docs directory to preserve existing files like CNAME
   },
   publicDir: 'public', // Ensure public files are copied
+  server: {
+    port: 5173,
+    strictPort: true, // Fail if port 8080 is not available
+    allowedHosts: ['localhost', '4e3e40ae81d3.ngrok.app'] // Only bind to localhost for security
+  }
 })

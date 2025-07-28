@@ -185,6 +185,14 @@ function createMenuItem(item) {
     handleStartMenuItemClick(item.id);
   });
 
+  // Add mouse interaction handlers for consistent hover/focus experience
+  li.addEventListener('mouseenter', () => {
+    // Only clear keyboard focus if we're actively in keyboard navigation mode
+    if (window.startMenuKeyboardNavState?.isKeyboardNavigating()) {
+      clearKeyboardFocus();
+    }
+  });
+
   // Add context menu support (not for fixed items like restart)
   if (!item.fixed) {
     setupContextMenu(li, item, false);
@@ -231,6 +239,14 @@ function createGroupItem(item) {
       handleStartMenuItemClick(subLi.id);
     });
 
+    // Add mouse interaction handlers for consistent hover/focus experience
+    subLi.addEventListener('mouseenter', () => {
+      // Only clear keyboard focus if we're actively in keyboard navigation mode
+      if (window.startMenuKeyboardNavState?.isKeyboardNavigating()) {
+        clearKeyboardFocus();
+      }
+    });
+
     // Add context menu support for submenu items
     const subItemData = item.items[index];
     if (subItemData) {
@@ -241,6 +257,16 @@ function createGroupItem(item) {
   // Add responsive submenu behavior
   const submenuTrigger = li.querySelector('[data-submenu-trigger]');
   const submenuContainer = li.querySelector('[data-submenu-container]');
+
+  // Add mouse interaction handler to the submenu trigger
+  if (submenuTrigger) {
+    submenuTrigger.addEventListener('mouseenter', () => {
+      // Only clear keyboard focus if we're actively in keyboard navigation mode
+      if (window.startMenuKeyboardNavState?.isKeyboardNavigating()) {
+        clearKeyboardFocus();
+      }
+    });
+  }
 
   if (submenuTrigger && submenuContainer) {
     let hoverTimeout;
@@ -1717,12 +1743,26 @@ window.debugStorageContents = async function() {
   }
 };
 
+// Clear keyboard focus styling from all menu items
+function clearKeyboardFocus() {
+  const menuItems = document.querySelectorAll('#start-menu [role="menuitem"]');
+  menuItems.forEach(item => {
+    item.classList.remove('bg-gray-50', 'focus-visible', 'keyboard-focused');
+    item.setAttribute('tabindex', '-1');
+    item.blur(); // Remove focus from the element
+  });
+  // Also reset any keyboard navigation state if available
+  if (window.startMenuKeyboardNavState) {
+    window.startMenuKeyboardNavState.setKeyboardNavigating(false);
+  }
+}
+
 function focusMenuItem(index, showSubmenu = false) {
   const menuItems = document.querySelectorAll('#start-menu [role="menuitem"]');
 
   // Remove focus from all items
   menuItems.forEach(item => {
-    item.classList.remove('bg-blue-100', 'focus-visible');
+    item.classList.remove('bg-gray-50', 'focus-visible', 'keyboard-focused');
     item.setAttribute('tabindex', '-1');
 
     // Update aria-expanded for submenu triggers
@@ -1740,7 +1780,7 @@ function focusMenuItem(index, showSubmenu = false) {
   // Focus the current item
   if (menuItems[index]) {
     const currentItem = menuItems[index];
-    currentItem.classList.add('bg-blue-100', 'focus-visible');
+    currentItem.classList.add('bg-gray-50', 'focus-visible', 'keyboard-focused');
     currentItem.setAttribute('tabindex', '0');
     currentItem.focus();
 
@@ -1788,6 +1828,29 @@ function focusMenuItem(index, showSubmenu = false) {
   let currentIndex = 0;
   let menuItems = [];
   let isInSubmenu = false; // Track if we're currently navigating within a submenu
+  let isKeyboardNavigating = false; // Track if we're actively using keyboard navigation
+
+  // Expose keyboard navigation state globally for coordination with mouse events
+  window.startMenuKeyboardNavState = {
+    isKeyboardNavigating: () => isKeyboardNavigating,
+    setKeyboardNavigating: (value) => { isKeyboardNavigating = value; }
+  };
+
+  // Clear keyboard focus styling from all menu items
+  function clearKeyboardFocusLocal() {
+    const menuItems = document.querySelectorAll('#start-menu [role="menuitem"]');
+    menuItems.forEach(item => {
+      item.classList.remove('bg-gray-50', 'focus-visible', 'keyboard-focused');
+      item.setAttribute('tabindex', '-1');
+    });
+    isKeyboardNavigating = false;
+  }
+
+  // Modified focus function that marks keyboard navigation state
+  function focusMenuItemLocal(index, showSubmenu = false) {
+    isKeyboardNavigating = true;
+    focusMenuItem(index, showSubmenu);
+  }
 
   // Add global keyboard listener for Windows/Cmd key to open start menu
   document.addEventListener('keydown', function(e) {
@@ -1848,7 +1911,7 @@ function focusMenuItem(index, showSubmenu = false) {
     currentIndex = 0;
     isInSubmenu = false; // Reset submenu state
     if (menuItems.length > 0) {
-      focusMenuItem(currentIndex);
+      focusMenuItemLocal(currentIndex);
     }
   }
 
@@ -1894,7 +1957,7 @@ function focusMenuItem(index, showSubmenu = false) {
           const nextItem = mainMenuItems[nextMainIndex];
           currentIndex = menuItems.indexOf(nextItem);
         }
-        focusMenuItem(currentIndex);
+        focusMenuItemLocal(currentIndex);
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -1916,7 +1979,7 @@ function focusMenuItem(index, showSubmenu = false) {
           const prevItem = mainMenuItems[prevMainIndex];
           currentIndex = menuItems.indexOf(prevItem);
         }
-        focusMenuItem(currentIndex);
+        focusMenuItemLocal(currentIndex);
         break;
       case 'ArrowRight':
         e.preventDefault();
@@ -1936,7 +1999,7 @@ function focusMenuItem(index, showSubmenu = false) {
                 currentIndex = i;
                 isInSubmenu = true; // Mark that we're now in a submenu
                 // Focus the submenu item and ensure its parent submenu is visible
-                focusMenuItem(currentIndex);
+                focusMenuItemLocal(currentIndex);
                 break;
               }
             }
@@ -1959,7 +2022,7 @@ function focusMenuItem(index, showSubmenu = false) {
                   currentIndex = i;
                   isInSubmenu = false; // Mark that we're back in main menu
                   // Focus the parent but don't show submenu (showSubmenu = false)
-                  focusMenuItem(currentIndex, false);
+                  focusMenuItemLocal(currentIndex, false);
                   break;
                 }
               }
@@ -2001,7 +2064,7 @@ function focusMenuItem(index, showSubmenu = false) {
             currentIndex = menuItems.indexOf(firstItem);
           }
         }
-        focusMenuItem(currentIndex);
+        focusMenuItemLocal(currentIndex);
         break;
       case 'End':
         e.preventDefault();
@@ -2022,7 +2085,7 @@ function focusMenuItem(index, showSubmenu = false) {
             currentIndex = menuItems.indexOf(lastItem);
           }
         }
-        focusMenuItem(currentIndex);
+        focusMenuItemLocal(currentIndex);
         break;
     }
   });

@@ -39,14 +39,24 @@
 }
 
 /* Start menu keyboard navigation focus */
-#start-menu [role="menuitem"].focus-visible {
-  background-color: #dbeafe !important;
-  outline: 2px solid #3b82f6;
-  outline-offset: -2px;
+#start-menu [role="menuitem"].focus-visible,
+#start-menu [role="menuitem"].keyboard-focused {
+  background-color: #f9fafb !important; /* Same as hover */
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+#start-menu ul li:hover {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
 }
 
 #start-menu [role="menuitem"]:focus {
-  background-color: #dbeafe !important;
+  background-color: #f9fafb !important;
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Context menu keyboard navigation focus */
@@ -58,6 +68,8 @@
 
 #context-menu [role="menuitem"]:hover {
   background-color: #f9fafb !important;
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
 }
 
 /* Context menu submenu focus */
@@ -77,19 +89,21 @@
 }
 
 /* Enhanced submenu item focus */
-#start-menu .submenu [role="menuitem"].focus-visible {
-  background-color: #c7d2fe !important;
-  outline: 2px solid #6366f1;
-  outline-offset: -2px;
+#start-menu .submenu [role="menuitem"].focus-visible,
+#start-menu .submenu [role="menuitem"].keyboard-focused {
+  background-color: #f3f4f6 !important; /* Consistent with hover state */
+  border: 1px solid #d1d5db; /* Subtle gray border for keyboard navigation */
+  border-radius: 2px;
 }
 
 /* High contrast mode support for start menu */
 @media (prefers-contrast: high) {
   #start-menu [role="menuitem"].focus-visible,
+  #start-menu [role="menuitem"].keyboard-focused,
   #start-menu [role="menuitem"]:focus {
     background-color: #000000 !important;
     color: #ffffff !important;
-    outline: 3px solid #ffffff;
+    border: 2px solid #ffffff !important;
   }
 
   #start-menu [data-submenu-trigger][aria-expanded="true"] {
@@ -97,10 +111,11 @@
     color: #ffffff !important;
   }
 
-  #start-menu .submenu [role="menuitem"].focus-visible {
+  #start-menu .submenu [role="menuitem"].focus-visible,
+  #start-menu .submenu [role="menuitem"].keyboard-focused {
     background-color: #000000 !important;
     color: #ffffff !important;
-    outline: 3px solid #ffff00;
+    border: 2px solid #ffff00 !important;
   }
 }
 #desktop * {

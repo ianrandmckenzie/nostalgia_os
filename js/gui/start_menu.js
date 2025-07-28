@@ -37,6 +37,7 @@ const DEFAULT_START_MENU_ITEMS = [
     items: [
       { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },
       { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.webp' },
+      { id: 'keyboard', text: 'Keyboard', icon: 'image/keyboard.webp' },
       { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
       { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
       { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' }
@@ -325,9 +326,11 @@ function createGroupItem(item) {
 
 // Handle start menu item clicks
 function handleStartMenuItemClick(itemId) {
+  console.log('🔍 Start menu item clicked:', itemId);
 
   // Don't handle clicks if we're in a drag operation
   if (dragState.isDragging) {
+    console.log('🔍 Ignoring click - drag operation in progress');
     return;
   }
 
@@ -371,6 +374,10 @@ function handleStartMenuItemClick(itemId) {
       break;
     case 'calcapp':
       if (typeof openApp === 'function') openApp('calculator');
+      break;
+    case 'keyboard':
+      console.log('🔍 Keyboard case triggered, calling openApp');
+      if (typeof openApp === 'function') openApp('keyboard');
       break;
     case 'solapp':
       if (typeof openApp === 'function') openApp('solitaire');

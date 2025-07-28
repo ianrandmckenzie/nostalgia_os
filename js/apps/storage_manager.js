@@ -491,6 +491,7 @@ async function checkForMissingApps() {
       { id: 'watercolourapp', text: 'Watercolour', icon: 'image/watercolour.webp' },
       { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },
       { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.webp' },
+      { id: 'keyboard', text: 'Keyboard', icon: 'image/keyboard.webp' },
       { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
       { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
       { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' },

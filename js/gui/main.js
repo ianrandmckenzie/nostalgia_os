@@ -64,7 +64,13 @@ export function openFileExplorerForImageSelection(callback) {
   // Open file explorer
   if (typeof getExplorerWindowContent === 'function' && typeof createWindow === 'function') {
     const explorerContent = getExplorerWindowContent('C://Documents');
-    const explorerWindow = createWindow('Select Image - File Explorer', explorerContent, true, 'explorer-image-select', false, false, { type: 'integer', width: 600, height: 550 }, 'file-explorer');
+
+    // Remove the file sidebar from the explorer content for image selection mode
+    // TODO: Make file traversal functional from explorer window. Right now it's super bugged.
+    const modifiedExplorerContent = explorerContent.replace(/<div id="file-sidebar"[\s\S]*?<\/ul><\/div>/g, '')
+                                                   .replace(/<div id="breadcrumbs"[\s\S]*?<\/div>/g, '');
+
+    const explorerWindow = createWindow('Select Image - File Explorer', modifiedExplorerContent, true, 'explorer-image-select', false, false, { type: 'integer', width: 600, height: 550 }, 'file-explorer');
 
     // Ensure this window has the highest z-index (but only by 1)
     setTimeout(() => {

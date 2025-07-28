@@ -222,9 +222,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
     <div class="file-explorer-window" data-current-path="${currentPath}">
       <div class="flex">
         <!-- Left Sidebar -->
-        <div id="file-sidebar" class="w-1/4 border-r p-2">
-          <ul>${drivesHtml}</ul>
-        </div>
+        <div id="file-sidebar" class="w-1/4 border-r p-2"><ul>${drivesHtml}</ul></div>
 
         <!-- Main Content -->
         <div id="file-main" class="w-3/4 p-2 min-h-96">

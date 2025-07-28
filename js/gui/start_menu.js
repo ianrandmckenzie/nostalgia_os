@@ -1417,7 +1417,6 @@ async function saveStartMenuOrder() {
       }
     } catch (e) {
       // In case of reference error, the global variable doesn't exist
-      console.warn('Global startMenuOrder variable not accessible, using window reference only');
     }
   }
 
@@ -1478,7 +1477,7 @@ async function restoreStartMenuOrder() {
       startMenuOrder = currentStartMenuOrder;
     }
   } catch (e) {
-    console.warn('Could not update global startMenuOrder variable');
+    // console.warn('Could not update global startMenuOrder variable');
   }
 
   // Always regenerate the menu (this handles both restoration and initial creation)
@@ -1718,32 +1717,111 @@ window.debugStorageContents = async function() {
   }
 };
 
-function focusMenuItem(index) {
+function focusMenuItem(index, showSubmenu = false) {
   const menuItems = document.querySelectorAll('#start-menu [role="menuitem"]');
 
   // Remove focus from all items
   menuItems.forEach(item => {
     item.classList.remove('bg-blue-100', 'focus-visible');
     item.setAttribute('tabindex', '-1');
+
+    // Update aria-expanded for submenu triggers
+    if (item.hasAttribute('aria-haspopup')) {
+      item.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Hide all submenus initially (unless we're explicitly showing one)
+  document.querySelectorAll('[data-submenu-container]').forEach(submenu => {
+    submenu.classList.add('hidden');
+    submenu.classList.remove('block');
   });
 
   // Focus the current item
   if (menuItems[index]) {
-    menuItems[index].classList.add('bg-blue-100', 'focus-visible');
-    menuItems[index].setAttribute('tabindex', '0');
-    menuItems[index].focus();
+    const currentItem = menuItems[index];
+    currentItem.classList.add('bg-blue-100', 'focus-visible');
+    currentItem.setAttribute('tabindex', '0');
+    currentItem.focus();
+
+    // Only show submenu if explicitly requested (opt-in behavior)
+    if (showSubmenu && currentItem.hasAttribute('data-submenu-trigger')) {
+      // Find the corresponding submenu container
+      const parentLi = currentItem.closest('li');
+      const submenuContainer = parentLi?.querySelector('[data-submenu-container]');
+
+      if (submenuContainer) {
+        // Show the submenu
+        submenuContainer.classList.remove('hidden');
+        submenuContainer.classList.add('block');
+
+        // Update aria-expanded
+        currentItem.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // If this is a submenu item, ensure its parent submenu is visible
+    if (currentItem.hasAttribute('data-submenu-item')) {
+      const parentGroup = currentItem.getAttribute('data-parent-group');
+      if (parentGroup) {
+        const parentSubmenu = document.querySelector(`[data-submenu-container][data-group-id="${parentGroup}"]`);
+        if (parentSubmenu) {
+          parentSubmenu.classList.remove('hidden');
+          parentSubmenu.classList.add('block');
+
+          // Also update the parent trigger's aria-expanded
+          const parentTrigger = parentSubmenu.closest('li')?.querySelector('[data-submenu-trigger]');
+          if (parentTrigger) {
+            parentTrigger.setAttribute('aria-expanded', 'true');
+          }
+        }
+      }
+    }
 
     // Scroll into view if needed
-    menuItems[index].scrollIntoView({
+    currentItem.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest'
     });
   }
-}
-
-export function addStartMenuKeyboardNavigation() {
+}export function addStartMenuKeyboardNavigation() {
   let currentIndex = 0;
   let menuItems = [];
+  let isInSubmenu = false; // Track if we're currently navigating within a submenu
+
+  // Add global keyboard listener for Windows/Cmd key to open start menu
+  document.addEventListener('keydown', function(e) {
+    // Check for Windows key (Meta key) on both Windows and macOS
+    if (e.key === 'Meta' || e.key === 'OS') {
+      e.preventDefault();
+      const startMenu = document.getElementById('start-menu');
+      const startButton = document.getElementById('start-button');
+
+      if (startMenu && startButton) {
+        // Toggle start menu
+        if (startMenu.classList.contains('hidden')) {
+          // Open start menu
+          if (typeof toggleStartMenu === 'function') {
+            toggleStartMenu();
+          } else {
+            // Fallback to manually opening the menu
+            startMenu.classList.remove('hidden');
+          }
+          // Small delay to ensure menu is rendered before focusing
+          setTimeout(resetNavigation, 10);
+        } else {
+          // Close start menu
+          if (typeof toggleStartMenu === 'function') {
+            toggleStartMenu();
+          } else {
+            // Fallback to manually closing the menu
+            startMenu.classList.add('hidden');
+          }
+          startButton.focus();
+        }
+      }
+    }
+  });
 
   // Function to refresh menu items (needed when menu content changes)
   function refreshMenuItems() {
@@ -1751,10 +1829,24 @@ export function addStartMenuKeyboardNavigation() {
     return menuItems;
   }
 
+  // Function to get only main menu items (excluding submenu items)
+  function getMainMenuItems() {
+    return menuItems.filter(item => !item.hasAttribute('data-submenu-item'));
+  }
+
+  // Function to get submenu items for a specific group
+  function getSubmenuItems(groupId) {
+    return menuItems.filter(item =>
+      item.hasAttribute('data-submenu-item') &&
+      item.getAttribute('data-parent-group') === groupId
+    );
+  }
+
   // Function to reset navigation when menu opens
   function resetNavigation() {
     refreshMenuItems();
     currentIndex = 0;
+    isInSubmenu = false; // Reset submenu state
     if (menuItems.length > 0) {
       focusMenuItem(currentIndex);
     }
@@ -1784,13 +1876,96 @@ export function addStartMenuKeyboardNavigation() {
     switch(e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        currentIndex = (currentIndex + 1) % menuItems.length;
+        if (isInSubmenu) {
+          // Navigate within submenu items only
+          const currentItem = menuItems[currentIndex];
+          const parentGroup = currentItem.getAttribute('data-parent-group');
+          const submenuItems = getSubmenuItems(parentGroup);
+          const currentSubmenuIndex = submenuItems.indexOf(currentItem);
+          const nextSubmenuIndex = (currentSubmenuIndex + 1) % submenuItems.length;
+          const nextItem = submenuItems[nextSubmenuIndex];
+          currentIndex = menuItems.indexOf(nextItem);
+        } else {
+          // Navigate within main menu items only
+          const mainMenuItems = getMainMenuItems();
+          const currentItem = menuItems[currentIndex];
+          const currentMainIndex = mainMenuItems.indexOf(currentItem);
+          const nextMainIndex = (currentMainIndex + 1) % mainMenuItems.length;
+          const nextItem = mainMenuItems[nextMainIndex];
+          currentIndex = menuItems.indexOf(nextItem);
+        }
         focusMenuItem(currentIndex);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        currentIndex = (currentIndex - 1 + menuItems.length) % menuItems.length;
+        if (isInSubmenu) {
+          // Navigate within submenu items only
+          const currentItem = menuItems[currentIndex];
+          const parentGroup = currentItem.getAttribute('data-parent-group');
+          const submenuItems = getSubmenuItems(parentGroup);
+          const currentSubmenuIndex = submenuItems.indexOf(currentItem);
+          const prevSubmenuIndex = (currentSubmenuIndex - 1 + submenuItems.length) % submenuItems.length;
+          const prevItem = submenuItems[prevSubmenuIndex];
+          currentIndex = menuItems.indexOf(prevItem);
+        } else {
+          // Navigate within main menu items only
+          const mainMenuItems = getMainMenuItems();
+          const currentItem = menuItems[currentIndex];
+          const currentMainIndex = mainMenuItems.indexOf(currentItem);
+          const prevMainIndex = (currentMainIndex - 1 + mainMenuItems.length) % mainMenuItems.length;
+          const prevItem = mainMenuItems[prevMainIndex];
+          currentIndex = menuItems.indexOf(prevItem);
+        }
         focusMenuItem(currentIndex);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        // Only work if current item is a focused submenu trigger
+        if (menuItems[currentIndex] &&
+            menuItems[currentIndex].hasAttribute('data-submenu-trigger') &&
+            menuItems[currentIndex].classList.contains('focus-visible')) {
+
+          const parentLi = menuItems[currentIndex].closest('li');
+          const submenuContainer = parentLi?.querySelector('[data-submenu-container]');
+          const submenuItems = submenuContainer?.querySelectorAll('[role="menuitem"]');
+
+          if (submenuItems && submenuItems.length > 0) {
+            // Find the first submenu item in our main menuItems array
+            for (let i = 0; i < menuItems.length; i++) {
+              if (submenuItems[0] === menuItems[i]) {
+                currentIndex = i;
+                isInSubmenu = true; // Mark that we're now in a submenu
+                // Focus the submenu item and ensure its parent submenu is visible
+                focusMenuItem(currentIndex);
+                break;
+              }
+            }
+          }
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        // If current item is in a submenu, navigate back to parent and hide submenu
+        if (menuItems[currentIndex] && menuItems[currentIndex].hasAttribute('data-submenu-item')) {
+          const parentGroup = menuItems[currentIndex].getAttribute('data-parent-group');
+          if (parentGroup) {
+            // Find the parent submenu trigger
+            for (let i = 0; i < menuItems.length; i++) {
+              const item = menuItems[i];
+              if (item.hasAttribute('data-submenu-trigger')) {
+                const parentLi = item.closest('li');
+                const groupId = parentLi?.getAttribute('data-group-id');
+                if (groupId === parentGroup) {
+                  currentIndex = i;
+                  isInSubmenu = false; // Mark that we're back in main menu
+                  // Focus the parent but don't show submenu (showSubmenu = false)
+                  focusMenuItem(currentIndex, false);
+                  break;
+                }
+              }
+            }
+          }
+        }
         break;
       case 'Enter':
       case ' ':
@@ -1809,12 +1984,44 @@ export function addStartMenuKeyboardNavigation() {
         break;
       case 'Home':
         e.preventDefault();
-        currentIndex = 0;
+        if (isInSubmenu) {
+          // Go to first item in current submenu
+          const currentItem = menuItems[currentIndex];
+          const parentGroup = currentItem.getAttribute('data-parent-group');
+          const submenuItems = getSubmenuItems(parentGroup);
+          if (submenuItems.length > 0) {
+            const firstItem = submenuItems[0];
+            currentIndex = menuItems.indexOf(firstItem);
+          }
+        } else {
+          // Go to first main menu item
+          const mainMenuItems = getMainMenuItems();
+          if (mainMenuItems.length > 0) {
+            const firstItem = mainMenuItems[0];
+            currentIndex = menuItems.indexOf(firstItem);
+          }
+        }
         focusMenuItem(currentIndex);
         break;
       case 'End':
         e.preventDefault();
-        currentIndex = menuItems.length - 1;
+        if (isInSubmenu) {
+          // Go to last item in current submenu
+          const currentItem = menuItems[currentIndex];
+          const parentGroup = currentItem.getAttribute('data-parent-group');
+          const submenuItems = getSubmenuItems(parentGroup);
+          if (submenuItems.length > 0) {
+            const lastItem = submenuItems[submenuItems.length - 1];
+            currentIndex = menuItems.indexOf(lastItem);
+          }
+        } else {
+          // Go to last main menu item
+          const mainMenuItems = getMainMenuItems();
+          if (mainMenuItems.length > 0) {
+            const lastItem = mainMenuItems[mainMenuItems.length - 1];
+            currentIndex = menuItems.indexOf(lastItem);
+          }
+        }
         focusMenuItem(currentIndex);
         break;
     }

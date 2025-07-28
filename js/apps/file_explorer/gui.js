@@ -1089,3 +1089,391 @@ if (typeof window !== 'undefined') {
   window.initializeFileExplorerUI = initializeFileExplorerUI;
   window.restoreFileExplorerState = restoreFileExplorerState;
 }
+
+function makeContextMenuAccessible(element) {
+  element.addEventListener('keydown', function(e) {
+    // Windows/Linux: Context Menu key or Shift+F10
+    // Mac: Control+Space (easier to test) or Shift+F10 (standard)
+    if (e.key === 'ContextMenu' ||
+        (e.shiftKey && e.key === 'F10') ||
+        (e.ctrlKey && e.key === ' ')) {
+      e.preventDefault();
+
+      // Create a synthetic right-click event at the element's position
+      const rect = element.getBoundingClientRect();
+      const syntheticEvent = new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        button: 2
+      });
+
+      // Dispatch the event on the element
+      element.dispatchEvent(syntheticEvent);
+
+      // After context menu appears, make it accessible
+      setTimeout(() => {
+        const contextMenu = document.getElementById('context-menu');
+        if (contextMenu && !contextMenu.classList.contains('hidden')) {
+          setupContextMenuAccessibility(contextMenu);
+        }
+      }, 10);
+    }
+  });
+}
+
+// Set up accessibility for context menu when it appears
+function setupContextMenuAccessibility(menuContainer) {
+  if (!menuContainer) return;
+
+  // Set ARIA attributes on the menu container
+  menuContainer.setAttribute('role', 'menu');
+  menuContainer.setAttribute('aria-label', 'Context menu');
+
+  // Get all menu items (clickable divs)
+  const menuItems = Array.from(menuContainer.children).filter(item =>
+    item.classList.contains('cursor-pointer') &&
+    !item.classList.contains('text-gray-400') // Not disabled
+  );
+
+  menuItems.forEach((item, index) => {
+    // Add menu item role and make focusable
+    item.setAttribute('role', 'menuitem');
+    item.setAttribute('tabindex', index === 0 ? '0' : '-1');
+
+    // Add keyboard interaction
+    item.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        item.click();
+      }
+    });
+
+    // Visual feedback for hover/focus
+    item.addEventListener('mouseenter', function() {
+      // Clear other highlights
+      menuItems.forEach(mi => {
+        mi.classList.remove('bg-gray-50');
+        mi.style.backgroundColor = '';
+      });
+      // Highlight current item
+      item.classList.add('bg-gray-50');
+      item.style.backgroundColor = '#f9fafb';
+    });
+
+    item.addEventListener('mouseleave', function() {
+      // Only remove highlight if not focused via keyboard
+      if (document.activeElement !== item) {
+        item.classList.remove('bg-gray-50');
+        item.style.backgroundColor = '';
+      }
+    });
+
+    // Check for submenus
+    const submenu = item.querySelector('div.absolute');
+    if (submenu) {
+      item.setAttribute('aria-haspopup', 'true');
+      item.setAttribute('aria-expanded', 'false');
+
+      // Make submenu accessible
+      submenu.setAttribute('role', 'menu');
+      submenu.setAttribute('aria-label', 'Submenu');
+
+      const submenuItems = Array.from(submenu.children).filter(subItem =>
+        subItem.classList.contains('cursor-pointer')
+      );
+
+      submenuItems.forEach((subItem, subIndex) => {
+        subItem.setAttribute('role', 'menuitem');
+        subItem.setAttribute('tabindex', '-1');
+
+        subItem.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            subItem.click();
+          }
+        });
+      });
+    }
+  });
+
+  // Focus first menu item when context menu opens
+  if (menuItems.length > 0) {
+    setTimeout(() => {
+      menuItems[0].focus();
+      menuItems[0].classList.add('bg-gray-50');
+      menuItems[0].style.backgroundColor = '#f9fafb';
+    }, 50);
+  }
+}
+
+// Apply context menu accessibility to file explorer elements
+function initFileExplorerAccessibility() {
+  // Add basic file explorer keyboard navigation and context menu navigation
+  document.addEventListener('keydown', function(e) {
+    // Check if context menu is open
+    const contextMenu = document.getElementById('context-menu');
+    const isContextMenuOpen = contextMenu && !contextMenu.classList.contains('hidden');
+
+    if (isContextMenuOpen) {
+      // Handle context menu navigation
+      handleContextMenuNavigation(e, contextMenu);
+      return;
+    }
+
+    // Handle file explorer navigation
+    const activeExplorer = document.querySelector('.file-explorer-window:focus-within');
+    if (activeExplorer) {
+      const focusedItem = document.activeElement;
+
+      switch(e.key) {
+        case 'F2':
+          e.preventDefault();
+          // Focus rename functionality (if available)
+          console.log('F2 - Rename functionality would trigger here');
+          break;
+        case 'Delete':
+          e.preventDefault();
+          // Focus delete functionality (if available)
+          console.log('Delete - Delete functionality would trigger here');
+          break;
+        case 'Enter':
+          e.preventDefault();
+          // Simulate double-click on focused item
+          if (focusedItem && focusedItem.classList.contains('file-item')) {
+            focusedItem.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+          }
+          break;
+        case 'ArrowDown':
+        case 'ArrowUp':
+          e.preventDefault();
+          navigateFileList(e.key === 'ArrowDown' ? 'down' : 'up', activeExplorer);
+          break;
+      }
+    }
+  });
+
+  // Context menu navigation handler
+  function handleContextMenuNavigation(e, contextMenu) {
+    const menuItems = Array.from(contextMenu.children).filter(item =>
+      !item.classList.contains('text-gray-400') && // Not disabled
+      item.classList.contains('cursor-pointer') // Clickable
+    );
+
+    if (menuItems.length === 0) return;
+
+    let currentIndex = -1;
+    // Find currently focused item
+    for (let i = 0; i < menuItems.length; i++) {
+      if (menuItems[i].classList.contains('bg-gray-50') || menuItems[i].matches(':focus')) {
+        currentIndex = i;
+        break;
+      }
+    }
+
+    switch(e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        e.stopPropagation();
+        currentIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % menuItems.length;
+        focusContextMenuItem(menuItems, currentIndex);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        e.stopPropagation();
+        currentIndex = currentIndex === -1 ? menuItems.length - 1 : (currentIndex - 1 + menuItems.length) % menuItems.length;
+        focusContextMenuItem(menuItems, currentIndex);
+        break;
+
+      case 'ArrowRight':
+        e.preventDefault();
+        e.stopPropagation();
+        // Handle submenu expansion if current item has submenu
+        if (currentIndex >= 0 && menuItems[currentIndex]) {
+          const submenu = menuItems[currentIndex].querySelector('div.absolute');
+          if (submenu) {
+            submenu.classList.remove('hidden');
+            // Focus first item in submenu
+            const submenuItems = Array.from(submenu.children).filter(item =>
+              item.classList.contains('cursor-pointer')
+            );
+            if (submenuItems.length > 0) {
+              focusSubmenuItem(submenuItems, 0);
+            }
+          }
+        }
+        break;
+
+      case 'ArrowLeft':
+        e.preventDefault();
+        e.stopPropagation();
+        // Handle submenu collapse (if we're in a submenu, return to main menu)
+        const activeSubmenu = contextMenu.querySelector('div.absolute:not(.hidden)');
+        if (activeSubmenu) {
+          activeSubmenu.classList.add('hidden');
+          // Return focus to parent menu item
+          if (currentIndex >= 0 && menuItems[currentIndex]) {
+            focusContextMenuItem(menuItems, currentIndex);
+          }
+        }
+        break;
+
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        e.stopPropagation();
+        if (currentIndex >= 0 && menuItems[currentIndex]) {
+          menuItems[currentIndex].click();
+        }
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        e.stopPropagation();
+        // Import hideContextMenu if it's not already available
+        if (typeof hideContextMenu === 'function') {
+          hideContextMenu();
+        } else {
+          contextMenu.classList.add('hidden');
+        }
+        break;
+    }
+  }
+
+  // Focus context menu item helper
+  function focusContextMenuItem(menuItems, index) {
+    // Remove focus from all items
+    menuItems.forEach(item => {
+      item.classList.remove('bg-gray-50');
+      item.style.backgroundColor = '';
+    });
+
+    // Focus current item
+    if (menuItems[index]) {
+      menuItems[index].classList.add('bg-gray-50');
+      menuItems[index].style.backgroundColor = '#f9fafb';
+      menuItems[index].focus();
+    }
+  }
+
+  // Focus submenu item helper
+  function focusSubmenuItem(submenuItems, index) {
+    // Remove focus from all submenu items
+    submenuItems.forEach(item => {
+      item.classList.remove('bg-gray-50');
+      item.style.backgroundColor = '';
+    });
+
+    // Focus current submenu item
+    if (submenuItems[index]) {
+      submenuItems[index].classList.add('bg-gray-50');
+      submenuItems[index].style.backgroundColor = '#f9fafb';
+      submenuItems[index].focus();
+    }
+  }
+
+  // File list navigation helper
+  function navigateFileList(direction, explorerWindow) {
+    const fileItems = Array.from(explorerWindow.querySelectorAll('.file-item, .folder-item'));
+    const currentFocused = document.activeElement;
+    let currentIndex = fileItems.indexOf(currentFocused);
+
+    if (currentIndex === -1 && fileItems.length > 0) {
+      // No item focused, focus first item
+      fileItems[0].focus();
+      return;
+    }
+
+    let nextIndex;
+    if (direction === 'down') {
+      nextIndex = (currentIndex + 1) % fileItems.length;
+    } else {
+      nextIndex = (currentIndex - 1 + fileItems.length) % fileItems.length;
+    }
+
+    if (fileItems[nextIndex]) {
+      fileItems[nextIndex].focus();
+    }
+  }
+
+  // Apply to all file items when the explorer loads
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Apply to file items
+          const fileItems = node.querySelectorAll?.('.file-item, .folder-item, .draggable-icon');
+          fileItems?.forEach(item => {
+            makeContextMenuAccessible(item);
+            // Make items focusable
+            if (!item.hasAttribute('tabindex')) {
+              item.setAttribute('tabindex', '0');
+            }
+          });
+
+          // Apply to explorer content areas for empty space context menus
+          const explorerWindows = node.querySelectorAll?.('.file-explorer-window');
+          explorerWindows?.forEach(explorer => {
+            makeContextMenuAccessible(explorer);
+            if (!explorer.hasAttribute('tabindex')) {
+              explorer.setAttribute('tabindex', '0');
+            }
+          });
+        }
+      });
+    });
+  });
+
+  // Start observing
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  // Apply to existing elements
+  document.querySelectorAll('.file-item, .folder-item, .draggable-icon').forEach(item => {
+    makeContextMenuAccessible(item);
+    if (!item.hasAttribute('tabindex')) {
+      item.setAttribute('tabindex', '0');
+    }
+  });
+
+  document.querySelectorAll('.file-explorer-window').forEach(explorer => {
+    makeContextMenuAccessible(explorer);
+    if (!explorer.hasAttribute('tabindex')) {
+      explorer.setAttribute('tabindex', '0');
+    }
+  });
+}
+
+// Initialize accessibility when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFileExplorerAccessibility);
+} else {
+  initFileExplorerAccessibility();
+}
+
+// TODO
+// function addFileExplorerKeyboardSupport() {
+//   document.addEventListener('keydown', function(e) {
+//     const activeExplorer = document.querySelector('.file-explorer-window:focus-within');
+//     if (activeExplorer) {
+//       switch(e.key) {
+//         case 'F2':
+//           e.preventDefault();
+//           renameSelectedFile();
+//           break;
+//         case 'Delete':
+//           e.preventDefault();
+//           deleteSelectedFile();
+//           break;
+//         case 'Enter':
+//           e.preventDefault();
+//           openSelectedFile();
+//           break;
+//       }
+//     }
+//   });
+// }

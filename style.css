@@ -49,6 +49,40 @@
   background-color: #dbeafe !important;
 }
 
+/* Context menu keyboard navigation focus */
+#context-menu [role="menuitem"]:focus {
+  background-color: #f9fafb !important;
+  outline: 2px solid #005fcc;
+  outline-offset: -2px;
+}
+
+#context-menu [role="menuitem"]:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Context menu submenu focus */
+#context-menu [role="menu"] [role="menuitem"]:focus {
+  background-color: #f3f4f6 !important;
+  outline: 2px solid #005fcc;
+  outline-offset: -2px;
+}
+
+/* Submenu visibility and styling */
+#start-menu [data-submenu-trigger][aria-expanded="true"] {
+  background-color: #e0e7ff !important;
+}
+
+#start-menu .submenu.block {
+  display: block !important;
+}
+
+/* Enhanced submenu item focus */
+#start-menu .submenu [role="menuitem"].focus-visible {
+  background-color: #c7d2fe !important;
+  outline: 2px solid #6366f1;
+  outline-offset: -2px;
+}
+
 /* High contrast mode support for start menu */
 @media (prefers-contrast: high) {
   #start-menu [role="menuitem"].focus-visible,
@@ -56,6 +90,17 @@
     background-color: #000000 !important;
     color: #ffffff !important;
     outline: 3px solid #ffffff;
+  }
+
+  #start-menu [data-submenu-trigger][aria-expanded="true"] {
+    background-color: #333333 !important;
+    color: #ffffff !important;
+  }
+
+  #start-menu .submenu [role="menuitem"].focus-visible {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    outline: 3px solid #ffff00;
   }
 }
 #desktop * {

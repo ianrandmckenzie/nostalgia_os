@@ -1,5 +1,6 @@
 import { startMenuOrder, saveState, setFileSystemState } from '../os/manage_data.js';
 import { storage } from '../os/indexeddb_storage.js';
+import { restart } from '../os/restart.js'
 
 // Start Menu Drag and Drop Functionality
 
@@ -178,10 +179,13 @@ function createMenuItem(item) {
 
   // Add click handler for the item
   li.addEventListener('click', (e) => {
+
     // Don't handle click if context menu is visible
-    if (li.querySelector('.start-menu-context-menu')?.style.display !== 'none') {
+    const contextMenu = li.querySelector('.start-menu-context-menu');
+    if (contextMenu && contextMenu.style.display !== 'none') {
       return;
     }
+
     handleStartMenuItemClick(item.id);
   });
 
@@ -321,6 +325,7 @@ function createGroupItem(item) {
 
 // Handle start menu item clicks
 function handleStartMenuItemClick(itemId) {
+
   // Don't handle clicks if we're in a drag operation
   if (dragState.isDragging) {
     return;

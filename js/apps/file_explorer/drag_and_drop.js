@@ -133,6 +133,17 @@ function handleDragEnd(e) {
   // Clean up any lingering classes.
   this.classList.remove('dragging');
   document.querySelectorAll('.file-item').forEach(item => item.classList.remove('dragover'));
+
+  // Clean up desktop drop zone outline
+  const desktop = document.getElementById('desktop');
+  if (desktop) {
+    desktop.classList.remove('drag-hover-target');
+  }
+
+  // Clean up any other drag-hover-target classes on desktop folders or explorer windows
+  document.querySelectorAll('.drag-hover-target').forEach(element => {
+    element.classList.remove('drag-hover-target');
+  });
 }
 
 /*

@@ -159,6 +159,12 @@ function generateStartMenuHTML() {
   menuContainer.innerHTML = '';
   menuContainer.appendChild(ul);
 
+  // Ensure proper focusability based on menu visibility
+  if (typeof window.updateStartMenuFocusability === 'function') {
+    const isMenuVisible = !menuContainer.classList.contains('hidden');
+    window.updateStartMenuFocusability(isMenuVisible);
+  }
+
 }
 
 function createMenuItem(item) {
@@ -342,6 +348,15 @@ function handleStartMenuItemClick(itemId) {
     const menu = document.getElementById('start-menu');
     if (menu) {
       menu.classList.add('hidden');
+      menu.setAttribute('aria-hidden', 'true');
+
+      // Update focusability when manually closing menu
+      if (typeof window.updateStartMenuFocusability === 'function') {
+        window.updateStartMenuFocusability(false);
+      }
+
+      const startButton = document.getElementById('start-button');
+      if (startButton) startButton.setAttribute('aria-expanded', 'false');
     }
   }
 
@@ -559,6 +574,9 @@ function handleContextMenuAction(action, itemData, isSubmenuItem, parentGroupId)
         const startMenu = document.getElementById('start-menu');
         if (startMenu) {
           startMenu.classList.add('hidden');
+          startMenu.setAttribute('aria-hidden', 'true');
+          const startButton = document.getElementById('start-button');
+          if (startButton) startButton.setAttribute('aria-expanded', 'false');
         }
       }
       break;
@@ -573,6 +591,9 @@ function handleContextMenuAction(action, itemData, isSubmenuItem, parentGroupId)
         const startMenu = document.getElementById('start-menu');
         if (startMenu) {
           startMenu.classList.add('hidden');
+          startMenu.setAttribute('aria-hidden', 'true');
+          const startButton = document.getElementById('start-button');
+          if (startButton) startButton.setAttribute('aria-expanded', 'false');
         }
       }
       break;
@@ -1881,6 +1902,13 @@ function focusMenuItem(index, showSubmenu = false) {
           } else {
             // Fallback to manually opening the menu
             startMenu.classList.remove('hidden');
+            startMenu.setAttribute('aria-hidden', 'false');
+            startButton.setAttribute('aria-expanded', 'true');
+
+            // Update focusability when manually opening menu
+            if (typeof window.updateStartMenuFocusability === 'function') {
+              window.updateStartMenuFocusability(true);
+            }
           }
           // Small delay to ensure menu is rendered before focusing
           setTimeout(resetNavigation, 10);
@@ -1891,6 +1919,13 @@ function focusMenuItem(index, showSubmenu = false) {
           } else {
             // Fallback to manually closing the menu
             startMenu.classList.add('hidden');
+            startMenu.setAttribute('aria-hidden', 'true');
+            startButton.setAttribute('aria-expanded', 'false');
+
+            // Update focusability when manually closing menu
+            if (typeof window.updateStartMenuFocusability === 'function') {
+              window.updateStartMenuFocusability(false);
+            }
           }
           startButton.focus();
         }
@@ -2054,7 +2089,11 @@ function focusMenuItem(index, showSubmenu = false) {
         // Close the start menu
         if (startMenu) {
           startMenu.classList.add('hidden');
-          startButton?.focus();
+          startMenu.setAttribute('aria-hidden', 'true');
+          if (startButton) {
+            startButton.setAttribute('aria-expanded', 'false');
+            startButton.focus();
+          }
         }
         break;
       case 'Home':

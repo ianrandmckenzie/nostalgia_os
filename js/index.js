@@ -326,6 +326,8 @@ window.addEventListener('click', async function (e) {
       toggleButtonActiveState('start-button');
     }
     startMenu.classList.add('hidden');
+    startMenu.setAttribute('aria-hidden', 'true');
+    startButton.setAttribute('aria-expanded', 'false');
   }
 });
 
@@ -363,6 +365,16 @@ window.addEventListener('load', async function () {
   // Initialize start menu system (this will also restore order)
   if (typeof initializeStartMenu === 'function') {
     initializeStartMenu();
+
+    // Import and expose the focusability update function globally
+    const { updateStartMenuFocusability } = await import('./gui/taskbar.js');
+    window.updateStartMenuFocusability = updateStartMenuFocusability;
+
+    // Ensure Start menu items are not focusable when hidden (accessibility fix)
+    const menu = document.getElementById('start-menu');
+    if (menu && menu.classList.contains('hidden')) {
+      updateStartMenuFocusability(false);
+    }
   } else {
     console.error('initializeStartMenu function not available');
   }

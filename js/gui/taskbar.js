@@ -2,6 +2,26 @@ import { windowStates, activeMediaWindow, navWindows, desktopSettings } from '..
 import { createWindow, minimizeWindow, bringToFront } from './window.js';
 import { toggleButtonActiveState } from './main.js';
 
+// Function to update focusability of Start menu items
+export function updateStartMenuFocusability(isVisible) {
+  const menu = document.getElementById('start-menu');
+  if (!menu) return;
+
+  // Get all focusable elements in the Start menu
+  const focusableElements = menu.querySelectorAll('[role="menuitem"], a[data-submenu-trigger]');
+
+  focusableElements.forEach(element => {
+    if (isVisible) {
+      // When menu is visible, allow keyboard focus (but start with -1)
+      element.setAttribute('tabindex', '-1');
+    } else {
+      // When menu is hidden, completely prevent focus
+      element.setAttribute('tabindex', '-1');
+      element.blur(); // Remove any existing focus
+    }
+  });
+}
+
 export function toggleStartMenu() {
   const menu = document.getElementById('start-menu');
   const startButton = document.getElementById('start-button');
@@ -11,7 +31,19 @@ export function toggleStartMenu() {
 
   // Update ARIA attributes
   startButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-  menu.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+
+  // Fix accessibility: aria-hidden should be "true" when menu is hidden, "false" when visible
+  if (isHidden) {
+    // Menu is becoming visible
+    menu.setAttribute('aria-hidden', 'false');
+    // Enable focus for menu items when visible
+    updateStartMenuFocusability(true);
+  } else {
+    // Menu is becoming hidden
+    menu.setAttribute('aria-hidden', 'true');
+    // Disable focus for menu items when hidden
+    updateStartMenuFocusability(false);
+  }
 
   toggleButtonActiveState('start-button');
   toggleStartIcon();

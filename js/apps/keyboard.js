@@ -368,8 +368,18 @@ class KeyboardService {
 
     if (startMenu && !startMenu.classList.contains('hidden')) {
       startMenu.classList.add('hidden');
+      startMenu.setAttribute('aria-hidden', 'true');
+
+      // Update focusability when hiding menu
+      if (typeof window.updateStartMenuFocusability === 'function') {
+        window.updateStartMenuFocusability(false);
+      }
+
       const startButton = document.getElementById('start-button');
-      if (startButton) startButton.focus();
+      if (startButton) {
+        startButton.setAttribute('aria-expanded', 'false');
+        startButton.focus();
+      }
     }
 
     if (contextMenu && !contextMenu.classList.contains('hidden')) {

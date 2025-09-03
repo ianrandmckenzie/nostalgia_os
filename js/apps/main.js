@@ -9,6 +9,8 @@ import { launchMediaPlayer } from './mediaplayer.js';
 import { launchCompostBin } from './compost_bin.js';
 import { launchStorageManager } from './storage_manager.js';
 import { launchKeyboard } from './keyboard.js';
+import { launchPong } from './pong.js';
+import { launchSnake } from './snake.js';
 
 export function openApp(id) {
   const existingWindow = document.getElementById(id);
@@ -37,6 +39,8 @@ export function openApp(id) {
   if (id === 'mediaplayer') launchMediaPlayer();
   if (id === 'compostbin') launchCompostBin();
   if (id === 'storage') launchStorageManager();
+  if (id === 'pong') launchPong();
+  if (id === 'snake') launchSnake();
   if (id === 'keyboard') {
     // Check for the actual keyboard app window instead of just 'keyboard'
     const existingKeyboardWindow = document.getElementById('keyboard-app');

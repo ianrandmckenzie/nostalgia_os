@@ -11,6 +11,8 @@ export function getAppIcon(windowId, title) {
     'mediaplayer': 'image/video.webp',
     'bombbroomer': 'image/bombbroomer.webp',
     'solitaire': 'image/solitaire.webp',
+    'pong': 'image/pong.webp',
+    'snake': 'image/snake.webp',
     'chess': 'image/guillotine_chess.webp',
     'mailbox': 'image/mail.webp',
     'watercolour': 'image/watercolour.webp',

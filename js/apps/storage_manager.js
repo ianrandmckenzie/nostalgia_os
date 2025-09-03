@@ -497,7 +497,9 @@ async function checkForMissingApps() {
       { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' },
       { id: 'solapp', text: 'Solitaire', icon: 'image/solitaire.webp' },
       { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.webp' },
-      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' }
+      { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' },
+      { id: 'pongapp', text: 'Pong', icon: 'image/pong.webp' },
+      { id: 'snakeapp', text: 'Snake', icon: 'image/snake.webp' }
     ];
 
     // Get current start menu order
@@ -610,7 +612,9 @@ async function performAppRestore(missingApps) {
       'abtcomp': 'utilities-group',
       'solapp': 'games-group',
       'chessapp': 'games-group',
-      'bombapp': 'games-group'
+      'bombapp': 'games-group',
+      'pongapp': 'games-group',
+      'snakeapp': 'games-group'
     };
 
     // Process missing apps

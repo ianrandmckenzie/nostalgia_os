@@ -11,6 +11,7 @@ import { launchStorageManager } from './storage_manager.js';
 import { launchKeyboard } from './keyboard.js';
 import { launchPong } from './pong.js';
 import { launchSnake } from './snake.js';
+import { launchHappyTurd } from './happyturd.js';
 
 export function openApp(id) {
   const existingWindow = document.getElementById(id);
@@ -41,6 +42,7 @@ export function openApp(id) {
   if (id === 'storage') launchStorageManager();
   if (id === 'pong') launchPong();
   if (id === 'snake') launchSnake();
+  if (id === 'happyturd') launchHappyTurd();
   if (id === 'keyboard') {
     // Check for the actual keyboard app window instead of just 'keyboard'
     const existingKeyboardWindow = document.getElementById('keyboard-app');

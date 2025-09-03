@@ -499,7 +499,8 @@ async function checkForMissingApps() {
       { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.webp' },
       { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' },
       { id: 'pongapp', text: 'Pong', icon: 'image/pong.webp' },
-      { id: 'snakeapp', text: 'Snake', icon: 'image/snake.webp' }
+      { id: 'snakeapp', text: 'Snake', icon: 'image/snake.webp' },
+      { id: 'happyturdapp', text: 'Happy Turd', icon: 'image/happyturd.webp' }
     ];
 
     // Get current start menu order

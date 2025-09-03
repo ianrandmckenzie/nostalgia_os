@@ -52,7 +52,8 @@ const DEFAULT_START_MENU_ITEMS = [
       { id: 'chessapp', text: 'Guillotine Chess', icon: 'image/guillotine_chess.webp' },
       { id: 'bombapp', text: 'Bombbroomer', icon: 'image/bombbroomer.webp' },
       { id: 'pongapp', text: 'Pong', icon: 'image/pong.webp' },
-      { id: 'snakeapp', text: 'Snake', icon: 'image/snake.webp' }
+      { id: 'snakeapp', text: 'Snake', icon: 'image/snake.webp' },
+      { id: 'happyturdapp', text: 'Happy Turd', icon: 'image/happyturd.webp' }
     ]
   },
   {
@@ -410,6 +411,9 @@ function handleStartMenuItemClick(itemId) {
       break;
     case 'snakeapp':
       if (typeof openApp === 'function') openApp('snake');
+      break;
+    case 'happyturdapp':
+      if (typeof openApp === 'function') openApp('happyturd');
       break;
     case 'mediaapp':
       if (typeof openApp === 'function') openApp('mediaplayer');

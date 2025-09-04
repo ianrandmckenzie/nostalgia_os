@@ -1,4 +1,5 @@
 import { createWindow } from '../gui/window.js';
+import { storage } from '../os/indexeddb_storage.js';
 
 export function launchSnake() {
   const existingWindow = document.getElementById('snake');
@@ -35,7 +36,7 @@ export async function initializeSnakeUI(win) {
   const hud = document.createElement('div');
   hud.className = 'w-full flex items-center justify-between text-white px-2 pb-2';
   hud.style.fontFamily = 'monospace';
-  hud.innerHTML = `<div>Score: <span id="snake-score">0</span></div><div id="snake-status">Playing</div><div>Length: <span id="snake-length">0</span></div>`;
+  hud.innerHTML = `<div>Score: <span id="snake-score">0</span></div><div id="snake-status">Playing</div><div>High: <span id="snake-high-score">0</span></div>`;
 
   const canvasContainer = document.createElement('div');
   canvasContainer.className = 'flex-1 flex items-center justify-center w-full';
@@ -66,10 +67,14 @@ export async function initializeSnakeUI(win) {
   let dir = { x: 1, y: 0 };
   let food = null;
   let score = 0;
+  let highScore = 0;
   let running = true;
   let speed = 8; // moves per second
   let lastUpdate = 0;
   let rafId = null;
+
+  // Load high score
+  highScore = await storage.getItem('snake-high-score') || 0;
 
   function placeFood() {
     let ok = false;
@@ -95,9 +100,11 @@ export async function initializeSnakeUI(win) {
     const scoreEl = document.getElementById('snake-score');
     const statusEl = document.getElementById('snake-status');
     const lenEl = document.getElementById('snake-length');
+    const highEl = document.getElementById('snake-high-score');
     if (scoreEl) scoreEl.textContent = String(score);
     if (statusEl) statusEl.textContent = running ? 'Playing' : 'Game Over';
     if (lenEl) lenEl.textContent = String(snake.length);
+    if (highEl) highEl.textContent = String(highScore);
   }
 
   function draw() {
@@ -111,9 +118,9 @@ export async function initializeSnakeUI(win) {
     }
 
     // Draw snake
-    ctx.fillStyle = '#7ed957';
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
+      ctx.fillStyle = (i % 2 === 0) ? '#7ed957' : '#5aa83d';
       ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 1, gridSize - 1);
     }
   }
@@ -140,6 +147,10 @@ export async function initializeSnakeUI(win) {
     // Eat food
     if (food && head.x === food.x && head.y === food.y) {
       score += 1;
+      if (score > highScore) {
+        highScore = score;
+        storage.setItemSync('snake-high-score', highScore);
+      }
       // slightly increase speed every few points
       if (score % 5 === 0) speed = Math.min(20, speed + 1);
       placeFood();

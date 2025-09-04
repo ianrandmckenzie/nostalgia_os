@@ -503,19 +503,12 @@ export async function renderDesktopIcons() {
   }
 
 
-  // Constants for grid layout
-  const ICON_WIDTH = 96; // w-24 = 96px
-  const ICON_HEIGHT = 128; // h-32 = 128px
-  const PADDING = 16; // m-2 = 8px margin each side = 16px total
+  // Constants for icon positioning
   const START_X = 16;
   const START_Y = 16;
 
-  // Calculate how many icons can fit per column
-  const availableHeight = window.innerHeight - 80; // account for taskbar
-  const iconsPerColumn = Math.floor((availableHeight - START_Y) / (ICON_HEIGHT + PADDING));
-
   let iconIndex = 0;
-  let gridIndex = 0; // Separate counter for grid positioning
+  const positionedIcons = []; // Track icons we've already positioned
 
   Object.values(desktopItems).forEach(item => {
     const iconElem = document.createElement('div');
@@ -665,18 +658,25 @@ export async function renderDesktopIcons() {
       const savedPos = desktopIconsState[iconElem.id];
       iconElem.style.left = savedPos.left;
       iconElem.style.top = savedPos.top;
+      // Add to positioned icons for overlap checking
+      positionedIcons.push({
+        left: parseInt(savedPos.left),
+        top: parseInt(savedPos.top),
+        width: 96,
+        height: 128
+      });
     } else {
-      // Use default grid position
-      const column = Math.floor(gridIndex / iconsPerColumn);
-      const row = gridIndex % iconsPerColumn;
-
-      const x = START_X + (column * (ICON_WIDTH + PADDING));
-      const y = START_Y + (row * (ICON_HEIGHT + PADDING));
-
-      iconElem.style.left = x + 'px';
-      iconElem.style.top = y + 'px';
-
-      gridIndex++; // Only increment grid index for items without saved positions
+      // Find a non-overlapping position for new icons
+      const position = findNonOverlappingPosition(positionedIcons);
+      iconElem.style.left = position.left + 'px';
+      iconElem.style.top = position.top + 'px';
+      // Add to positioned icons for overlap checking
+      positionedIcons.push({
+        left: position.left,
+        top: position.top,
+        width: 96,
+        height: 128
+      });
     }
 
     desktopIconsContainer.appendChild(iconElem);
@@ -731,6 +731,63 @@ export function getSettingsContent() {
       </button>
     </div>
   `;
+}
+
+// Helper function to find a non-overlapping position for new icons
+function findNonOverlappingPosition(existingPositions, iconWidth = 96, iconHeight = 128, padding = 16) {
+  const startX = 16;
+  const startY = 16;
+  const stepX = iconWidth + padding;
+  const stepY = iconHeight + padding;
+  const desktop = document.getElementById('desktop');
+  const desktopRect = desktop.getBoundingClientRect();
+  const maxX = desktopRect.width - iconWidth;
+  const maxY = desktopRect.height - iconHeight - 40; // Account for taskbar
+
+  // Try positions top-to-bottom then left-to-right (column-major order)
+  let x = startX;
+  let y = startY;
+
+  while (x <= maxX) {
+    while (y <= maxY) {
+      // Check if this position overlaps with any existing icon
+      const newRect = {
+        left: x,
+        top: y,
+        right: x + iconWidth,
+        bottom: y + iconHeight
+      };
+
+      let overlaps = false;
+      for (const existing of existingPositions) {
+        const existingRect = {
+          left: existing.left,
+          top: existing.top,
+          right: existing.left + existing.width,
+          bottom: existing.top + existing.height
+        };
+
+        if (!(newRect.right <= existingRect.left ||
+              newRect.left >= existingRect.right ||
+              newRect.bottom <= existingRect.top ||
+              newRect.top >= existingRect.bottom)) {
+          overlaps = true;
+          break;
+        }
+      }
+
+      if (!overlaps) {
+        return { left: x, top: y };
+      }
+
+      y += stepY;
+    }
+    y = startY;
+    x += stepX;
+  }
+
+  // If no non-overlapping position found, use the default position
+  return { left: startX, top: startY };
 }
 
 // Ensure icon stays within desktop bounds during drag

@@ -62,6 +62,8 @@ export async function initializeBombbroomerUI(win) {
     };
   }
 
+  let bestTime = await storage.getItem('bombbroomer-best-time') || null;
+
   // Create game layout
   const gameContainer = document.createElement('div');
   gameContainer.className = 'flex flex-col h-full bg-gray-200 pb-4';
@@ -113,9 +115,16 @@ export async function initializeBombbroomerUI(win) {
   timerDisplay.id = 'timer-display';
   timerDisplay.textContent = '000';
 
+  const bestTimeDisplay = document.createElement('div');
+  bestTimeDisplay.className = 'bg-black text-red-500 px-2 py-1 font-mono text-lg border-2 border-gray-500';
+  bestTimeDisplay.style.borderStyle = 'inset';
+  bestTimeDisplay.id = 'best-time-display';
+  bestTimeDisplay.textContent = bestTime ? bestTime.toString().padStart(3, '0') : '---';
+
   statusBar.appendChild(bombCounter);
   statusBar.appendChild(faceButton);
   statusBar.appendChild(timerDisplay);
+  statusBar.appendChild(bestTimeDisplay);
 
   // Game grid container
   const gridContainer = document.createElement('div');
@@ -362,6 +371,11 @@ export async function initializeBombbroomerUI(win) {
       gameState.gameWon = true;
       if (gameState.timerInterval) {
         clearInterval(gameState.timerInterval);
+      }
+      if (bestTime === null || gameState.timer < bestTime) {
+        bestTime = gameState.timer;
+        storage.setItemSync('bombbroomer-best-time', bestTime);
+        document.getElementById('best-time-display').textContent = bestTime.toString().padStart(3, '0');
       }
       await saveBombbroomerGameState(gameState); // Save final win state
       document.getElementById('face-button').textContent = '😎';

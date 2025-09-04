@@ -1,4 +1,5 @@
 import { createWindow } from '../gui/window.js';
+import { storage } from '../os/indexeddb_storage.js';
 
 export function launchPong() {
   // Prevent duplicate window
@@ -37,7 +38,7 @@ export async function initializePongUI(win) {
   const hud = document.createElement('div');
   hud.className = 'flex items-center justify-between text-white px-2 pb-2';
   hud.style.fontFamily = 'monospace';
-  hud.innerHTML = `<div>🙋 Player</div><div id="pong-score">0 - 0</div><div>🤖 Computer</div>`;
+  hud.innerHTML = `<div>🙋 Player</div><div id="pong-score">0 - 0</div><div>High: <span id="pong-high-score">0</span></div>`;
 
   // Canvas
   const canvasContainer = document.createElement('div');
@@ -64,6 +65,10 @@ export async function initializePongUI(win) {
   // Game state
   let playerScore = 0;
   let aiScore = 0;
+  let highScore = 0;
+
+  // Load high score
+  highScore = await storage.getItem('pong-high-score') || 0;
 
   const state = {
     paddleHeight: 60,
@@ -162,6 +167,10 @@ export async function initializePongUI(win) {
     }
     if (state.ballX > canvas.width) {
       playerScore += 1;
+      if (playerScore > highScore) {
+        highScore = playerScore;
+        storage.setItemSync('pong-high-score', highScore);
+      }
       updateScoreDisplay();
       resetBall(-1);
     }
@@ -176,7 +185,9 @@ export async function initializePongUI(win) {
 
   function updateScoreDisplay() {
     const scoreEl = document.getElementById('pong-score');
+    const highEl = document.getElementById('pong-high-score');
     if (scoreEl) scoreEl.textContent = `${playerScore} - ${aiScore}`;
+    if (highEl) highEl.textContent = String(highScore);
   }
 
   // Input

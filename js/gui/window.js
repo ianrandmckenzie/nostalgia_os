@@ -224,7 +224,6 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   contentDiv.setAttribute('aria-labelledby', `${windowId}-title`)
 
   if (windowType === 'default') {
-    contentDiv.contentEditable = 'true'
     contentDiv.setAttribute('role', 'textbox')
     contentDiv.setAttribute('aria-label', `Editable content for ${title}`)
     contentDiv.addEventListener('input', () => {

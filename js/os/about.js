@@ -23,5 +23,5 @@ export async function openAboutWindow() {
       <p>This project must be purchased for use, but is open source and free for those who contribute via code, security research, bug reporting, etc. — contributors may do so on <a target="_blank" href="https://github.com/ianrandmckenzie/nostalgia_os">github.com/ianrandmckenzie/nostalgia_os</a></p>
     </div>
   `;
-  createWindow("About This Computer", content, false, null, false, false, { type: 'integer', width: 400, height: 640 }, "default", null, 'gray-200 cursor-not-allowed pointer-events-none');
+  createWindow("About This Computer", content, false, null, false, false, { type: 'integer', width: 400, height: 640 }, "default", null, 'gray-200');
 }

@@ -1,5 +1,5 @@
 import { storage } from '../os/indexeddb_storage.js';
-import { createWindow } from '../gui/window.js';
+import { createWindow, showDialogBox } from '../gui/window.js';
 
 export function launchChess() {
   // Check if chess window already exists
@@ -297,14 +297,17 @@ async function handleSquareClick(row, col, gameState, win) {
       gameState.selectedSquare = null;
       gameState.possibleMoves = [];
 
-      // Switch turn and save state
-      gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+      // If the move captured the king, gameOver is set in makeMove; don't switch turns
+      if (!gameState.gameOver) {
+        gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+      }
       await saveChessGameState(gameState);
 
-      // Check for game over
+      // Check for game over (king captured only)
       if (isGameOver(gameState)) {
         gameState.gameOver = true;
         gameState.winner = getWinner(gameState);
+        announceGameOver(gameState);
       }
 
       // Update the UI instead of completely rebuilding
@@ -605,24 +608,27 @@ async function makeAIMove(gameState, win) {
 
   switch (gameState.difficulty) {
     case 'easy':
-      move = getRandomMove(gameState.board, 'black');
+      move = getRandomMove(gameState, 'black');
       break;
     case 'medium':
-      move = getBestMove(gameState.board, 'black', 1);
+      move = findBestMove(gameState, 'black', 2);
       break;
     case 'hard':
-      move = getBestMove(gameState.board, 'black', 2);
+      move = findBestMove(gameState, 'black', 3);
       break;
   }
 
   if (move) {
     makeMove(gameState, move.from.row, move.from.col, move.to.row, move.to.col);
-    gameState.currentPlayer = 'white';
+    if (!gameState.gameOver) {
+      gameState.currentPlayer = 'white';
+    }
 
     // Check for game over
     if (isGameOver(gameState)) {
       gameState.gameOver = true;
       gameState.winner = getWinner(gameState);
+      announceGameOver(gameState);
     }
 
     await saveChessGameState(gameState);
@@ -630,96 +636,193 @@ async function makeAIMove(gameState, win) {
   }
 }
 
-function getRandomMove(board, color) {
-  const allMoves = [];
-
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
-      if (piece && piece.color === color) {
-        // Create a minimal gameState for move generation
-        const tempGameState = {
-          board: board,
-          enPassantTarget: null,
-          currentPlayer: color
-        };
-        const moves = getValidMoves(tempGameState, row, col);
-        for (const move of moves) {
-          allMoves.push({
-            from: { row, col },
-            to: move
-          });
-        }
-      }
-    }
-  }
-
+function getRandomMove(gameState, color) {
+  const allMoves = generateAllLegalMoves(gameState, color);
   return allMoves.length > 0 ? allMoves[Math.floor(Math.random() * allMoves.length)] : null;
 }
 
-function getBestMove(board, color, depth) {
-  // Simple minimax algorithm
-  const allMoves = [];
+// Stronger AI: alpha-beta search with a better static evaluation and legal move generation
+function findBestMove(gameState, color, depth = 2) {
+  const perspective = color; // score is from this color's perspective
+  const INF = 1e9;
+  let bestMove = null;
+  let bestScore = -INF;
 
+  const moves = orderMoves(gameState, generateAllLegalMoves(gameState, color));
+  for (const move of moves) {
+    const nextState = cloneGameStateForSearch(gameState);
+    makeMove(nextState, move.from.row, move.from.col, move.to.row, move.to.col);
+    nextState.currentPlayer = color === 'white' ? 'black' : 'white';
+
+    const score = -alphaBeta(nextState, depth - 1, -INF, INF, color === 'white' ? 'black' : 'white', perspective);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+  }
+  return bestMove;
+}
+
+function alphaBeta(gameState, depth, alpha, beta, toMove, perspective) {
+  const INF = 1e9;
+
+  // Terminal checks
+  const myKing = findKing(gameState.board, perspective);
+  const oppKing = findKing(gameState.board, perspective === 'white' ? 'black' : 'white');
+  if (!myKing) return -INF + (3 - depth); // lost king
+  if (!oppKing) return INF - (3 - depth);  // captured opponent king
+
+  if (depth === 0) {
+    return staticEvaluate(gameState, perspective);
+  }
+
+  const legalMoves = generateAllLegalMoves(gameState, toMove);
+  if (legalMoves.length === 0) {
+    // Stalemate or no legal moves: small penalty/bonus
+    const sign = toMove === perspective ? -1 : 1;
+    return sign * -10 + staticEvaluate(gameState, perspective);
+  }
+
+  let best = toMove === perspective ? -INF : INF;
+  const moves = orderMoves(gameState, legalMoves);
+  for (const move of moves) {
+    const nextState = cloneGameStateForSearch(gameState);
+    makeMove(nextState, move.from.row, move.from.col, move.to.row, move.to.col);
+    nextState.currentPlayer = toMove === 'white' ? 'black' : 'white';
+
+    const val = alphaBeta(nextState, depth - 1, alpha, beta, nextState.currentPlayer, perspective);
+    if (toMove === perspective) {
+      if (val > best) best = val;
+      if (best > alpha) alpha = best;
+    } else {
+      if (val < best) best = val;
+      if (best < beta) beta = best;
+    }
+    if (alpha >= beta) break; // prune
+  }
+  return best;
+}
+
+function generateAllLegalMoves(gameState, color) {
+  const moves = [];
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
+      const piece = gameState.board[row][col];
       if (piece && piece.color === color) {
-        // Create a minimal gameState for move generation
-        const tempGameState = {
-          board: board,
-          enPassantTarget: null,
-          currentPlayer: color
-        };
-        const moves = getValidMoves(tempGameState, row, col);
-        for (const move of moves) {
-          allMoves.push({
-            from: { row, col },
-            to: move,
-            score: evaluateMove(board, { row, col }, move, color, depth)
-          });
+        const legalMoves = getLegalMoves(gameState, row, col);
+        for (const mv of legalMoves) {
+          moves.push({ from: { row, col }, to: { row: mv.row, col: mv.col } });
         }
       }
     }
   }
-
-  if (allMoves.length === 0) return null;
-
-  // Sort by score and return best move
-  allMoves.sort((a, b) => b.score - a.score);
-  return allMoves[0];
+  return moves;
 }
 
-function evaluateMove(board, from, to, color, depth) {
-  // Create a copy of the board
-  const boardCopy = board.map(row => row.map(cell => cell ? { ...cell } : null));
+function orderMoves(gameState, moves) {
+  // MVV-LVA style: prioritize captures and threats towards the king
+  const opp = gameState.currentPlayer === 'white' ? 'black' : 'white';
+  const kingPos = findKing(gameState.board, opp);
+  return moves.sort((a, b) => moveHeuristic(gameState, b) - moveHeuristic(gameState, a));
+}
 
-  // Make the move
-  const piece = boardCopy[from.row][from.col];
-  const captured = boardCopy[to.row][to.col];
-  boardCopy[to.row][to.col] = piece;
-  boardCopy[from.row][from.col] = null;
-
+function moveHeuristic(gameState, move) {
+  const fromPiece = gameState.board[move.from.row][move.from.col];
+  const target = gameState.board[move.to.row][move.to.col];
   let score = 0;
+  if (target) score += 10 * getPieceValue(target.type) - getPieceValue(fromPiece.type) * 0.1; // captures
 
-  // Score for captured piece
-  if (captured) {
-    score += getPieceValue(captured.type);
-  }
+  // Prefer advancing pawns and developing minor pieces
+  if (fromPiece.type === 'pawn') score += 0.2 * (fromPiece.color === 'white' ? (7 - move.to.row) : move.to.row);
+  if (fromPiece.type === 'knight' || fromPiece.type === 'bishop') score += 0.3;
 
-  // Basic positional scoring
-  score += getPositionalScore(boardCopy, color);
+  // Prefer centralization
+  if (move.to.row >= 2 && move.to.row <= 5 && move.to.col >= 2 && move.to.col <= 5) score += 0.2;
 
-  // If we have more depth, consider opponent's response
-  if (depth > 1) {
-    const opponentColor = color === 'white' ? 'black' : 'white';
-    const opponentBestMove = getBestMove(boardCopy, opponentColor, depth - 1);
-    if (opponentBestMove) {
-      score -= opponentBestMove.score;
+  // Avoid leaving piece on a square attacked by opponent without defense
+  const next = cloneGameStateForSearch(gameState);
+  makeMove(next, move.from.row, move.from.col, move.to.row, move.to.col);
+  const attacked = isSquareUnderAttack(next, move.to.row, move.to.col, fromPiece.color);
+  if (attacked) score -= Math.min(1.5, getPieceValue(fromPiece.type) * 0.6);
+
+  // Bonus if move gives check (attacks enemy king)
+  const opp = fromPiece.color === 'white' ? 'black' : 'white';
+  const king = findKing(next.board, opp);
+  if (king && isSquareUnderAttack(next, king.row, king.col, opp)) {
+    // isSquareUnderAttack expects byOpponentOf param; we passed opp, but we want under attack by fromPiece color
+    // Use inverse param
+    if (isSquareUnderAttack(next, king.row, king.col, opp)) {
+      // no-op, handled above; adjust using custom check below
     }
+  }
+  // Simple check detection via canPieceAttackSquare from fromPiece after move
+  if (king) {
+    if (canPieceAttackSquare(next, move.to.row, move.to.col, king.row, king.col)) score += 1.0;
   }
 
   return score;
+}
+
+function cloneGameStateForSearch(gameState) {
+  return {
+    board: gameState.board.map(r => r.map(c => (c ? { ...c } : null))),
+    currentPlayer: gameState.currentPlayer,
+    difficulty: gameState.difficulty,
+    gameOver: gameState.gameOver,
+    winner: gameState.winner,
+    moveHistory: gameState.moveHistory ? [...gameState.moveHistory] : [],
+    selectedSquare: null,
+    possibleMoves: [],
+    gameStarted: gameState.gameStarted,
+    enPassantTarget: gameState.enPassantTarget ? { ...gameState.enPassantTarget } : null,
+    halfMoveClock: gameState.halfMoveClock,
+    fullMoveNumber: gameState.fullMoveNumber
+  };
+}
+
+function staticEvaluate(gameState, perspective) {
+  // Material + simple positional + mobility + king safety
+  let score = 0;
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const p = gameState.board[row][col];
+      if (!p) continue;
+      const val = getPieceValue(p.type);
+      const pos = positionalBonus(p, row, col);
+      const s = (p.color === perspective ? 1 : -1) * (val + pos);
+      score += s;
+    }
+  }
+
+  // Mobility
+  const myMoves = generateAllLegalMoves(gameState, perspective).length;
+  const opp = perspective === 'white' ? 'black' : 'white';
+  const oppMoves = generateAllLegalMoves(gameState, opp).length;
+  score += 0.05 * (myMoves - oppMoves);
+
+  // King safety: penalize attacked king square
+  const myKing = findKing(gameState.board, perspective);
+  const oppKing = findKing(gameState.board, opp);
+  if (myKing && isSquareUnderAttack(gameState, myKing.row, myKing.col, perspective)) score -= 1.5;
+  if (oppKing && isSquareUnderAttack(gameState, oppKing.row, oppKing.col, opp)) score += 1.0;
+
+  return score;
+}
+
+function positionalBonus(piece, row, col) {
+  // very simple center control and pawn advancement
+  let b = 0;
+  if (row >= 2 && row <= 5 && col >= 2 && col <= 5) b += 0.2;
+  if (piece.type === 'pawn') {
+    b += 0.05 * (piece.color === 'white' ? (7 - row) : row);
+  } else if (piece.type === 'knight' || piece.type === 'bishop') {
+    b += 0.1;
+  } else if (piece.type === 'rook') {
+    b += 0.05;
+  } else if (piece.type === 'queen') {
+    b += 0.05;
+  }
+  return b;
 }
 
 function getPieceValue(type) {
@@ -783,21 +886,6 @@ function isGameOver(gameState) {
   if (!blackKingExists) {
     gameState.gameOver = true;
     gameState.winner = 'white';
-    return true;
-  }
-
-  // Check for stalemate (no legal moves) - this results in a draw
-  const currentPlayer = gameState.currentPlayer;
-  if (!hasAnyValidMoves(gameState, currentPlayer)) {
-    gameState.gameOver = true;
-    gameState.winner = 'draw';
-    return true;
-  }
-
-  // Check for 50-move rule draw
-  if (gameState.halfMoveClock >= 100) {
-    gameState.gameOver = true;
-    gameState.winner = 'draw';
     return true;
   }
 
@@ -1121,6 +1209,15 @@ function isInsufficientMaterial(gameState) {
 function getWinner(gameState) {
   // Winner is determined by king capture or draw conditions
   return gameState.winner;
+}
+
+function announceGameOver(gameState) {
+  if (!gameState || !gameState.winner) return;
+  if (gameState.winner === 'white') {
+    showDialogBox('Congratulations — you captured the king. You win.', 'info');
+  } else if (gameState.winner === 'black') {
+    showDialogBox('Your king was captured. You lose.', 'info');
+  }
 }
 
 async function saveChessGameState(gameState) {

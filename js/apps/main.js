@@ -29,20 +29,18 @@ export function openApp(id) {
     }
   }
 
-  console.log('🔍 Checking app cases...');
-  if (id === 'mailbox') launchMailbox();
-  if (id === 'tubestream') launchTubeStream();
-  if (id === 'watercolour') launchWatercolour();
-  if (id === 'calculator') launchCalculator();
-  if (id === 'solitaire') launchSolitaire();
-  if (id === 'chess') launchChess();
-  if (id === 'bombbroomer') launchBombbroomer();
-  if (id === 'mediaplayer') launchMediaPlayer();
-  if (id === 'compostbin') launchCompostBin();
-  if (id === 'storage') launchStorageManager();
-  if (id === 'pong') launchPong();
-  if (id === 'snake') launchSnake();
-  if (id === 'happyturd') launchHappyTurd();
+  console.log(`🔍 Checking app cases for ${id}...`);
+  if (id === 'watercolour' || id.includes('shortcut-watercolourapp')) launchWatercolour();
+  if (id === 'calculator' || id.includes('shortcut-calcapp')) launchCalculator();
+  if (id === 'solitaire' || id.includes('shortcut-solapp')) launchSolitaire();
+  if (id === 'chess' || id.includes('shortcut-chessapp')) launchChess();
+  if (id === 'bombbroomer' || id.includes('shortcut-bombapp')) launchBombbroomer();
+  if (id === 'mediaplayer' || id.includes('shortcut-mediaapp')) launchMediaPlayer();
+  if (id === 'compostbin' || id.includes('shortcut-compostbinapp')) launchCompostBin();
+  if (id === 'storage' || id.includes('shortcut-storageapp')) launchStorageManager();
+  if (id === 'pong' || id.includes('shortcut-pongapp')) launchPong();
+  if (id === 'snake' || id.includes('shortcut-snakeapp')) launchSnake();
+  if (id === 'happyturd' || id.includes('shortcut-happyturdapp')) launchHappyTurd();
   if (id === 'keyboard') {
     // Check for the actual keyboard app window instead of just 'keyboard'
     const existingKeyboardWindow = document.getElementById('keyboard-app');

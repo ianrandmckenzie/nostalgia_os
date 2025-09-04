@@ -376,6 +376,13 @@ export async function initializeBombbroomerUI(win) {
         bestTime = gameState.timer;
         storage.setItemSync('bombbroomer-best-time', bestTime);
         document.getElementById('best-time-display').textContent = bestTime.toString().padStart(3, '0');
+        // Send best time to Devvit if in Devvit context
+        if (window.isDevvit) {
+          window.parent.postMessage({
+            type: 'setGameScore',
+            data: { game: 'bombbroomer', score: bestTime }
+          }, '*');
+        }
       }
       await saveBombbroomerGameState(gameState); // Save final win state
       document.getElementById('face-button').textContent = '😎';

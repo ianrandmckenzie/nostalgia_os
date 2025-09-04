@@ -10,6 +10,16 @@ window.addEventListener('message', (event) => {
     const message = event.data.data.message;
     if (message.type === 'initialData') {
       window.isDevvit = true;
+      // Store the game scores for later use
+      window.devvitGameScores = message.data.gameScores;
+    } else if (message.type === 'updateGameScore') {
+      // Update the stored scores when Devvit sends updates
+      if (window.devvitGameScores) {
+        window.devvitGameScores[message.data.game] = {
+          ...window.devvitGameScores[message.data.game],
+          score: message.data.score
+        };
+      }
     }
   }
 });
@@ -345,6 +355,13 @@ window.addEventListener('click', async function (e) {
 });
 
 window.addEventListener('load', async function () {
+  // Send webViewReady message to Devvit if we're in an iframe (likely Devvit context)
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      type: 'webViewReady'
+    }, '*');
+  }
+
   // Initialize app and storage first
   await initializeApp();
 

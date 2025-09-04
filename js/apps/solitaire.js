@@ -62,6 +62,7 @@ export async function initializeSolitaireUI(win) {
   }
 
   let gameTimer = null;
+  let highScore = await storage.getItem('solitaire-high-score') || 0;
 
   // Card suits and values
   const suits = ['♠', '♣', '♥', '♦'];
@@ -91,7 +92,7 @@ export async function initializeSolitaireUI(win) {
 
   const scoreDisplay = document.createElement('div');
   scoreDisplay.className = 'text-sm font-mono ml-auto flex space-x-4';
-  scoreDisplay.innerHTML = '<span>Score: <span id="score">0</span></span><span>Time: <span id="time">0:00</span></span>';
+  scoreDisplay.innerHTML = `<span>Score: <span id="score">0</span></span><span>High: <span id="high-score">${highScore}</span></span><span>Time: <span id="time">0:00</span></span>`;
 
   // menuBar.appendChild(gameMenu); // doesn't do anything right now
   menuBar.appendChild(newGameBtn);
@@ -656,6 +657,21 @@ export async function initializeSolitaireUI(win) {
     if (totalFoundationCards === 52) {
       if (gameTimer) clearInterval(gameTimer);
       saveSolitaireGameState(gameState).catch(console.error); // Save final win state
+
+      // Check for high score
+      if (gameState.score > highScore) {
+        highScore = gameState.score;
+        storage.setItemSync('solitaire-high-score', highScore);
+        document.getElementById('high-score').textContent = highScore;
+        // Send high score to Devvit if in Devvit context
+        if (window.isDevvit) {
+          window.parent.postMessage({
+            type: 'setGameScore',
+            data: { game: 'solitaire', score: highScore }
+          }, '*');
+        }
+      }
+
       setTimeout(() => {
         triggerWinAnimation();
       }, 500);

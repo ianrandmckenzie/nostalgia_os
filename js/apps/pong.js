@@ -173,8 +173,8 @@ export async function initializePongUI(win) {
         // Send high score to Devvit if in Devvit context
         if (window.isDevvit) {
           window.parent.postMessage({
-            type: 'setHighScore',
-            data: { newScore: highScore }
+            type: 'setGameScore',
+            data: { game: 'pong', score: highScore }
           }, '*');
         }
       }

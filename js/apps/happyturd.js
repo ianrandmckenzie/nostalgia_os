@@ -742,19 +742,6 @@ export async function initializeHappyTurdUI(win) {
       ctx.fillStyle = topCapGradient;
       ctx.fillRect(pipe.x - capOffset, topCapY, capWidth, pipe.top - topCapY);
 
-      // Bottom cap lip with horizontal gradient
-      const bottomCapLipBottom = Math.min(canvas.height - 40, pipe.top + gapSize + capHeight);
-      const bottomCapLipGradient = ctx.createLinearGradient(pipe.x - capOffset, 0, pipe.x - capOffset + capWidth, 0);
-      bottomCapLipGradient.addColorStop(0, '#2a7a4a'); // darker light green on left
-      bottomCapLipGradient.addColorStop(0.4, '#4ade80'); // main light green
-      bottomCapLipGradient.addColorStop(0.6, '#4ade80'); // main light green
-      bottomCapLipGradient.addColorStop(1, '#2a7a4a'); // darker light green on right
-      ctx.fillStyle = bottomCapLipGradient;
-      ctx.beginPath();
-      ctx.ellipse(centerX, pipe.top + gapSize - (capOffset * 0.05), capWidth * 0.5, fitRadius * 0.5, 0, 0, Math.PI * 2);
-      // ctx.fillRect(pipe.x - capOffset, pipe.top + gapSize - capOffset, capWidth, bottomCapLipBottom - (pipe.top + gapSize));
-      ctx.fill();
-
       // Bottom cap with horizontal gradient
       const bottomCapBottom = Math.min(canvas.height - 40, pipe.top + gapSize + capHeight);
       const bottomCapGradient = ctx.createLinearGradient(pipe.x - capOffset, 0, pipe.x - capOffset + capWidth, 0);
@@ -764,6 +751,40 @@ export async function initializeHappyTurdUI(win) {
       bottomCapGradient.addColorStop(1, '#2a7a4a'); // darker light green on right
       ctx.fillStyle = bottomCapGradient;
       ctx.fillRect(pipe.x - capOffset, pipe.top + gapSize, capWidth, bottomCapBottom - (pipe.top + gapSize));
+
+      // Bottom cap lip with horizontal gradient (same shape as dark hole)
+      const bottomCapLipBottom = Math.min(canvas.height - 40, pipe.top + gapSize + capHeight);
+      const bottomCapLipGradient = ctx.createLinearGradient(pipe.x - capOffset, 0, pipe.x - capOffset + capWidth, 0);
+      bottomCapLipGradient.addColorStop(0, '#2a7a4a'); // darker light green on left
+      bottomCapLipGradient.addColorStop(0.4, '#4ade80'); // main light green
+      bottomCapLipGradient.addColorStop(0.6, '#4ade80'); // main light green
+      bottomCapLipGradient.addColorStop(1, '#2a7a4a'); // darker light green on right
+      ctx.fillStyle = bottomCapLipGradient;
+
+      // Create asymmetrical shape: bulbous at top, gently curved at bottom (like pipe interior)
+      const lipCenterX = centerX;
+      const lipCenterY = pipe.top + gapSize - (capOffset * 0.05);
+      const lipWidth = capWidth * 0.5;
+      const lipHeight = fitRadius * 0.5;
+
+      ctx.beginPath();
+      // Start at left side
+      ctx.moveTo(lipCenterX - lipWidth, lipCenterY);
+
+      // Top curve - bulbous (rounded outward like pipe opening)
+      ctx.quadraticCurveTo(
+        lipCenterX, lipCenterY - lipHeight * 1.1, // Control point well above for bulbous top
+        lipCenterX + lipWidth, lipCenterY // Right side
+      );
+
+      // Bottom curve - gentle inward curve (like inner cylinder wall)
+      ctx.quadraticCurveTo(
+        lipCenterX, lipCenterY + lipHeight * 0.8, // Control point below for gentle inward curve
+        lipCenterX - lipWidth, lipCenterY // Back to left side
+      );
+
+      ctx.closePath();
+      ctx.fill();
 
       // Pipe openings (black ellipses at tips, clipped to cap ends)
       ctx.fillStyle = '#000';
@@ -776,7 +797,7 @@ export async function initializeHappyTurdUI(win) {
 
       // Create asymmetrical ellipse: bulbous at top, gently curved at bottom (like pipe interior)
       const ellipseCenterX = centerX;
-      const ellipseCenterY = pipe.top + gapSize - (capOffset * 0.3);
+      const ellipseCenterY = pipe.top + gapSize + (capOffset * 0.3);
       const ellipseWidth = fitRadius;
       const ellipseHeight = fitRadius * 0.15;
 
@@ -791,7 +812,7 @@ export async function initializeHappyTurdUI(win) {
 
       // Bottom curve - gentle inward curve (like inner cylinder wall)
       ctx.quadraticCurveTo(
-        ellipseCenterX, ellipseCenterY + ellipseHeight * 1.2, // Control point below for gentle inward curve
+        ellipseCenterX, ellipseCenterY + ellipseHeight * 1.1, // Control point below for gentle inward curve
         ellipseCenterX - ellipseWidth, ellipseCenterY // Back to left side
       );
 
@@ -1023,7 +1044,8 @@ export async function initializeHappyTurdUI(win) {
     }
 
     if (!running) {
-      tryAgain();
+      // Don't restart immediately - let the overlay appear first
+      // The player must click "Try Again" button to restart
       return;
     }
     vy = flapStrength;

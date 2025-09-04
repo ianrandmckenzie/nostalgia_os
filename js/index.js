@@ -1,5 +1,18 @@
 // Main entry point for Nostalgia OS
 import { storage } from './os/indexeddb_storage.js';
+
+// Set default Devvit flag
+window.isDevvit = false;
+
+// Add message listener for Devvit communication
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'devvit-message') {
+    const message = event.data.data.message;
+    if (message.type === 'initialData') {
+      window.isDevvit = true;
+    }
+  }
+});
 import {
   initializeAppState,
   restoreWindows,

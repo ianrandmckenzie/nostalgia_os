@@ -150,6 +150,13 @@ export async function initializeSnakeUI(win) {
       if (score > highScore) {
         highScore = score;
         storage.setItemSync('snake-high-score', highScore);
+        // Send high score to Devvit if in Devvit context
+        if (window.isDevvit) {
+          window.parent.postMessage({
+            type: 'setHighScore',
+            data: { newScore: highScore }
+          }, '*');
+        }
       }
       // slightly increase speed every few points
       if (score % 5 === 0) speed = Math.min(20, speed + 1);

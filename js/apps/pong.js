@@ -170,6 +170,13 @@ export async function initializePongUI(win) {
       if (playerScore > highScore) {
         highScore = playerScore;
         storage.setItemSync('pong-high-score', highScore);
+        // Send high score to Devvit if in Devvit context
+        if (window.isDevvit) {
+          window.parent.postMessage({
+            type: 'setHighScore',
+            data: { newScore: highScore }
+          }, '*');
+        }
       }
       updateScoreDisplay();
       resetBall(-1);

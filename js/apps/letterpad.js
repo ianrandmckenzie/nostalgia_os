@@ -18,6 +18,7 @@ export async function initializeLetterPad(container) {
   const editorId = container.getAttribute('data-letterpad-editor-id');
   const storageKey = `letterpad_${editorId}`;
   let storedContent = null;
+  let selectedFont = 'sans'; // Default font
 
   try {
     const storedData = await storage.getItem(storageKey);
@@ -26,6 +27,7 @@ export async function initializeLetterPad(container) {
         // storedData is already an object, no need to parse
         const jsonData = storedData;
         storedContent = jsonData.content;
+        selectedFont = jsonData.font || 'sans'; // Load saved font or default to sans
       } catch (e) {
         console.error('Error accessing stored markdown data for editor ' + editorId, e);
       }
@@ -38,6 +40,7 @@ export async function initializeLetterPad(container) {
       if (storedData) {
         const jsonData = storedData;
         storedContent = jsonData.content;
+        selectedFont = jsonData.font || 'sans'; // Load saved font or default to sans
       }
     } catch (syncError) {
       console.warn('Sync fallback also failed:', syncError);
@@ -69,6 +72,28 @@ export async function initializeLetterPad(container) {
     selectHeading.appendChild(option);
   });
   toolbar.appendChild(selectHeading);
+
+  // Font selector dropdown
+  const selectFont = document.createElement('select');
+  selectFont.className = "border rounded p-1";
+  selectFont.id = "font-selector";
+  selectFont.setAttribute('aria-label', 'Select font family');
+  selectFont.setAttribute('title', 'Choose the font family for your text');
+  const fontOptions = [
+    { value: 'sans', text: 'Pixelify Sans' },
+    { value: 'serif', text: 'Coral Pixels' },
+    { value: 'blackletter', text: 'Jacquard 12' }
+  ];
+  fontOptions.forEach(optData => {
+    const option = document.createElement('option');
+    option.value = optData.value;
+    option.textContent = optData.text;
+    selectFont.appendChild(option);
+  });
+  toolbar.appendChild(selectFont);
+
+  // Set initial font selection
+  selectFont.value = selectedFont;
 
   // Bold button
   const boldButton = document.createElement('button');
@@ -132,7 +157,7 @@ export async function initializeLetterPad(container) {
   if (storedContent) {
     // If content exists in IndexedDB, load it in preview mode.
     textarea.value = storedContent;
-    previewArea.innerHTML = convertMarkdownToHTML(storedContent);
+    previewArea.innerHTML = convertMarkdownToHTML(storedContent, selectedFont);
     textarea.classList.add('hidden');
     toolbar.classList.add('hidden');
     toggleButton.classList.remove('hidden');
@@ -141,32 +166,62 @@ export async function initializeLetterPad(container) {
     // No stored content; start in edit mode with preview hidden.
     previewArea.classList.add('hidden');
 
-    boldButton.addEventListener('mousedown', function(event) {
-      event.preventDefault();
-      applyFormatting('**', textarea);
-    });
+    // Store selection when buttons are clicked
+    let storedSelection = { start: 0, end: 0 };
 
-    italicButton.addEventListener('mousedown', function(event) {
-      event.preventDefault();
-      applyFormatting('*', textarea);
-    });
+    // Function to store current selection
+    function storeSelection() {
+      storedSelection.start = textarea.selectionStart;
+      storedSelection.end = textarea.selectionEnd;
+    }
 
-    underlineButton.addEventListener('click', function() {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = textarea.value.substring(start, end);
-      const beforeText = textarea.value.substring(0, start);
-      const afterText = textarea.value.substring(end);
-      if (selectedText.startsWith('<u>') && selectedText.endsWith('</u>')) {
-        const newText = selectedText.substring(3, selectedText.length - 4);
-        textarea.value = beforeText + newText + afterText;
-      } else {
-        const newText = `<u>${selectedText}</u>`;
-        textarea.value = beforeText + newText + afterText;
-      }
+    // Function to restore stored selection
+    function restoreSelection() {
       textarea.focus();
-      textarea.selectionStart = start;
-      textarea.selectionEnd = end + 7;
+      textarea.selectionStart = storedSelection.start;
+      textarea.selectionEnd = storedSelection.end;
+    }
+
+    boldButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      storeSelection();
+      setTimeout(() => {
+        restoreSelection();
+        applyFormatting('**', textarea);
+      }, 0);
+    });
+
+    italicButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      storeSelection();
+      setTimeout(() => {
+        restoreSelection();
+        applyFormatting('*', textarea);
+      }, 0);
+    });
+
+    underlineButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      storeSelection();
+      setTimeout(() => {
+        restoreSelection();
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        const beforeText = textarea.value.substring(0, start);
+        const afterText = textarea.value.substring(end);
+        if (selectedText.startsWith('<u>') && selectedText.endsWith('</u>')) {
+          const newText = selectedText.substring(3, selectedText.length - 4);
+          textarea.value = beforeText + newText + afterText;
+          textarea.selectionStart = start;
+          textarea.selectionEnd = end - 7; // Adjust for removed tags
+        } else {
+          const newText = `<u>${selectedText}</u>`;
+          textarea.value = beforeText + newText + afterText;
+          textarea.selectionStart = start;
+          textarea.selectionEnd = end + 7; // Adjust for added tags
+        }
+      }, 0);
     });
 
     // Heading dropdown event: apply heading formatting to the current line.
@@ -185,6 +240,11 @@ export async function initializeLetterPad(container) {
       const newLineText = lineText.replace(/^(#{1,6}\s)?/, headingPrefix);
       textarea.value = value.substring(0, lineStart) + newLineText + value.substring(lineEnd === -1 ? value.length : lineEnd);
     });
+
+    // Font selector event: update selected font
+    selectFont.addEventListener('change', function() {
+      selectedFont = selectFont.value;
+    });
   }
 
   // Toggle button event listener: switch between edit and preview modes.
@@ -198,10 +258,10 @@ export async function initializeLetterPad(container) {
     } else {
       // Convert Markdown to HTML, save to IndexedDB, then switch to Preview mode.
       const markdownText = textarea.value;
-      previewArea.innerHTML = convertMarkdownToHTML(markdownText);
+      previewArea.innerHTML = convertMarkdownToHTML(markdownText, selectedFont);
 
       try {
-        await storage.setItem(storageKey, { content: markdownText });
+        await storage.setItem(storageKey, { content: markdownText, font: selectedFont });
       } catch (error) {
         console.warn('Failed to save LetterPad content for editor ' + editorId, error);
       }
@@ -316,24 +376,31 @@ export function applyFormatting(symbol, textarea) {
 
 
 // --- Markdown Conversion Function ---
-export function convertMarkdownToHTML(text) {
+export function convertMarkdownToHTML(text, selectedFont = 'sans') {
   let html = text;
+
+  // Get the appropriate Tailwind font class
+  const fontClass = `font-${selectedFont}`;
+
   // Convert **bold** syntax
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, `<strong class="${fontClass}">$1</strong>`);
   // Convert *italic* syntax
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/\*(.+?)\*/g, `<em class="${fontClass}">$1</em>`);
   // Convert titles with Tailwind classes
-  html = html.replace(/###### (.*)/g, '<h6 class="mt-1 mb-2 text-2xl">$1</h6>');
-  html = html.replace(/##### (.*)/g, '<h5 class="mt-1 mb-2 text-3xl">$1</h5>');
-  html = html.replace(/#### (.*)/g, '<h4 class="mt-1 mb-2 text-4xl">$1</h4>');
-  html = html.replace(/### (.*)/g, '<h3 class="mt-1 mb-2 text-5xl">$1</h3>');
-  html = html.replace(/## (.*)/g, '<h2 class="mt-1 mb-2 text-6xl">$1</h2>');
-  html = html.replace(/# (.*)/g, '<h1 class="mt-1 mb-2 text-7xl">$1</h1>');
+  html = html.replace(/###### (.*)/g, `<h6 class="mt-1 mb-2 text-2xl ${fontClass}">$1</h6>`);
+  html = html.replace(/##### (.*)/g, `<h5 class="mt-1 mb-2 text-3xl ${fontClass}">$1</h5>`);
+  html = html.replace(/#### (.*)/g, `<h4 class="mt-1 mb-2 text-4xl ${fontClass}">$1</h4>`);
+  html = html.replace(/### (.*)/g, `<h3 class="mt-1 mb-2 text-5xl ${fontClass}">$1</h3>`);
+  html = html.replace(/## (.*)/g, `<h2 class="mt-1 mb-2 text-6xl ${fontClass}">$1</h2>`);
+  html = html.replace(/# (.*)/g, `<h1 class="mt-1 mb-2 text-7xl ${fontClass}">$1</h1>`);
   // Convert newlines to <br> tags for display
   html = html.replace(/\n/g, '<br>');
 
+  // Wrap the entire content in a div with the font class for paragraphs
+  html = `<div class="${fontClass}">${html}</div>`;
+
   // Sanitize the HTML to prevent XSS attacks
-  const allowedTags = ['strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'u'];
+  const allowedTags = ['strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'u', 'div'];
   const allowedAttributes = ['class'];
 
   return sanitizeWithWhitelist(html, allowedTags, allowedAttributes);

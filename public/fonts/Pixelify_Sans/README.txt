@@ -1,47 +1,21 @@
-Geologica Variable Font
-=======================
+Pixelify Sans Variable Font
+===========================
 
-This download contains Geologica as both a variable font and static fonts.
+This download contains Pixelify Sans as both a variable font and static fonts.
 
-Geologica is a variable font with these axes:
-  CRSV
-  SHRP
-  slnt
+Pixelify Sans is a variable font with this axis:
   wght
 
 This means all the styles are contained in a single file:
-  Geologica-VariableFont_CRSV,SHRP,slnt,wght.ttf
+  Pixelify_Sans/PixelifySans-VariableFont_wght.ttf
 
 If your app fully supports variable fonts, you can now pick intermediate styles
 that aren’t available as static fonts. Not all apps support variable fonts, and
-in those cases you can use the static font files for Geologica:
-  static/Geologica-Thin.ttf
-  static/Geologica-ExtraLight.ttf
-  static/Geologica-Light.ttf
-  static/Geologica-Regular.ttf
-  static/Geologica-Medium.ttf
-  static/Geologica-SemiBold.ttf
-  static/Geologica-Bold.ttf
-  static/Geologica-ExtraBold.ttf
-  static/Geologica-Black.ttf
-  static/Geologica_Auto-Thin.ttf
-  static/Geologica_Auto-ExtraLight.ttf
-  static/Geologica_Auto-Light.ttf
-  static/Geologica_Auto-Regular.ttf
-  static/Geologica_Auto-Medium.ttf
-  static/Geologica_Auto-SemiBold.ttf
-  static/Geologica_Auto-Bold.ttf
-  static/Geologica_Auto-ExtraBold.ttf
-  static/Geologica_Auto-Black.ttf
-  static/Geologica_Cursive-Thin.ttf
-  static/Geologica_Cursive-ExtraLight.ttf
-  static/Geologica_Cursive-Light.ttf
-  static/Geologica_Cursive-Regular.ttf
-  static/Geologica_Cursive-Medium.ttf
-  static/Geologica_Cursive-SemiBold.ttf
-  static/Geologica_Cursive-Bold.ttf
-  static/Geologica_Cursive-ExtraBold.ttf
-  static/Geologica_Cursive-Black.ttf
+in those cases you can use the static font files for Pixelify Sans:
+  Pixelify_Sans/static/PixelifySans-Regular.ttf
+  Pixelify_Sans/static/PixelifySans-Medium.ttf
+  Pixelify_Sans/static/PixelifySans-SemiBold.ttf
+  Pixelify_Sans/static/PixelifySans-Bold.ttf
 
 Get started
 -----------

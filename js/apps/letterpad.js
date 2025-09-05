@@ -47,11 +47,12 @@ export async function initializeLetterPad(container) {
     }
   }  // Build the Editor UI
   const editorWrapper = document.createElement('div');
-  editorWrapper.className = "flex flex-col border rounded p-4 bg-white";
+  // Full-height flex column so content area can expand to fill window
+  editorWrapper.className = "flex flex-col h-full w-full border rounded p-2 bg-white";
 
   // Toolbar (for formatting) – only visible if no stored content exists
   const toolbar = document.createElement('div');
-  toolbar.className = "flex space-x-2 mb-2";
+  toolbar.className = "flex flex-wrap gap-2 mb-2";
 
   // Dropdown for heading/text type
   const selectHeading = document.createElement('select');
@@ -94,6 +95,60 @@ export async function initializeLetterPad(container) {
 
   // Set initial font selection
   selectFont.value = selectedFont;
+  // Helper to apply font class to the textarea immediately
+  const availableFontClasses = ['font-sans', 'font-serif', 'font-blackletter'];
+  function applyFontToTextarea() {
+    availableFontClasses.forEach(c => textarea.classList.remove(c));
+    textarea.classList.add(`font-${selectedFont}`);
+  }
+  // Apply a [font=...] wrapper to the current selection in the textarea
+  function applyFontAtSelection(fontValue) {
+    // Restore and use the last stored selection to avoid focus loss issues
+    restoreSelection();
+    const start = storedSelection.start;
+    const end = storedSelection.end;
+    if (start === end) return; // nothing selected
+    const value = textarea.value;
+    const selected = value.substring(start, end);
+    const before = value.substring(0, start);
+    const after = value.substring(end);
+
+    const prefixRe = /^\[font=(sans|serif|blackletter)\]/;
+    const suffix = '[/font]';
+    const prefix = `[font=${fontValue}]`;
+
+    let inner = selected;
+    const hasFontPrefix = prefixRe.test(selected);
+    const hasFontSuffix = selected.endsWith(suffix);
+    if (hasFontPrefix && hasFontSuffix) {
+      // Strip existing wrapper
+      inner = inner.replace(prefixRe, '');
+      inner = inner.slice(0, inner.length - suffix.length);
+      // If same font, leave unwrapped (toggle off); otherwise, rewrap with new font
+      const existingFont = selected.match(prefixRe)?.[1];
+      if (existingFont && existingFont !== fontValue) {
+        const wrapped = `${prefix}${inner}${suffix}`;
+        textarea.value = before + wrapped + after;
+        // select inner content
+        textarea.selectionStart = start + prefix.length;
+        textarea.selectionEnd = start + prefix.length + inner.length;
+        return;
+      } else {
+        // toggled off
+        textarea.value = before + inner + after;
+        textarea.selectionStart = start;
+        textarea.selectionEnd = start + inner.length;
+        return;
+      }
+    }
+
+    // Wrap selection
+    const wrapped = `${prefix}${inner}${suffix}`;
+    textarea.value = before + wrapped + after;
+    // select inner content
+  storedSelection.start = textarea.selectionStart = start + prefix.length;
+  storedSelection.end = textarea.selectionEnd = start + prefix.length + inner.length;
+  }
 
   // Bold button
   const boldButton = document.createElement('button');
@@ -124,15 +179,19 @@ export async function initializeLetterPad(container) {
 
   // Editor textarea for Markdown input
   const textarea = document.createElement('textarea');
-  textarea.className = "w-full h-40 border rounded p-2 mb-2";
+  // Fill available space; prevent manual resize to keep layout stable
+  textarea.className = "w-full h-full flex-1 min-h-0 border rounded p-2 resize-none";
   textarea.id = "markdown-editor";
   textarea.setAttribute('aria-label', 'Markdown text editor');
   textarea.setAttribute('placeholder', 'Type your text here using Markdown formatting...');
   textarea.setAttribute('title', 'Enter your text with Markdown formatting');
+  // Apply initial font to the textarea now that it exists in scope
+  applyFontToTextarea();
 
   // Preview area (for rendered HTML)
   const previewArea = document.createElement('div');
-  previewArea.className = "w-full h-40 border rounded p-2 overflow-auto";
+  // Preview also fills the content region
+  previewArea.className = "w-full h-full flex-1 min-h-0 border rounded p-2 overflow-auto";
 
   // Toggle button to switch between edit and preview modes
   const toggleButton = document.createElement('button');
@@ -147,17 +206,103 @@ export async function initializeLetterPad(container) {
   }
 
   // Append all components into the wrapper
+  // Content container that grows to fill remaining space between toolbar and toggle button
+  const contentContainer = document.createElement('div');
+  contentContainer.className = "flex-1 min-h-0 flex flex-col";
+  contentContainer.appendChild(textarea);
+  contentContainer.appendChild(previewArea);
+
   editorWrapper.appendChild(toolbar);
-  editorWrapper.appendChild(textarea);
-  editorWrapper.appendChild(previewArea);
+  editorWrapper.appendChild(contentContainer);
   editorWrapper.appendChild(toggleButton);
   container.appendChild(editorWrapper);
+
+  // Prevent toolbar buttons from stealing focus with mouse clicks (allow selects to open)
+  toolbar.addEventListener('mousedown', (e) => {
+    if (e.target && e.target.closest('button')) {
+      e.preventDefault();
+    }
+  });
+  // Preserve selection when interacting with dropdowns
+  selectFont.addEventListener('mousedown', storeSelection);
+  selectHeading.addEventListener('mousedown', storeSelection);
+
+  // Selection tracking for formatting operations
+  let storedSelection = { start: 0, end: 0 };
+  function storeSelection() {
+    storedSelection.start = textarea.selectionStart;
+    storedSelection.end = textarea.selectionEnd;
+  }
+  function restoreSelection() {
+    textarea.focus();
+    textarea.selectionStart = storedSelection.start;
+    textarea.selectionEnd = storedSelection.end;
+  }
+  ;['keyup', 'mouseup', 'select', 'input'].forEach(evt => {
+    textarea.addEventListener(evt, storeSelection);
+  });
+
+  // Apply formatting after restoring the last known selection
+  boldButton.addEventListener('click', function(event) {
+    event.preventDefault();
+    restoreSelection();
+    applyFormatting('**', textarea);
+  });
+
+  italicButton.addEventListener('click', function(event) {
+    event.preventDefault();
+    restoreSelection();
+    applyFormatting('*', textarea);
+  });
+
+  underlineButton.addEventListener('click', function(event) {
+    event.preventDefault();
+    restoreSelection();
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const beforeText = textarea.value.substring(0, start);
+    const afterText = textarea.value.substring(end);
+    if (start !== end) {
+      if (selectedText.startsWith('<u>') && selectedText.endsWith('</u>')) {
+        const newText = selectedText.substring(3, selectedText.length - 4);
+        textarea.value = beforeText + newText + afterText;
+        textarea.selectionStart = start;
+        textarea.selectionEnd = end - 7; // Adjust for removed tags
+      } else {
+        const newText = `<u>${selectedText}</u>`;
+        textarea.value = beforeText + newText + afterText;
+        textarea.selectionStart = start;
+        textarea.selectionEnd = end + 7; // Adjust for added tags
+      }
+    }
+  });
+
+  // Heading dropdown event: apply heading formatting to the current line.
+  selectHeading.addEventListener('change', function() {
+    const headingValue = selectHeading.value;
+    // Restore selection saved before the select took focus
+    restoreSelection();
+    const start = storedSelection.start;
+    const value = textarea.value;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    let headingPrefix = '';
+    if (headingValue === 'h1') headingPrefix = '# ';
+    else if (headingValue === 'h2') headingPrefix = '## ';
+    else if (headingValue === 'h3') headingPrefix = '### ';
+    else headingPrefix = '';
+    const lineEnd = value.indexOf('\n', start);
+    const lineText = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
+    const newLineText = lineText.replace(/^(#{1,6}\s)?/, headingPrefix);
+    textarea.value = value.substring(0, lineStart) + newLineText + value.substring(lineEnd === -1 ? value.length : lineEnd);
+  });
 
   // --- Initialization Based on Stored Data ---
   if (storedContent) {
     // If content exists in IndexedDB, load it in preview mode.
     textarea.value = storedContent;
-    previewArea.innerHTML = convertMarkdownToHTML(storedContent, selectedFont);
+  previewArea.innerHTML = convertMarkdownToHTML(storedContent);
+  // Editor UI font can remain default; spans drive per-range fonts.
     textarea.classList.add('hidden');
     toolbar.classList.add('hidden');
     toggleButton.classList.remove('hidden');
@@ -165,86 +310,7 @@ export async function initializeLetterPad(container) {
   } else {
     // No stored content; start in edit mode with preview hidden.
     previewArea.classList.add('hidden');
-
-    // Store selection when buttons are clicked
-    let storedSelection = { start: 0, end: 0 };
-
-    // Function to store current selection
-    function storeSelection() {
-      storedSelection.start = textarea.selectionStart;
-      storedSelection.end = textarea.selectionEnd;
-    }
-
-    // Function to restore stored selection
-    function restoreSelection() {
-      textarea.focus();
-      textarea.selectionStart = storedSelection.start;
-      textarea.selectionEnd = storedSelection.end;
-    }
-
-    boldButton.addEventListener('click', function(event) {
-      event.preventDefault();
-      storeSelection();
-      setTimeout(() => {
-        restoreSelection();
-        applyFormatting('**', textarea);
-      }, 0);
-    });
-
-    italicButton.addEventListener('click', function(event) {
-      event.preventDefault();
-      storeSelection();
-      setTimeout(() => {
-        restoreSelection();
-        applyFormatting('*', textarea);
-      }, 0);
-    });
-
-    underlineButton.addEventListener('click', function(event) {
-      event.preventDefault();
-      storeSelection();
-      setTimeout(() => {
-        restoreSelection();
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end);
-        const beforeText = textarea.value.substring(0, start);
-        const afterText = textarea.value.substring(end);
-        if (selectedText.startsWith('<u>') && selectedText.endsWith('</u>')) {
-          const newText = selectedText.substring(3, selectedText.length - 4);
-          textarea.value = beforeText + newText + afterText;
-          textarea.selectionStart = start;
-          textarea.selectionEnd = end - 7; // Adjust for removed tags
-        } else {
-          const newText = `<u>${selectedText}</u>`;
-          textarea.value = beforeText + newText + afterText;
-          textarea.selectionStart = start;
-          textarea.selectionEnd = end + 7; // Adjust for added tags
-        }
-      }, 0);
-    });
-
-    // Heading dropdown event: apply heading formatting to the current line.
-    selectHeading.addEventListener('change', function() {
-      const headingValue = selectHeading.value;
-      const start = textarea.selectionStart;
-      const value = textarea.value;
-      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-      let headingPrefix = '';
-      if (headingValue === 'h1') headingPrefix = '# ';
-      else if (headingValue === 'h2') headingPrefix = '## ';
-      else if (headingValue === 'h3') headingPrefix = '### ';
-      else headingPrefix = '';
-      const lineEnd = value.indexOf('\n', start);
-      const lineText = value.substring(lineStart, lineEnd === -1 ? value.length : lineEnd);
-      const newLineText = lineText.replace(/^(#{1,6}\s)?/, headingPrefix);
-      textarea.value = value.substring(0, lineStart) + newLineText + value.substring(lineEnd === -1 ? value.length : lineEnd);
-    });
-
-    // Font selector event: update selected font
-    selectFont.addEventListener('change', function() {
-      selectedFont = selectFont.value;
-    });
+  // (moved font change handler below common section)
   }
 
   // Toggle button event listener: switch between edit and preview modes.
@@ -254,11 +320,12 @@ export async function initializeLetterPad(container) {
       previewArea.classList.add('hidden');
       textarea.classList.remove('hidden');
       toolbar.classList.remove('hidden');
+  // Editor font class unchanged; fonts applied per selection spans.
       toggleButton.textContent = "Preview & Save";
     } else {
       // Convert Markdown to HTML, save to IndexedDB, then switch to Preview mode.
-      const markdownText = textarea.value;
-      previewArea.innerHTML = convertMarkdownToHTML(markdownText, selectedFont);
+  const markdownText = textarea.value;
+  previewArea.innerHTML = convertMarkdownToHTML(markdownText);
 
       try {
         await storage.setItem(storageKey, { content: markdownText, font: selectedFont });
@@ -270,6 +337,20 @@ export async function initializeLetterPad(container) {
       previewArea.classList.remove('hidden');
       toggleButton.textContent = "Edit";
       toolbar.classList.add('hidden');
+    }
+  });
+
+  // Common font change handler: apply font to selected text in Edit mode
+  selectFont.addEventListener('change', function() {
+    selectedFont = selectFont.value;
+    if (!textarea.classList.contains('hidden')) {
+  // Restore selection saved before the select took focus
+  restoreSelection();
+      applyFontAtSelection(selectedFont);
+      // Update preview live if visible
+      if (!previewArea.classList.contains('hidden')) {
+        previewArea.innerHTML = convertMarkdownToHTML(textarea.value);
+      }
     }
   });
 }
@@ -376,31 +457,29 @@ export function applyFormatting(symbol, textarea) {
 
 
 // --- Markdown Conversion Function ---
-export function convertMarkdownToHTML(text, selectedFont = 'sans') {
+export function convertMarkdownToHTML(text) {
   let html = text;
 
-  // Get the appropriate Tailwind font class
-  const fontClass = `font-${selectedFont}`;
+  // Custom font span: [font=blackletter]text[/font] (also supports serif/sans)
+  const fontSpan = /\[font=(sans|serif|blackletter)\]([\s\S]+?)\[\/font\]/g;
+  html = html.replace(fontSpan, (m, fam, content) => `<span class="font-${fam}">${content}</span>`);
 
   // Convert **bold** syntax
-  html = html.replace(/\*\*(.+?)\*\*/g, `<strong class="${fontClass}">$1</strong>`);
+  html = html.replace(/\*\*(.+?)\*\*/g, `<strong>$1</strong>`);
   // Convert *italic* syntax
-  html = html.replace(/\*(.+?)\*/g, `<em class="${fontClass}">$1</em>`);
-  // Convert titles with Tailwind classes
-  html = html.replace(/###### (.*)/g, `<h6 class="mt-1 mb-2 text-2xl ${fontClass}">$1</h6>`);
-  html = html.replace(/##### (.*)/g, `<h5 class="mt-1 mb-2 text-3xl ${fontClass}">$1</h5>`);
-  html = html.replace(/#### (.*)/g, `<h4 class="mt-1 mb-2 text-4xl ${fontClass}">$1</h4>`);
-  html = html.replace(/### (.*)/g, `<h3 class="mt-1 mb-2 text-5xl ${fontClass}">$1</h3>`);
-  html = html.replace(/## (.*)/g, `<h2 class="mt-1 mb-2 text-6xl ${fontClass}">$1</h2>`);
-  html = html.replace(/# (.*)/g, `<h1 class="mt-1 mb-2 text-7xl ${fontClass}">$1</h1>`);
+  html = html.replace(/\*(.+?)\*/g, `<em>$1</em>`);
+  // Convert titles with Tailwind sizing classes only (no font family here)
+  html = html.replace(/###### (.*)/g, `<h6 class="mt-1 mb-2 text-2xl">$1</h6>`);
+  html = html.replace(/##### (.*)/g, `<h5 class="mt-1 mb-2 text-3xl">$1</h5>`);
+  html = html.replace(/#### (.*)/g, `<h4 class="mt-1 mb-2 text-4xl">$1</h4>`);
+  html = html.replace(/### (.*)/g, `<h3 class="mt-1 mb-2 text-5xl">$1</h3>`);
+  html = html.replace(/## (.*)/g, `<h2 class="mt-1 mb-2 text-6xl">$1</h2>`);
+  html = html.replace(/# (.*)/g, `<h1 class="mt-1 mb-2 text-7xl">$1</h1>`);
   // Convert newlines to <br> tags for display
   html = html.replace(/\n/g, '<br>');
 
-  // Wrap the entire content in a div with the font class for paragraphs
-  html = `<div class="${fontClass}">${html}</div>`;
-
   // Sanitize the HTML to prevent XSS attacks
-  const allowedTags = ['strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'u', 'div'];
+  const allowedTags = ['strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'u', 'span'];
   const allowedAttributes = ['class'];
 
   return sanitizeWithWhitelist(html, allowedTags, allowedAttributes);

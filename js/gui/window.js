@@ -252,14 +252,35 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
       setHighestZ(parseInt(zIndex));
     }
   } else {
-    // New window - assign next z-index
+    // New window - first sync with actual DOM to avoid stale highestZ
+    try {
+      const windowContainer = document.getElementById('windows-container');
+      if (windowContainer) {
+        let realMax = highestZ;
+        const children = windowContainer.children;
+        for (let i = 0; i < children.length; i++) {
+          const z = parseInt(getComputedStyle(children[i]).zIndex) || 0;
+          if (z > realMax) realMax = z;
+        }
+        if (realMax > highestZ) {
+          setHighestZ(realMax);
+        }
+      }
+    } catch (_) {}
     setHighestZ(highestZ + 1);
     win.style.zIndex = highestZ;
   }
 
+  // Use capture phase so z-index promotion occurs BEFORE inner click handlers that may
+  // create new dialog windows. Without capture, the sequence was:
+  // 1) Button inside window handles click and creates a dialog (assigning z = currentHighest+1)
+  // 2) Event bubbles to parent window listener which then increments highestZ and
+  //    promotes the parent ABOVE the newly created dialog, obscuring it.
+  // By promoting in the capture phase, the dialog created later in target/bubble phases
+  // will always receive a higher z-index than the parent, keeping it visible.
   win.addEventListener('click', function () {
     bringToFront(win);
-  });
+  }, true);
   document.getElementById('windows-container').appendChild(win);
 
   const tab = document.createElement('div');
@@ -404,6 +425,27 @@ export function minimizeWindow(windowId) {
 
 export function bringToFront(win) {
   let needsSave = false;
+
+  // --- Sync highestZ with actual DOM before proceeding ---
+  try {
+    const windowContainer = document.getElementById('windows-container');
+    if (windowContainer) {
+      let realMax = highestZ;
+      // Only consider direct child windows (avoid menus, overlays outside container)
+      const children = windowContainer.children;
+      for (let i = 0; i < children.length; i++) {
+        const z = parseInt(getComputedStyle(children[i]).zIndex) || 0;
+        if (z > realMax) realMax = z;
+      }
+      if (realMax > highestZ) {
+        // Update stored highestZ so we don't assign a lower z-index than an existing window
+        setHighestZ(realMax);
+      }
+    }
+  } catch (e) {
+    // Fail silently; syncing is a safety enhancement, not critical path
+    // console.debug('bringToFront sync failed', e);
+  }
 
   if (win.style.display === 'none') {
     win.style.display = 'block';

@@ -2,7 +2,7 @@
 import { getFileSystemStateSync } from './file_explorer/storage.js';
 import { setFileSystemState } from '../os/manage_data.js';
 import { saveState, desktopIconsState } from '../os/manage_data.js';
-import { createWindow, showDialogBox } from '../gui/window.js';
+import { createWindow, showDialogBox, bringToFront, closeWindow } from '../gui/window.js';
 import { renderDesktopIcons } from '../gui/desktop.js';
 import { makeWin95Button } from '../gui/main.js';
 import { refreshExplorerViews } from './file_explorer/gui.js';
@@ -11,11 +11,7 @@ export function launchCompostBin() {
   // Check if compost bin window already exists
   const existingWindow = document.getElementById('compost-bin');
   if (existingWindow) {
-    const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
-    const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
-      getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
-    );
-    existingWindow.style.zIndex = `${parseInt(highestZIndex.style.zIndex) + 1}`;
+    bringToFront(existingWindow);
     return;
   }
 
@@ -303,6 +299,9 @@ export function emptyCompostBin() {
     closeWindow(winId);
     showDialogBox(`${itemCount} item(s) permanently deleted from Compost Bin`, 'info');
   });
+
+  // Ensure the confirmation dialog appears on top
+  bringToFront(win);
 }
 
 function updateCompostBinHeader(compostBinWindow) {

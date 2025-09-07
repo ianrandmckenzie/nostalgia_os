@@ -72,16 +72,8 @@ export function openFileExplorerForImageSelection(callback) {
 
     const explorerWindow = createWindow('Select Image - File Explorer', modifiedExplorerContent, true, 'explorer-image-select', false, false, { type: 'integer', width: 600, height: 550 }, 'file-explorer');
 
-    // Ensure this window has the highest z-index (but only by 1)
-    setTimeout(() => {
-      const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
-      if (elementsWithZIndex.length > 0) {
-        const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
-          getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
-        );
-        explorerWindow.style.zIndex = `${parseInt(getComputedStyle(highestZIndex).zIndex) + 1}`;
-      }
-    }, 50);
+    // Ensure the explorer window appears on top
+    bringToFront(explorerWindow);
 
     // Add instructions and selection UI
     setTimeout(() => {
@@ -191,6 +183,9 @@ export function makeWin95Prompt(message, defaultValue = '', onConfirm = null, on
 
   // Create the dialog window content
   const dialogWindow = createWindow('💬 Input Required', '', false, uniqueWindowId, false, false, { type: 'integer', width: 400, height: 200 }, "default");
+
+  // Ensure the prompt dialog appears on top
+  bringToFront(dialogWindow);
 
   // Get the content area
   const contentDiv = dialogWindow.querySelector('.p-2');

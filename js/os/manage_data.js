@@ -978,6 +978,17 @@ async function initializeRestoredApp(windowId) {
         }
       }
     },
+    'keyboard-app': () => {
+      // Rebuild keyboard app UI after restore
+      const kbWindow = document.getElementById('keyboard-app');
+      if (kbWindow) {
+        if (typeof window.initializeKeyboardApp === 'function') {
+          window.initializeKeyboardApp('keyboard-app');
+        } else {
+          console.warn('initializeKeyboardApp function not available for keyboard-app restoration');
+        }
+      }
+    },
     'tubestream': () => {
       // TubeStream needs its interface initialized
       if (typeof initializeTubeStream === 'function') {

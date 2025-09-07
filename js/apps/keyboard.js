@@ -9,25 +9,42 @@ class KeyboardService {
     this.customMappings = new Map();
     this.isInitialized = false;
     this.preventDefaults = new Set();
+    this.sequenceBuffer = [];
+    this.sequenceTimer = null;
+    this.shortcutMode = false; // Leader/command mode toggled by F12
+
+    // Sequence map (space separated key sequences, no modifiers)
+    this.sequenceMap = {
+      'g w': () => typeof window.cycleWindows === 'function' && window.cycleWindows(),
+      'g d': () => typeof window.minimizeAllWindows === 'function' && window.minimizeAllWindows(),
+      'g s': () => typeof window.toggleStartMenu === 'function' && window.toggleStartMenu(),
+      'w c': () => typeof window.closeActiveWindow === 'function' && window.closeActiveWindow(),
+      'w m': () => typeof window.minimizeActiveWindow === 'function' && window.minimizeActiveWindow()
+    };
+
+    // Shortcut Mode mappings (active only right after F12)
+    this.shortcutModeMap = {
+      'c': () => typeof window.closeActiveWindow === 'function' && window.closeActiveWindow(),
+      'm': () => typeof window.minimizeActiveWindow === 'function' && window.minimizeActiveWindow(),
+      'x': () => typeof window.toggleFullScreen === 'function' && window.toggleFullScreen(window.getActiveWindowId?.()),
+      's': () => typeof window.toggleStartMenu === 'function' && window.toggleStartMenu(),
+      'd': () => typeof window.minimizeAllWindows === 'function' && window.minimizeAllWindows()
+    };
 
     // Default keyboard shortcuts mapping
     this.defaultShortcuts = {
-      // Global shortcuts
-      'global.toggleStartMenu': { key: 'Meta', description: 'Open/Close Start Menu' },
-      'global.cycleWindows': { key: 'Alt+Tab', description: 'Cycle through open windows' },
-      'global.closeActiveWindow': { key: 'Alt+F4', description: 'Close active window' },
-      'global.closeActiveWindow2': { key: 'Ctrl+W', description: 'Close active window (alternative)' },
-      'global.minimizeActiveWindow': { key: 'Ctrl+M', description: 'Minimize active window' },
-      'global.escapeAction': { key: 'Escape', description: 'Close menus and dialogs' },
+      // Global (function keys)
+      'global.toggleStartMenu': { key: 'F1', description: 'Open/Close Start Menu' },
+      'global.cycleWindows': { key: 'F2', description: 'Cycle open windows' },
+      'global.minimizeActiveWindow': { key: 'F3', description: 'Minimize active window' },
+      'global.closeActiveWindow': { key: 'F4', description: 'Close active window' },
+      'global.showDesktop': { key: 'F5', description: 'Show desktop (minimize all)' },
+      'fileExplorer.rename': { key: 'F6', description: 'Rename selected file (when explorer focused)' },
+      'global.escapeAction': { key: 'Escape', description: 'Close menus/dialogs' },
+      'global.toggleShortcutMode': { key: 'F12', description: 'Enter Shortcut Mode (next key triggers command)' },
 
-      // Desktop shortcuts
+      // Desktop navigation
       'desktop.activateIcon': { key: 'Enter', description: 'Activate selected desktop icon' },
-      'desktop.activateIcon2': { key: 'Space', description: 'Activate selected desktop icon (alternative)' },
-      'desktop.startDrag': { key: 'Ctrl+D', description: 'Start drag mode for desktop icon' },
-      'desktop.cutIcon': { key: 'Ctrl+X', description: 'Cut desktop icon' },
-      'desktop.pasteIcon': { key: 'Ctrl+V', description: 'Paste desktop icon' },
-      'desktop.snapToGrid': { key: 'G', description: 'Snap icon to grid (while dragging)' },
-      'desktop.escapeAction': { key: 'Escape', description: 'Cancel drag operation' },
       'desktop.moveUp': { key: 'ArrowUp', description: 'Move icon up' },
       'desktop.moveDown': { key: 'ArrowDown', description: 'Move icon down' },
       'desktop.moveLeft': { key: 'ArrowLeft', description: 'Move icon left' },
@@ -37,46 +54,13 @@ class KeyboardService {
       'desktop.fineMoveLeft': { key: 'Shift+ArrowLeft', description: 'Fine move icon left' },
       'desktop.fineMoveRight': { key: 'Shift+ArrowRight', description: 'Fine move icon right' },
 
-      // Start menu shortcuts
+      // Start menu navigation
       'startMenu.navigateDown': { key: 'ArrowDown', description: 'Navigate down in start menu' },
       'startMenu.navigateUp': { key: 'ArrowUp', description: 'Navigate up in start menu' },
       'startMenu.enterSubmenu': { key: 'ArrowRight', description: 'Enter submenu' },
       'startMenu.exitSubmenu': { key: 'ArrowLeft', description: 'Exit submenu' },
       'startMenu.activateItem': { key: 'Enter', description: 'Activate start menu item' },
-      'startMenu.activateItem2': { key: 'Space', description: 'Activate start menu item (alternative)' },
-      'startMenu.close': { key: 'Escape', description: 'Close start menu' },
-      'startMenu.goToFirst': { key: 'Home', description: 'Go to first menu item' },
-      'startMenu.goToLast': { key: 'End', description: 'Go to last menu item' },
-
-      // File explorer shortcuts
-      'fileExplorer.rename': { key: 'F2', description: 'Rename selected file' },
-      'fileExplorer.delete': { key: 'Delete', description: 'Delete selected file' },
-      'fileExplorer.open': { key: 'Enter', description: 'Open selected file' },
-      'fileExplorer.navigateDown': { key: 'ArrowDown', description: 'Navigate down in file list' },
-      'fileExplorer.navigateUp': { key: 'ArrowUp', description: 'Navigate up in file list' },
-      'fileExplorer.openContextMenu': { key: 'ContextMenu', description: 'Open context menu' },
-      'fileExplorer.openContextMenu2': { key: 'Shift+F10', description: 'Open context menu (alternative)' },
-      'fileExplorer.openContextMenu3': { key: 'Ctrl+Space', description: 'Open context menu (alternative 2)' },
-
-      // Context menu shortcuts
-      'contextMenu.navigateDown': { key: 'ArrowDown', description: 'Navigate down in context menu' },
-      'contextMenu.navigateUp': { key: 'ArrowUp', description: 'Navigate up in context menu' },
-      'contextMenu.enterSubmenu': { key: 'ArrowRight', description: 'Enter context submenu' },
-      'contextMenu.exitSubmenu': { key: 'ArrowLeft', description: 'Exit context submenu' },
-      'contextMenu.activateItem': { key: 'Enter', description: 'Activate context menu item' },
-      'contextMenu.activateItem2': { key: 'Space', description: 'Activate context menu item (alternative)' },
-      'contextMenu.close': { key: 'Escape', description: 'Close context menu' },
-
-      // Window controls
-      'window.minimize': { key: 'Alt+F9', description: 'Minimize window' },
-      'window.maximize': { key: 'Alt+F10', description: 'Maximize/restore window' },
-      'window.close': { key: 'Alt+F4', description: 'Close window' },
-
-      // Taskbar shortcuts
-      'taskbar.activateButton': { key: 'Enter', description: 'Activate taskbar button' },
-      'taskbar.activateButton2': { key: 'Space', description: 'Activate taskbar button (alternative)' },
-      'taskbar.mediaControl': { key: 'Ctrl+Shift+M', description: 'Toggle media playback' },
-      'taskbar.minimizeAll': { key: 'Ctrl+Shift+D', description: 'Show desktop (minimize all)' }
+      'startMenu.close': { key: 'Escape', description: 'Close start menu' }
     };
   }
 
@@ -166,40 +150,68 @@ class KeyboardService {
   }
 
   handleGlobalKeyboard(event) {
+    const target = event.target;
+    const inEditable = /input|textarea|select/i.test(target.tagName) || target.isContentEditable;
+
+    // Shortcut Mode processing
+    if (this.shortcutMode) {
+      if (event.key === 'Escape') {
+        this.shortcutMode = false;
+        return;
+      }
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        const k = event.key.toLowerCase();
+        const action = this.shortcutModeMap[k];
+        if (action) {
+          event.preventDefault();
+          action();
+          this.shortcutMode = false;
+          return;
+        }
+      }
+    }
     const keyCombo = this.getKeyCombo(event);
     const context = this.getContext(event);
 
-    // Find matching shortcut
     for (const [actionId, shortcut] of this.shortcuts.entries()) {
       if (this.matchesKeyCombo(keyCombo, shortcut.key)) {
-        // Check if action is appropriate for current context
         if (this.isActionValidForContext(actionId, context)) {
           event.preventDefault();
           event.stopPropagation();
-
-          // Execute the action
           this.executeAction(actionId, event, context);
           return;
         }
       }
     }
+
+    // Sequence handling (plain keys only, not in editable)
+    if (!inEditable && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.length === 1) {
+      this.sequenceBuffer.push(event.key.toLowerCase());
+      clearTimeout(this.sequenceTimer);
+      this.sequenceTimer = setTimeout(() => { this.sequenceBuffer = []; }, 650);
+      const seq = this.sequenceBuffer.join(' ');
+      if (this.sequenceMap[seq]) {
+        event.preventDefault();
+        this.sequenceMap[seq]();
+        this.sequenceBuffer = [];
+      } else if (this.sequenceBuffer.length > 2) {
+        this.sequenceBuffer = [];
+      }
+    }
   }
 
   getKeyCombo(event) {
-    const parts = [];
-
-    if (event.ctrlKey) parts.push('Ctrl');
-    if (event.altKey) parts.push('Alt');
-    if (event.shiftKey) parts.push('Shift');
-    if (event.metaKey) parts.push('Meta');
-
-    // Handle special keys
-    let keyName = event.key;
-    if (keyName === ' ') keyName = 'Space';
-
-    parts.push(keyName);
-
-    return parts.join('+');
+    const isFunctionKey = /^F\d{1,2}$/i.test(event.key);
+    const special = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Escape','Enter','Space'];
+    let keyName = event.key === ' ' ? 'Space' : event.key;
+    if (isFunctionKey || special.includes(keyName)) {
+      if (event.shiftKey && keyName.startsWith('Arrow')) return 'Shift+' + keyName; // fine move
+      return keyName;
+    }
+    if (event.shiftKey && keyName.startsWith('Arrow')) {
+      return 'Shift+' + keyName;
+    }
+    return keyName;
   }
 
   matchesKeyCombo(eventCombo, shortcutKey) {
@@ -243,6 +255,13 @@ class KeyboardService {
           }
           break;
 
+        case 'global.toggleShortcutMode':
+          this.shortcutMode = !this.shortcutMode;
+          if (this.shortcutMode && typeof window.showDialogBox === 'function') {
+            window.showDialogBox('Shortcut Mode: c(close) m(minimize) x(max) s(start) d(desktop) Esc(cancel)','info');
+          }
+          break;
+
         case 'global.cycleWindows':
           if (typeof window.cycleWindows === 'function') {
             window.cycleWindows();
@@ -250,7 +269,6 @@ class KeyboardService {
           break;
 
         case 'global.closeActiveWindow':
-        case 'global.closeActiveWindow2':
           if (typeof window.closeActiveWindow === 'function') {
             window.closeActiveWindow();
           }
@@ -259,6 +277,12 @@ class KeyboardService {
         case 'global.minimizeActiveWindow':
           if (typeof window.minimizeActiveWindow === 'function') {
             window.minimizeActiveWindow();
+          }
+          break;
+
+        case 'global.showDesktop':
+          if (typeof window.minimizeAllWindows === 'function') {
+            window.minimizeAllWindows();
           }
           break;
 
@@ -681,7 +705,7 @@ export async function launchKeyboard() {
 function getKeyboardAppHTML() {
   return `
     <div class="keyboard-app h-full flex flex-col bg-gray-50">
-      <div class="bg-blue-600 text-white p-3 flex items-center">
+      <div class="bg-gray-600 text-white p-3 flex items-center">
         <div class="w-8 h-8 bg-white bg-opacity-20 rounded mr-3 flex items-center justify-center">
           <span class="text-sm font-bold">⌨️</span>
         </div>
@@ -748,6 +772,19 @@ function initializeKeyboardApp(windowId) {
   if (!keyboardWindow) {
     console.error('❌ Keyboard app window not found:', windowId);
     return;
+  }
+
+  // Prevent duplicate initialization while allowing restoration to rebuild UI
+  if (keyboardWindow.dataset.keyboardInitialized === 'true') {
+    // If categories are empty (e.g., after serialized restore), repopulate lists
+    const categoriesEl = keyboardWindow.querySelector('#keyboard-categories');
+    const listEl = keyboardWindow.querySelector('#keyboard-shortcuts-list');
+    if (categoriesEl && categoriesEl.children.length === 0) {
+      // Force re-run population logic by clearing flag so we proceed
+      keyboardWindow.dataset.keyboardInitialized = 'false';
+    } else {
+      return;
+    }
   }
 
   console.log('🎹 Initializing keyboard app UI...');
@@ -842,7 +879,7 @@ function initializeKeyboardApp(windowId) {
 
     // Update active category button
     keyboardWindow.querySelectorAll('#keyboard-categories button').forEach(btn => {
-      btn.classList.remove('bg-blue-100', 'border-blue-300');
+      btn.classList.remove('bg-gray-100', 'border-gray-300');
     });
 
     const activeBtn = Array.from(keyboardWindow.querySelectorAll('#keyboard-categories button'))
@@ -851,7 +888,7 @@ function initializeKeyboardApp(windowId) {
         return span && span.textContent === (categoryNames[category] || category);
       });
     if (activeBtn) {
-      activeBtn.classList.add('bg-blue-100', 'border-blue-300');
+      activeBtn.classList.add('bg-gray-100', 'border-gray-300');
     }
 
     // Populate shortcuts list
@@ -881,7 +918,7 @@ function initializeKeyboardApp(windowId) {
           <div class="flex-1">
             <div class="flex items-center space-x-2">
               <h3 class="font-medium text-gray-800">${shortcut.description}</h3>
-              ${isCustom ? '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Custom</span>' : ''}
+              ${isCustom ? '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Custom</span>' : ''}
             </div>
             <p class="text-sm text-gray-500 mt-1">Action: ${shortcut.id}</p>
             ${isCustom ? `<p class="text-xs text-gray-400 mt-1">Default: ${defaultKey}</p>` : ''}
@@ -1086,7 +1123,7 @@ function initializeKeyboardApp(windowId) {
 
     // Clear active category selection
     keyboardWindow.querySelectorAll('#keyboard-categories button').forEach(btn => {
-      btn.classList.remove('bg-blue-100', 'border-blue-300');
+      btn.classList.remove('bg-gray-100', 'border-gray-300');
     });
 
     // Populate search results with category context
@@ -1162,7 +1199,7 @@ function initializeKeyboardApp(windowId) {
             <div class="flex-1">
               <div class="flex items-center space-x-2">
                 <h3 class="font-medium text-gray-800">${shortcut.description}</h3>
-                ${isCustom ? '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Custom</span>' : ''}
+                ${isCustom ? '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Custom</span>' : ''}
               </div>
               <p class="text-sm text-gray-500 mt-1">Action: ${shortcut.id}</p>
               ${isCustom ? `<p class="text-xs text-gray-400 mt-1">Default: ${defaultKey}</p>` : ''}
@@ -1248,11 +1285,17 @@ function initializeKeyboardApp(windowId) {
   helpBtnContainer.appendChild(helpBtn);
 
   setupSearch();
+
+  // Mark as initialized
+  keyboardWindow.dataset.keyboardInitialized = 'true';
 }
 
 // Initialize the keyboard service when the module loads
 if (typeof window !== 'undefined') {
   window.keyboardService = keyboardService;
+  // Expose launch & initializer for restoration
+  window.launchKeyboard = launchKeyboard;
+  window.initializeKeyboardApp = initializeKeyboardApp;
 
 // Auto-initialize when the service is first used
 // This way we avoid initialization before the file system is ready

@@ -1,5 +1,7 @@
 import { storage } from './indexeddb_storage.js';
 import { loadStorageData } from '../apps/storage_manager.js'
+// Needed for compost bin restoration (was causing ReferenceError)
+import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
 
 export let fileSystemState = {
   folders: {
@@ -130,9 +132,14 @@ export async function saveState() {
   // Get startMenuOrder from either global var or window object
   const currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
 
+  // Exclude transient dialog/prompt windows from being persisted
+  const filteredWindowStates = Object.fromEntries(
+    Object.entries(windowStates).filter(([id]) => !/^dialogWindow-/.test(id) && !/^promptWindow-/.test(id))
+  );
+
   const appState = {
     fileSystemState: fileSystemState,
-    windowStates: windowStates,
+    windowStates: filteredWindowStates,
     desktopIconsState: desktopIconsState,
     desktopSettings: desktopSettings,
     navWindows: navWindows,
@@ -722,6 +729,12 @@ export async function restoreWindows() {
   // Window states are already loaded in windowStates during initializeAppState()
   // Just need to recreate the windows from the loaded state
   if (windowStates && Object.keys(windowStates).length > 0) {
+    // Remove any transient dialog windows that may have been saved previously
+    Object.keys(windowStates).forEach(id => {
+      if (/^dialogWindow-/.test(id) || /^promptWindow-/.test(id)) {
+        delete windowStates[id];
+      }
+    });
     // Sort windows by z-index to restore in correct order (lowest to highest)
     const sortedWindows = Object.entries(windowStates)
       .sort(([,a], [,b]) => (a.zIndex || 0) - (b.zIndex || 0));

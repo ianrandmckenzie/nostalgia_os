@@ -93,8 +93,10 @@ import { launchCalculator, initializeCalculatorUI } from './apps/calculator.js';
 import { launchSolitaire, initializeSolitaireUI } from './apps/solitaire.js';
 import { launchChess, initializeChessUI } from './apps/chess.js';
 import { launchBombbroomer, initializeBombbroomerUI } from './apps/bombbroomer.js';
+import { launchHappyTurd, initializeHappyTurdUI } from './apps/happyturd.js';
 import { initializeLetterPad, initializeAllLetterPadEditors, applyFormatting, convertMarkdownToHTML } from './apps/letterpad.js';
 import { launchMailbox } from './apps/mailbox.js';
+import { launchSnake, initializeSnakeUI } from './apps/snake.js';
 // Import watercolour functions
 import {
   launchWatercolour,
@@ -118,6 +120,9 @@ import {
   loadMediaPlayerState,
   clearMediaPlayerState
 } from './apps/mediaplayer.js';
+
+// Pong game
+import { launchPong, initializePongUI } from './apps/pong.js';
 
 // Import router functions
 import {
@@ -231,6 +236,14 @@ if (typeof window !== 'undefined') {
   window.initializeChessUI = initializeChessUI;
   window.launchBombbroomer = launchBombbroomer;
   window.initializeBombbroomerUI = initializeBombbroomerUI;
+  window.launchHappyTurd = launchHappyTurd;
+  window.initializeHappyTurdUI = initializeHappyTurdUI;
+  window.launchPong = launchPong;
+  window.initializePongUI = initializePongUI;
+
+  // Snake functions
+  window.launchSnake = launchSnake;
+  window.initializeSnakeUI = initializeSnakeUI;
 
   // LetterPad functions
   window.initializeLetterPad = initializeLetterPad;

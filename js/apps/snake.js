@@ -1,14 +1,10 @@
-import { createWindow } from '../gui/window.js';
+import { createWindow, bringToFront } from '../gui/window.js';
 import { storage } from '../os/indexeddb_storage.js';
 
 export function launchSnake() {
   const existingWindow = document.getElementById('snake');
   if (existingWindow) {
-    const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
-    const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
-      getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
-    );
-    existingWindow.style.zIndex = `${parseInt(highestZIndex.style.zIndex) + 1}`;
+    bringToFront(existingWindow);
     return;
   }
 
@@ -29,6 +25,10 @@ export function launchSnake() {
 }
 
 export async function initializeSnakeUI(win) {
+  if (!win) {
+    win = document.getElementById('snake');
+    if (!win) return; // nothing to init
+  }
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-black h-full overflow-hidden flex flex-col items-center';
   content.innerHTML = '';
@@ -227,4 +227,9 @@ export async function initializeSnakeUI(win) {
   resetGame();
   draw();
   rafId = requestAnimationFrame(gameLoop);
+}
+
+// Expose for restoration
+if (typeof window !== 'undefined') {
+  window.initializeSnakeUI = initializeSnakeUI;
 }

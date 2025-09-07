@@ -1,14 +1,10 @@
-import { createWindow } from '../gui/window.js';
+import { createWindow, bringToFront } from '../gui/window.js';
 import { storage } from '../os/indexeddb_storage.js';
 
 export function launchHappyTurd() {
   const existingWindow = document.getElementById('happyturd');
   if (existingWindow) {
-    const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
-    const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
-      getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
-    );
-    existingWindow.style.zIndex = `${parseInt(highestZIndex.style.zIndex) + 1}`;
+    bringToFront(existingWindow);
     return;
   }
 
@@ -29,6 +25,10 @@ export function launchHappyTurd() {
 }
 
 export async function initializeHappyTurdUI(win) {
+  if (!win) {
+    win = document.getElementById('happyturd');
+    if (!win) return; // nothing to init
+  }
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-black h-full overflow-hidden flex flex-col';
   content.innerHTML = '';
@@ -1092,4 +1092,9 @@ export async function initializeHappyTurdUI(win) {
   // Start in intro mode
   updateHUD();
   rafId = requestAnimationFrame(gameLoop);
+}
+
+// Expose for restoration
+if (typeof window !== 'undefined') {
+  window.initializeHappyTurdUI = initializeHappyTurdUI;
 }

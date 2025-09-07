@@ -908,6 +908,45 @@ async function initializeRestoredApp(windowId) {
         console.warn('🗑️ Compost bin window not found during restoration');
       }
     },
+    'snake': () => {
+      const snakeWindow = document.getElementById('snake');
+      if (snakeWindow) {
+        const content = snakeWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          if (typeof initializeSnakeUI === 'function') {
+            initializeSnakeUI(snakeWindow);
+          } else {
+            console.warn('initializeSnakeUI function not available for restoration');
+          }
+        }
+      }
+    },
+    'pong': () => {
+      const pongWindow = document.getElementById('pong');
+      if (pongWindow) {
+        const content = pongWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          if (typeof initializePongUI === 'function') {
+            initializePongUI(pongWindow);
+          } else {
+            console.warn('initializePongUI function not available for restoration');
+          }
+        }
+      }
+    },
+    'happyturd': () => {
+      const htWindow = document.getElementById('happyturd');
+      if (htWindow) {
+        const content = htWindow.querySelector('.p-2');
+        if (needsReinitialization(content)) {
+          if (typeof initializeHappyTurdUI === 'function') {
+            initializeHappyTurdUI(htWindow);
+          } else {
+            console.warn('initializeHappyTurdUI function not available for restoration');
+          }
+        }
+      }
+    },
     'watercolour': () => {
       // Watercolour needs UI reconstruction
       const watercolourWindow = document.getElementById('watercolour');

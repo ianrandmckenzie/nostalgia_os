@@ -26,6 +26,10 @@ export function launchPong() {
 }
 
 export async function initializePongUI(win) {
+  if (!win) {
+    win = document.getElementById('pong');
+    if (!win) return; // nothing to init
+  }
   const content = win.querySelector('.p-2');
   content.className = 'p-2 bg-black h-full overflow-hidden flex flex-col';
   content.innerHTML = '';
@@ -235,4 +239,9 @@ export async function initializePongUI(win) {
   resetBall(1);
   updateScoreDisplay();
   state.rafId = requestAnimationFrame(gameLoop);
+}
+
+// Expose for restoration
+if (typeof window !== 'undefined') {
+  window.initializePongUI = initializePongUI;
 }

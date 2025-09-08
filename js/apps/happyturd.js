@@ -1,5 +1,6 @@
 import { createWindow, bringToFront } from '../gui/window.js';
 import { storage } from '../os/indexeddb_storage.js';
+import { createPauseController } from '../utils/game_pause.js';
 
 export function launchHappyTurd() {
   const existingWindow = document.getElementById('happyturd');
@@ -357,6 +358,7 @@ export async function initializeHappyTurdUI(win) {
 
   let running = true;
   let rafId = null;
+  const pause = createPauseController({ windowId: 'happyturd', container: canvasContainer, overlayZ: 30 });
 
   function spawnPipe() {
     const topHeight = 40 + Math.random() * (canvas.height - gapSize - 120);
@@ -1013,15 +1015,14 @@ export async function initializeHappyTurdUI(win) {
     if (lastTime == null) lastTime = ts;
     let dt = ts - lastTime; // ms
     lastTime = ts;
-    // Convert to 60Hz frame units
     let scale = dt / (1000 / 60);
-    if (scale > 3) scale = 3; // clamp extreme catch-up
-    if (gameState === 'playing') {
+    if (scale > 3) scale = 3;
+  pause.recompute();
+  if (!pause.paused && gameState === 'playing') {
       update(scale);
     }
 
-    // Always update splatter particles if active
-    if (splatterActive) {
+  if (!pause.paused && splatterActive) {
       splatterParticles.forEach(particle => {
         particle.vy += gravity * 0.3 * scale;
         particle.x += particle.vx * scale;
@@ -1090,6 +1091,7 @@ export async function initializeHappyTurdUI(win) {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
     document.removeEventListener('keydown', keyDownHandler);
+  pause.destroy();
   }
 
   // Start in intro mode

@@ -1,5 +1,6 @@
 import { createWindow, bringToFront } from '../gui/window.js';
 import { storage } from '../os/indexeddb_storage.js';
+import { createPauseController } from '../utils/game_pause.js';
 
 export function launchSnake() {
   const existingWindow = document.getElementById('snake');
@@ -72,6 +73,7 @@ export async function initializeSnakeUI(win) {
   let speed = 8; // moves per second
   let lastUpdate = 0;
   let rafId = null;
+  const pause = createPauseController({ windowId: 'snake', container: canvasContainer, overlayZ: 10 });
 
   // Load high score
   highScore = await storage.getItem('snake-high-score') || 0;
@@ -171,10 +173,11 @@ export async function initializeSnakeUI(win) {
   let accumulator = 0;
   function gameLoop(ts) {
     if (!lastUpdate) lastUpdate = ts;
+  pause.recompute();
     let dt = ts - lastUpdate;
     if (dt > 1000) dt = 1000; // tab was backgrounded; cap
     lastUpdate = ts;
-    accumulator += dt;
+  if (!pause.paused) accumulator += dt; // freeze while paused
     const interval = 1000 / speed;
     let stepped = false;
     while (accumulator >= interval) {
@@ -182,7 +185,7 @@ export async function initializeSnakeUI(win) {
       accumulator -= interval;
       stepped = true;
     }
-    if (stepped) draw();
+  if (stepped && !pause.paused) draw();
     rafId = requestAnimationFrame(gameLoop);
   }
 
@@ -227,6 +230,7 @@ export async function initializeSnakeUI(win) {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
     document.removeEventListener('keydown', keyDownHandler);
+  pause.destroy();
   }
 
   // Start game

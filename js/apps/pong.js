@@ -1,5 +1,6 @@
 import { createWindow, bringToFront } from '../gui/window.js';
 import { storage } from '../os/indexeddb_storage.js';
+import { createPauseController } from '../utils/game_pause.js';
 
 export function launchPong() {
   // Prevent duplicate window
@@ -85,6 +86,7 @@ export async function initializePongUI(win) {
     running: true,
     rafId: null
   };
+  const pause = createPauseController({ windowId: 'pong', container: canvasContainer, overlayZ: 10 });
 
   function resetBall(direction = 1) {
     state.ballX = canvas.width / 2;
@@ -187,14 +189,17 @@ export async function initializePongUI(win) {
   let lastTime = null;
   function gameLoop(ts) {
     if (!state.running) return;
+  pause.recompute();
     if (lastTime == null) lastTime = ts;
     const dt = ts - lastTime; // ms
     lastTime = ts;
     // Convert to 60Hz frame scale; cap to avoid huge jumps when tab was inactive
     let scale = dt / (1000 / 60);
     if (scale > 3) scale = 3; // cap at 3 frames worth
-    update(scale);
-    draw();
+  if (!pause.paused) {
+      update(scale);
+      draw();
+    }
     state.rafId = requestAnimationFrame(gameLoop);
   }
 
@@ -241,6 +246,7 @@ export async function initializePongUI(win) {
     if (state.rafId) cancelAnimationFrame(state.rafId);
     document.removeEventListener('keydown', keyDownHandler);
     document.removeEventListener('keyup', keyUpHandler);
+  pause.destroy();
   }
 
   // Start

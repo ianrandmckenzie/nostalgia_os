@@ -117,21 +117,22 @@ export async function initializePongUI(win) {
     ctx.fill();
   }
 
-  function update() {
-    // Move player paddle
-    if (state.upPressed) state.playerY -= 6;
-    if (state.downPressed) state.playerY += 6;
+  function update(scale) {
+    // scale represents how many 60Hz frames this rAF covered (dt * 60)
+    // Move player paddle (6 px per 60Hz frame)
+    if (state.upPressed) state.playerY -= 6 * scale;
+    if (state.downPressed) state.playerY += 6 * scale;
     state.playerY = Math.max(0, Math.min(canvas.height - state.paddleHeight, state.playerY));
 
-    // Simple AI: follow the ball with some lag
+    // Simple AI: follow the ball with some lag (3.2 px per frame baseline)
     const aiCenter = state.aiY + state.paddleHeight / 2;
-    if (aiCenter < state.ballY - 10) state.aiY += 3.2;
-    if (aiCenter > state.ballY + 10) state.aiY -= 3.2;
+    if (aiCenter < state.ballY - 10) state.aiY += 3.2 * scale;
+    if (aiCenter > state.ballY + 10) state.aiY -= 3.2 * scale;
     state.aiY = Math.max(0, Math.min(canvas.height - state.paddleHeight, state.aiY));
 
-    // Move ball
-    state.ballX += state.ballVX;
-    state.ballY += state.ballVY;
+    // Move ball (velocity values are per 60Hz frame)
+    state.ballX += state.ballVX * scale;
+    state.ballY += state.ballVY * scale;
 
     // Top / bottom collision
     if (state.ballY - state.ballRadius <= 0 || state.ballY + state.ballRadius >= canvas.height) {
@@ -183,9 +184,16 @@ export async function initializePongUI(win) {
     }
   }
 
-  function gameLoop() {
+  let lastTime = null;
+  function gameLoop(ts) {
     if (!state.running) return;
-    update();
+    if (lastTime == null) lastTime = ts;
+    const dt = ts - lastTime; // ms
+    lastTime = ts;
+    // Convert to 60Hz frame scale; cap to avoid huge jumps when tab was inactive
+    let scale = dt / (1000 / 60);
+    if (scale > 3) scale = 3; // cap at 3 frames worth
+    update(scale);
     draw();
     state.rafId = requestAnimationFrame(gameLoop);
   }

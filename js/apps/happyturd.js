@@ -200,8 +200,9 @@ export async function initializeHappyTurdUI(win) {
   // Game variables
   let score = 0;
   let best = 0;
-  const gravity = 0.45;
-  const flapStrength = -8.5;
+  // Physics (per 60Hz frame baseline; will scale by delta time)
+  const gravity = 0.45; // acceleration per frame at 60fps
+  const flapStrength = -8.5; // instantaneous velocity impulse
   let vy = 0;
   let x = 60;
   let y = canvas.height / 2;
@@ -213,7 +214,7 @@ export async function initializeHappyTurdUI(win) {
   // Wing animation variables
   let wingFlapTimer = 0;
   let wingFlapCount = 0;
-  const wingFlapDuration = 8; // frames for each flap
+  const wingFlapDuration = 8; // baseline frames (60Hz)
   const maxWingFlaps = 2; // flap twice per jump
 
   // Splatter animation variables
@@ -312,8 +313,8 @@ export async function initializeHappyTurdUI(win) {
 
   const pipes = [];
   const pipeWidth = 52;
-  let spawnTimer = 0;
-  const spawnInterval = 90; // frames
+  let spawnTimer = 0; // accumulates in frame units (scale)
+  const spawnInterval = 90; // baseline frames (~1.5s at 60fps)
 
   // Background elements
   let clouds = [];
@@ -902,16 +903,17 @@ export async function initializeHappyTurdUI(win) {
     return false;
   }
 
-  function update() {
+  function update(scale) { // scale = dt * 60 (how many 60Hz frames elapsed)
     if (!running) return;
 
-    // Physics
-    vy += gravity;
-    y += vy;
+    // Physics integration with delta scaling
+    vy += gravity * scale;
+    y += vy * scale;
 
     // Wing animation
     if (wingFlapTimer > 0) {
-      wingFlapTimer--;
+      wingFlapTimer -= scale;
+      if (wingFlapTimer < 0) wingFlapTimer = 0;
       if (wingFlapTimer === 0 && wingFlapCount > 0) {
         wingFlapCount--;
         if (wingFlapCount > 0) {
@@ -922,7 +924,7 @@ export async function initializeHappyTurdUI(win) {
 
     // Pipes movement
     for (const pipe of pipes) {
-      pipe.x -= 2.2;
+      pipe.x -= 2.2 * scale; // 2.2 px per baseline frame
       if (!pipe.passed && pipe.x + pipeWidth < x) {
         pipe.passed = true;
         score += 1;
@@ -934,20 +936,20 @@ export async function initializeHappyTurdUI(win) {
     while (pipes.length && pipes[0].x + pipeWidth < -10) pipes.shift();
 
     // Spawn pipes
-    spawnTimer++;
+    spawnTimer += scale;
     if (spawnTimer >= spawnInterval) {
-      spawnTimer = 0;
+      spawnTimer -= spawnInterval; // preserve remainder for precise cadence
       spawnPipe();
     }
 
     // Background movement and spawning
-    backgroundScroll += 0.5; // Slow scroll for parallax
+  backgroundScroll += 0.5 * scale; // Slow scroll for parallax
 
     // Move and remove offscreen background elements
-    clouds.forEach(cloud => cloud.x -= 0.8);
-    hills.forEach(hill => hill.x -= 1.2);
-    mountains.forEach(mountain => mountain.x -= 0.6);
-    grass.forEach(sprig => sprig.x -= 1.8); // Grass scrolls faster as it's front-most
+  clouds.forEach(cloud => cloud.x -= 0.8 * scale);
+  hills.forEach(hill => hill.x -= 1.2 * scale);
+  mountains.forEach(mountain => mountain.x -= 0.6 * scale);
+  grass.forEach(sprig => sprig.x -= 1.8 * scale); // Grass scrolls faster as it's front-most
 
     clouds = clouds.filter(cloud => cloud.x > -100);
     hills = hills.filter(hill => hill.x > -200);
@@ -955,10 +957,12 @@ export async function initializeHappyTurdUI(win) {
     grass = grass.filter(sprig => sprig.x > 10); // Remove offscreen grass
 
     // Spawn new background elements
-    if (Math.random() < 0.005) generateCloud();
-    if (Math.random() < 0.003) generateHill();
-    if (Math.random() < 0.004) generateMountain();
-    if (Math.random() < 0.006) { // Slightly more frequent than mountains
+  // Convert per-frame probabilities to per-delta using P_total = 1 - (1-p_frame)^scale
+  const prob = (p) => 1 - Math.pow(1 - p, scale);
+  if (Math.random() < prob(0.005)) generateCloud();
+  if (Math.random() < prob(0.003)) generateHill();
+  if (Math.random() < prob(0.004)) generateMountain();
+  if (Math.random() < prob(0.006)) { // Slightly more frequent than mountains
       // Add a few grass sprigs at random positions
       for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
         grass.push({
@@ -1004,29 +1008,28 @@ export async function initializeHappyTurdUI(win) {
     }
   }
 
-  function gameLoop() {
+  let lastTime = null;
+  function gameLoop(ts) {
+    if (lastTime == null) lastTime = ts;
+    let dt = ts - lastTime; // ms
+    lastTime = ts;
+    // Convert to 60Hz frame units
+    let scale = dt / (1000 / 60);
+    if (scale > 3) scale = 3; // clamp extreme catch-up
     if (gameState === 'playing') {
-      update();
+      update(scale);
     }
 
     // Always update splatter particles if active
     if (splatterActive) {
       splatterParticles.forEach(particle => {
-        // Apply gravity
-        particle.vy += gravity * 0.3;
-
-        // Update position
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-
-        // Update rotation
-        particle.rotation += particle.rotationSpeed;
-
-        // Fade out over time
+        particle.vy += gravity * 0.3 * scale;
+        particle.x += particle.vx * scale;
+        particle.y += particle.vy * scale;
+        particle.rotation += particle.rotationSpeed * scale;
         particle.opacity = splatterTimer / splatterDuration;
       });
-
-      splatterTimer--;
+      splatterTimer -= scale;
       if (splatterTimer <= 0) {
         splatterActive = false;
         splatterParticles = [];

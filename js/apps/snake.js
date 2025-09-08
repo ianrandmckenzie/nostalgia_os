@@ -168,15 +168,21 @@ export async function initializeSnakeUI(win) {
     updateHUD();
   }
 
+  let accumulator = 0;
   function gameLoop(ts) {
     if (!lastUpdate) lastUpdate = ts;
-    const dt = ts - lastUpdate;
+    let dt = ts - lastUpdate;
+    if (dt > 1000) dt = 1000; // tab was backgrounded; cap
+    lastUpdate = ts;
+    accumulator += dt;
     const interval = 1000 / speed;
-    if (dt >= interval) {
+    let stepped = false;
+    while (accumulator >= interval) {
       step();
-      draw();
-      lastUpdate = ts;
+      accumulator -= interval;
+      stepped = true;
     }
+    if (stepped) draw();
     rafId = requestAnimationFrame(gameLoop);
   }
 

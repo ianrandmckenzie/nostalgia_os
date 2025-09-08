@@ -184,7 +184,12 @@ async function fetchDocuments() {
     fileItems.forEach(file => {
       fileItemsObj[file.id] = file;
     });
-    fs.folders['C://Documents'] = fileItemsObj;
+  // Merge instead of overwrite so that any user-created files (e.g., a new LetterPad doc
+  // created before initial population completes) are preserved. Previously this overwrote
+  // the folder, causing the first created file to disappear and produce a "File not found" error
+  // when immediately opened. This resolves the race between first user file creation and
+  // delayed Documents initialization.
+  fs.folders['C://Documents'] = { ...(fs.folders['C://Documents'] || {}), ...fileItemsObj };
     fs.initialized = true;
 
 
@@ -242,7 +247,8 @@ function fetchDocumentsSync() {
     fileItems.forEach(file => {
       fileItemsObj[file.id] = file;
     });
-    fs.folders['C://Documents'] = fileItemsObj;
+  // Merge instead of overwrite (see note in async variant above for rationale)
+  fs.folders['C://Documents'] = { ...(fs.folders['C://Documents'] || {}), ...fileItemsObj };
     fs.initialized = true;
 
 

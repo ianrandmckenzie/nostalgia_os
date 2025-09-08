@@ -771,9 +771,23 @@ function makeDraggable(el) {
     const rect = el.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
+    // Determine current pan offset from desktop-stage transform if present
+    let panX = 0, panY = 0;
+    const stage = document.getElementById('desktop-stage');
+    if (stage) {
+      const transform = getComputedStyle(stage).transform;
+      if (transform && transform !== 'none') {
+        const parts = transform.match(/matrix\(([^)]+)\)/);
+        if (parts && parts[1]) {
+          const nums = parts[1].split(',').map(n => parseFloat(n.trim()));
+          if (nums.length === 6) { panX = nums[4]; panY = nums[5]; }
+        }
+      }
+    }
     function mouseMoveHandler(e) {
-      el.style.left = (e.clientX - offsetX) + 'px';
-      el.style.top = (e.clientY - offsetY) + 'px';
+      // Adjust for pan (stage translated by panX/panY)
+      el.style.left = (e.clientX - offsetX - panX) + 'px';
+      el.style.top = (e.clientY - offsetY - panY) + 'px';
     }
     function mouseUpHandler() {
       document.removeEventListener('mousemove', mouseMoveHandler);

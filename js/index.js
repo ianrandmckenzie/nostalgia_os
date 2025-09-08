@@ -130,6 +130,7 @@ import {
   handleRoute,
   openSecurityPolicy
 } from './os/router.js';
+import { initializeDesktopPan } from './os/desktop_pan.js';
 
 export const version = '1.0';
 
@@ -404,6 +405,8 @@ window.addEventListener('load', async function () {
   await restoreWindows();
   await renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
+  // Initialize two-finger desktop panning (must be after windows/icons exist)
+  initializeDesktopPan();
 
   // Initialize start menu system (this will also restore order)
   if (typeof initializeStartMenu === 'function') {

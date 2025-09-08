@@ -17,7 +17,7 @@
 
   <link href="./style.css" rel="stylesheet" />
 </head>
-<body id="desktop" class="containerbox bg-default-bg h-screen w-screen relative overflow-hidden font-sans">
+<body id="desktop" class="containerbox bg-default-bg h-screen w-screen relative font-sans">
   <div id="sr-announcements" aria-live="polite" aria-atomic="true" class="sr-only"></div>
   <div id="sr-alerts" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
   <!-- Skip to main content link for keyboard users -->
@@ -29,7 +29,7 @@
   <audio id="error-popup-audio" src="./audio/error-pop-up.mp3" aria-label="Error notification sound"></audio>
 
   <!-- Desktop Stage (virtual canvas larger than small viewports) -->
-  <div id="desktop-stage" class="absolute top-0 left-0 w-full h-[calc(100vh-40px)] overflow-hidden touch-pan-y touch-pan-x" aria-hidden="false">
+  <div id="desktop-stage" class="absolute top-0 left-0 w-full h-[calc(100vh-40px)] touch-pan-y touch-pan-x" aria-hidden="false">
     <!-- Container for Windows (modals) -->
     <div id="windows-container" class="relative w-full h-full" role="application" aria-label="Desktop windows" style="background-color:#20b1b1;"></div>
 
@@ -53,7 +53,7 @@
   </div>
 
   <!-- Taskbar -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-gray-300 border-t border-gray-500 h-12 flex items-center px-2" style="z-index:1000;" role="navigation" aria-label="System taskbar">
+  <nav class="fixed bottom-0 left-0 w-[100vw] bg-gray-300 border-t border-gray-500 h-12 flex items-center px-2" style="z-index:1000;" role="navigation" aria-label="System taskbar">
     <div class="relative">
       <button id="start-button"
               class="bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2 text-right"

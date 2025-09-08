@@ -141,6 +141,14 @@ export function initializeDesktopPan() {
   // Ensure base size
   stageEl.style.minWidth = MIN_WIDTH + 'px';
   stageEl.style.minHeight = MIN_HEIGHT + 'px';
+  // Initial pan so that bottom-left of virtual desktop is visible (align with taskbar/start button)
+  const vpW = window.innerWidth;
+  const vpH = window.innerHeight - 40; // minus taskbar
+  const deskW = Math.max(MIN_WIDTH, vpW);
+  const deskH = Math.max(MIN_HEIGHT, vpH);
+  pan.x = 0; // left edge
+  pan.y = Math.min(0, vpH - deskH); // negative value to bring bottom into view
+  applyPan();
   // Touch handlers
   stageEl.addEventListener('touchstart', handleTouchStart, { passive: false });
   stageEl.addEventListener('touchmove', handleTouchMove, { passive: false });

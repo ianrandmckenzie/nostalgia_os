@@ -403,6 +403,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   if (!restore) {
     saveState();
   }
+  // Clamp new window to current viewport if not fullscreen (mobile safety)
+  try { clampWindowToViewport(win); } catch(_){}
   return win;
 }
 
@@ -1122,3 +1124,62 @@ function showTaskbarContextMenu(e, windowId, win) {
     document.addEventListener('click', hideContextMenu, { once: true });
   }, 0);
 }
+
+// --- Mobile/ViewPort Safety Helpers ---
+function clampWindowToViewport(win) {
+  if (!win) return;
+  const state = windowStates[win.id];
+  if (state && state.fullScreen) return; // skip fullscreen
+  const vpWidth = window.innerWidth;
+  const vpHeight = window.innerHeight - 40; // minus taskbar
+  // Current size
+  const rect = win.getBoundingClientRect();
+  let changed = false;
+  // Constrain width/height if bigger than viewport
+  if (rect.width > vpWidth) {
+    win.style.width = Math.max(350, vpWidth - 10) + 'px';
+    if (state) state.dimensions = { type: 'integer', width: parseInt(win.style.width), height: parseInt(win.style.height || rect.height) };
+    changed = true;
+  }
+  if (rect.height > vpHeight) {
+    win.style.height = Math.max(240, vpHeight - 10) + 'px';
+    if (state) state.dimensions = { type: 'integer', width: parseInt(win.style.width || rect.width), height: parseInt(win.style.height) };
+    changed = true;
+  }
+  // Reposition if off-screen (consider desktop-stage pan)
+  let panX = 0, panY = 0;
+  const stage = document.getElementById('desktop-stage');
+  if (stage) {
+    const tf = getComputedStyle(stage).transform;
+    if (tf && tf !== 'none') {
+      const m = tf.match(/matrix\(([^)]+)\)/);
+      if (m) {
+        const nums = m[1].split(',').map(n=>parseFloat(n.trim()));
+        if (nums.length === 6) { panX = nums[4]; panY = nums[5]; }
+      }
+    }
+  }
+  const left = parseInt(win.style.left, 10) || 0;
+  const top = parseInt(win.style.top, 10) || 0;
+  let newLeft = left;
+  let newTop = top;
+  if (left + rect.width < -panX + 50) { newLeft = -panX + 20; changed = true; }
+  if (top + rect.height < -panY + 50) { newTop = -panY + 20; changed = true; }
+  if (left > -panX + vpWidth - 50) { newLeft = -panX + vpWidth - rect.width - 20; changed = true; }
+  if (top > -panY + vpHeight - 50) { newTop = -panY + vpHeight - rect.height - 20; changed = true; }
+  win.style.left = newLeft + 'px';
+  win.style.top = newTop + 'px';
+  if (changed && state) {
+    state.position = { left: win.style.left, top: win.style.top };
+    saveState();
+  }
+}
+
+// Re-clamp all visible windows on resize (debounced)
+let clampTimer = null;
+window.addEventListener('resize', () => {
+  if (clampTimer) cancelAnimationFrame(clampTimer);
+  clampTimer = requestAnimationFrame(() => {
+    document.querySelectorAll('#windows-container > div').forEach(w => clampWindowToViewport(w));
+  });
+});

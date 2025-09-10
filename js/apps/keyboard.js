@@ -749,6 +749,9 @@ function getKeyboardAppHTML() {
           </div>
 
           <div class="flex-1 overflow-y-auto p-4">
+            <div id="keyboard-touch-banner" class="hidden mb-3 bg-blue-50 border border-blue-200 text-blue-800 rounded p-3 text-sm">
+              <strong>Touch tips:</strong> Swipe the taskbar to switch windows, two-finger tap on the desktop to show the desktop, and two-finger swipe on a window title bar to minimize (down) or maximize (up).
+            </div>
             <div id="keyboard-shortcuts-list">
               <!-- Shortcuts list will be populated here -->
             </div>
@@ -792,6 +795,55 @@ function initializeKeyboardApp(windowId) {
   let currentCategory = 'global';
   let currentShortcutId = null;
   let capturedKey = null;
+
+  const isTouchDevice = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+  const touchBannerEl = document.getElementById('keyboard-touch-banner');
+  if (isTouchDevice && touchBannerEl) {
+    touchBannerEl.classList.remove('hidden');
+  }
+
+  // Map keyboard actions to touch equivalents (guidance for touch users)
+  const touchEquivalents = {
+    'global.toggleStartMenu': 'Tap Start button',
+    'global.cycleWindows': 'Swipe left/right on taskbar',
+    'global.minimizeActiveWindow': 'Two-finger swipe down on window title bar',
+    'global.closeActiveWindow': 'Tap the X button on the window title bar',
+    'global.showDesktop': 'Two-finger tap on desktop',
+    'global.escapeAction': 'Tap outside the menu/dialog',
+    'desktop.activateIcon': 'Double-tap icon',
+    'desktop.moveUp': 'Drag icon up',
+    'desktop.moveDown': 'Drag icon down',
+    'desktop.moveLeft': 'Drag icon left',
+    'desktop.moveRight': 'Drag icon right',
+    'desktop.fineMoveUp': 'Drag icon up (slowly)',
+    'desktop.fineMoveDown': 'Drag icon down (slowly)',
+    'desktop.fineMoveLeft': 'Drag icon left (slowly)',
+    'desktop.fineMoveRight': 'Drag icon right (slowly)',
+    'startMenu.navigateDown': 'Scroll and tap items',
+    'startMenu.navigateUp': 'Scroll and tap items',
+    'startMenu.enterSubmenu': 'Tap submenu',
+    'startMenu.exitSubmenu': 'Tap Back or outside',
+    'startMenu.activateItem': 'Tap item',
+    'startMenu.close': 'Tap outside menu',
+    'fileExplorer.rename': 'Long-press item → Rename',
+    'contextMenu.navigateDown': 'Scroll menu and tap',
+    'contextMenu.navigateUp': 'Scroll menu and tap',
+    'contextMenu.enterSubmenu': 'Tap submenu',
+    'contextMenu.exitSubmenu': 'Tap outside menu',
+    'contextMenu.activateItem': 'Tap menu item',
+    'contextMenu.close': 'Tap outside menu',
+    'window.minimize': 'Tap _ button or two-finger swipe down on title bar',
+    'window.maximize': 'Tap ⛶ button or two-finger swipe up on title bar',
+    'window.close': 'Tap X button',
+    'taskbar.activateButton': 'Tap taskbar button',
+    'taskbar.mediaControl': 'Tap media control',
+    'taskbar.minimizeAll': 'Tap Show Desktop or two-finger tap on desktop'
+  };
+
+  function getTouchHint(actionId) {
+    if (!isTouchDevice) return null;
+    return touchEquivalents[actionId] || null;
+  }
 
   // Initialize keyboard service
   keyboardService.initialize().then(() => {
@@ -912,6 +964,7 @@ function initializeKeyboardApp(windowId) {
 
       const isCustom = shortcut.isCustom;
       const defaultKey = keyboardService.defaultShortcuts[shortcut.id]?.key || '';
+      const touchHint = getTouchHint(shortcut.id);
 
       item.innerHTML = `
         <div class="flex items-center justify-between">
@@ -922,6 +975,7 @@ function initializeKeyboardApp(windowId) {
             </div>
             <p class="text-sm text-gray-500 mt-1">Action: ${shortcut.id}</p>
             ${isCustom ? `<p class="text-xs text-gray-400 mt-1">Default: ${defaultKey}</p>` : ''}
+            ${touchHint ? `<p class="text-xs text-blue-700 mt-2"><span class="bg-blue-50 border border-blue-200 rounded px-2 py-0.5">Touch: ${touchHint}</span></p>` : ''}
           </div>
           <div class="flex items-center space-x-2">
             <code class="bg-gray-100 px-3 py-1 rounded font-mono text-sm">${shortcut.key}</code>
@@ -1187,12 +1241,13 @@ function initializeKeyboardApp(windowId) {
       container.appendChild(categoryHeader);
 
       // Shortcuts in this category
-      categoryShortcuts.forEach(shortcut => {
+  categoryShortcuts.forEach(shortcut => {
         const item = document.createElement('div');
         item.className = 'bg-white border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-md transition-shadow';
 
         const isCustom = shortcut.isCustom;
         const defaultKey = keyboardService.defaultShortcuts[shortcut.id]?.key || '';
+    const touchHint = getTouchHint(shortcut.id);
 
         item.innerHTML = `
           <div class="flex items-center justify-between">
@@ -1203,6 +1258,7 @@ function initializeKeyboardApp(windowId) {
               </div>
               <p class="text-sm text-gray-500 mt-1">Action: ${shortcut.id}</p>
               ${isCustom ? `<p class="text-xs text-gray-400 mt-1">Default: ${defaultKey}</p>` : ''}
+      ${touchHint ? `<p class="text-xs text-blue-700 mt-2"><span class="bg-blue-50 border border-blue-200 rounded px-2 py-0.5">Touch: ${touchHint}</span></p>` : ''}
             </div>
             <div class="flex items-center space-x-2">
               <code class="bg-gray-100 px-3 py-1 rounded font-mono text-sm">${shortcut.key}</code>
@@ -1279,6 +1335,7 @@ function initializeKeyboardApp(windowId) {
         <p><strong>Key Combinations:</strong> You can use Ctrl, Alt, Shift, and Meta (Windows/Cmd) keys with letters, numbers, and function keys.</p>
         <p><strong>Search:</strong> Use the search box to quickly find specific shortcuts.</p>
         <p><strong>Export:</strong> Save your custom shortcuts to a file for backup or sharing.</p>
+  ${isTouchDevice ? '<p><strong>Touch:</strong> Swipe the taskbar to switch windows; two-finger tap on the desktop to show the desktop; two-finger swipe on a window title bar to minimize (down) or maximize (up). Touch equivalents appear under each shortcut.</p>' : ''}
       `, 'info');
     }
   };

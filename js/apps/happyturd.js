@@ -124,25 +124,25 @@ export async function initializeHappyTurdUI(win) {
   // Title
   const title = document.createElement('h1');
   title.textContent = 'Happy Turd';
-  title.className = 'text-white text-xl font-bold mb-8 text-center drop-shadow-lg';
+  title.className = 'text-white text-lg md:text-xl font-bold mb-2 md:mb-8 text-center drop-shadow-lg';
   title.style.fontFamily = 'monospace';
 
   // Instructions
   const instructions = document.createElement('div');
-  instructions.className = 'text-white text-sm mb-8 text-left max-w-xs drop-shadow';
+  instructions.className = 'text-white text-xs md:text-sm mb-2 md:mb-8 text-left max-w-xs drop-shadow';
   instructions.style.fontFamily = 'monospace';
   instructions.innerHTML = `
-    <p class="mb-4">Help the turd fly through the pipes!</p>
+    <p class="mb-4">Help the turd fly past the pipes!</p>
     <p class="mb-2">• Click or press SPACE to flap</p>
     <p class="mb-2">• Avoid the pipes</p>
-    <p class="mb-2">• Collect points by passing through pipes</p>
+    <p class="mb-2">• Collect points by passing between the pipes</p>
     <p class="mb-4">• Don't hit the ground, ceiling, or pipes</p>
   `;
 
   // Start button
   const startButton = document.createElement('button');
   startButton.textContent = 'Start Game';
-  startButton.className = 'px-8 py-3 bg-green-600 hover:bg-green-700 text-white text-xl font-bold rounded-lg border-2 border-green-400 transition-colors drop-shadow-lg';
+  startButton.className = ' px-4 md:px-8 py-1.5 md:py-3 bg-green-600 hover:bg-green-700 text-white text-xl font-bold rounded-lg border-2 border-green-400 transition-colors drop-shadow-lg';
   startButton.style.fontFamily = 'monospace';
   startButton.onclick = () => startGame();
 

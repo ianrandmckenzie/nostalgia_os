@@ -354,29 +354,49 @@ export async function initializeSolitaireUI(win) {
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to window drag handlers
 
+    // Use a transform-based, rAF-batched drag to avoid layout thrash and CSS transition jitter
     gameState.selectedCard = card;
     gameState.dragElement = card.cloneNode(true);
     gameState.dragElement.style.position = 'fixed';
     gameState.dragElement.style.pointerEvents = 'none';
     gameState.dragElement.style.zIndex = '1000';
-    gameState.dragElement.style.transform = 'rotate(5deg)';
+    // Disable transitions on the clone so the browser won't animate left/top changes
+    gameState.dragElement.style.transition = 'none';
+
+    // We'll position with transform for GPU acceleration
+    gameState.dragElement.style.left = '0';
+    gameState.dragElement.style.top = '0';
 
     // Get initial coordinates from either mouse or touch event
     const initialPoint = e.type === 'touchstart' ? e.touches[0] : e;
 
-    // Set initial position to prevent jumping
-    gameState.dragElement.style.left = (initialPoint.clientX - 32) + 'px';
-    gameState.dragElement.style.top = (initialPoint.clientY - 48) + 'px';
+    const offsetX = 32;
+    const offsetY = 48;
+    // Initial placement using translate3d
+    gameState.dragElement.style.transform = `translate3d(${initialPoint.clientX - offsetX}px, ${initialPoint.clientY - offsetY}px, 0) rotate(5deg)`;
 
     document.body.appendChild(gameState.dragElement);
     card.style.opacity = '0.5';
 
+    // Temporarily disable touch-action/scrolling while dragging
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = 'none';
+
+    let rafId = null;
+
     function dragMove(moveEvent) {
-      if (gameState.dragElement) {
-        const movePoint = moveEvent.type === 'touchmove' ? moveEvent.touches[0] : moveEvent;
-        gameState.dragElement.style.left = (movePoint.clientX - 32) + 'px';
-        gameState.dragElement.style.top = (movePoint.clientY - 48) + 'px';
-      }
+      // Prevent default for touch to avoid scroll jank
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const movePoint = moveEvent.type && moveEvent.type.startsWith('touch') ? moveEvent.touches[0] : moveEvent;
+
+      if (!gameState.dragElement) return;
+
+      // Batch DOM writes with requestAnimationFrame
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (!gameState.dragElement) return;
+        gameState.dragElement.style.transform = `translate3d(${movePoint.clientX - offsetX}px, ${movePoint.clientY - offsetY}px, 0) rotate(5deg)`;
+      });
     }
 
     function dragEnd(endEvent) {
@@ -385,10 +405,18 @@ export async function initializeSolitaireUI(win) {
       document.removeEventListener('touchmove', dragMove);
       document.removeEventListener('touchend', dragEnd);
 
-      if (gameState.dragElement) {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      if (gameState.dragElement && document.body.contains(gameState.dragElement)) {
         document.body.removeChild(gameState.dragElement);
         gameState.dragElement = null;
       }
+
+      // restore touch-action
+      document.body.style.touchAction = prevTouchAction || '';
 
       if (gameState.selectedCard) {
         gameState.selectedCard.style.opacity = '1';
@@ -407,7 +435,7 @@ export async function initializeSolitaireUI(win) {
     // Add listeners for both mouse and touch
     document.addEventListener('mousemove', dragMove);
     document.addEventListener('mouseup', dragEnd);
-    // Use { passive: false } for touchmove to allow preventDefault within the handler if needed in the future
+    // Use { passive: false } for touchmove so we can preventDefault
     document.addEventListener('touchmove', dragMove, { passive: false });
     document.addEventListener('touchend', dragEnd);
   }

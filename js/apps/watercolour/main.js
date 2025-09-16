@@ -15,6 +15,9 @@ export async function launchWatercolour() {
   const content = getWatercolourHTML();
   const win = createWindow('Watercolour', content, false, 'watercolour', false, false, { type: 'integer', width: 700, height: 440 }, 'app', null, 'white');
 
+  // Disable desktop pan for this window since it has its own 2-finger pan/zoom
+  win.setAttribute('data-disable-desktop-pan', 'true');
+
   // Initialize the watercolour UI
   initializeWatercolourUI(win);
 }

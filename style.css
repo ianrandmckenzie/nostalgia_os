@@ -25,6 +25,11 @@
   font-display: swap;
 }
 
+/* Disable ligatures for Pixelify Sans to prevent 'fi' from looking like 'A' */
+.font-sans {
+  font-feature-settings: "liga" 0;
+}
+
 /* Accessibility: Provide visible focus indicators for keyboard navigation */
 *:focus {
   outline: 2px solid #005fcc;

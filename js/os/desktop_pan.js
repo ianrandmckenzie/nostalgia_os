@@ -41,18 +41,17 @@ function handleTouchStart(e) {
     activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
   }
   if (activeTouches.size === 2) {
-    // Begin two-finger pan if touches are on desktop background or header bars (not fullscreen)
-    const headersOk = Array.from(e.touches).every(t => {
+    // Begin two-finger pan if touches are on desktop or on windows that don't explicitly forbid it
+    const canPan = Array.from(e.touches).every(t => {
       const el = document.elementFromPoint(t.clientX, t.clientY);
       if (!el) return false;
       const win = el.closest('#windows-container > div');
       if (!win) return true; // desktop area
-      // Only allow if touching header bar and window not fullscreen
-      const header = el.closest('.cursor-move');
+      // Allow panning over windows unless they explicitly disable it
       const state = window.windowStates?.[win.id];
-      return !!header && state && !state.fullScreen;
+      return !win.hasAttribute('data-disable-desktop-pan') && (!state || !state.fullScreen);
     });
-    if (headersOk) {
+    if (canPan) {
       isTwoFingerPanning = true;
       startPan = { ...pan };
       e.preventDefault();

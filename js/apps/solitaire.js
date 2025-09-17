@@ -57,7 +57,8 @@ export async function initializeSolitaireUI(win) {
       gameStarted: false,
       selectedCard: null,
       selectedPile: null,
-      dragElement: null
+  dragElement: null,
+  drawCount: 1
     };
   }
 
@@ -90,12 +91,28 @@ export async function initializeSolitaireUI(win) {
   newGameBtn.setAttribute('title', 'Start a new game of solitaire');
   newGameBtn.addEventListener('click', startNewGame);
 
+  // Difficulty selector (Easy = draw 1, Normal = draw 3)
+  const difficultySelect = document.createElement('select');
+  difficultySelect.className = 'ml-2 text-sm border rounded p-1 bg-white';
+  const optEasy = document.createElement('option'); optEasy.value = '1'; optEasy.text = 'Easy (Draw 1)';
+  const optNormal = document.createElement('option'); optNormal.value = '3'; optNormal.text = 'Normal (Draw 3)';
+  difficultySelect.appendChild(optEasy);
+  difficultySelect.appendChild(optNormal);
+  difficultySelect.title = 'Select difficulty / draw count';
+  // Initialize selection from gameState (default to 1)
+  difficultySelect.value = gameState.drawCount ? String(gameState.drawCount) : '1';
+  difficultySelect.addEventListener('change', (e) => {
+    gameState.drawCount = parseInt(e.target.value, 10);
+    saveSolitaireGameState(gameState).catch(console.error);
+  });
+
   const scoreDisplay = document.createElement('div');
   scoreDisplay.className = 'text-sm font-mono ml-auto flex space-x-4';
   scoreDisplay.innerHTML = `<span>Score: <span id="score">0</span></span><span>High: <span id="high-score">${highScore}</span></span><span>Time: <span id="time">0:00</span></span>`;
 
   // menuBar.appendChild(gameMenu); // doesn't do anything right now
   menuBar.appendChild(newGameBtn);
+  menuBar.appendChild(difficultySelect);
   menuBar.appendChild(scoreDisplay);
 
   // Game area
@@ -165,7 +182,9 @@ export async function initializeSolitaireUI(win) {
   function createCard(suit, value, faceUp = true) {
     const card = document.createElement('div');
     card.className = `card absolute w-16 h-24 border border-gray-800 rounded bg-white cursor-pointer transition-all duration-200`;
-    card.style.fontSize = '10px';
+  card.style.fontSize = '10px';
+  // Use the system default serif stack for card text
+  card.style.fontFamily = "ui-serif, Georgia, 'Cambria', 'Times New Roman', Times, serif";
     card.style.userSelect = 'none';
     card.style.pointerEvents = 'auto'; // Ensure pointer events work
     card.dataset.suit = suit;
@@ -319,10 +338,15 @@ export async function initializeSolitaireUI(win) {
 
   // Draw from deck
   function drawFromDeck() {
+    const drawCount = gameState.drawCount || 1;
     if (gameState.deck.length > 0) {
-      const card = gameState.deck.pop();
-      card.faceUp = true;
-      gameState.waste.push(card);
+      // Draw up to drawCount cards
+      for (let i = 0; i < drawCount; i++) {
+        if (gameState.deck.length === 0) break;
+        const card = gameState.deck.pop();
+        card.faceUp = true;
+        gameState.waste.push(card);
+      }
       gameState.moves++;
     } else if (gameState.waste.length > 0) {
       // Reset deck from waste

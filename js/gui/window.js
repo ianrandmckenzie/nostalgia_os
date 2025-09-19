@@ -808,8 +808,14 @@ function makeDraggable(el) {
 
 function makeResizable(el) {
   const resizer = document.createElement('div');
-  resizer.className = 'absolute bottom-0 right-0 w-4 h-4 cursor-se-resize';
+  // Make the resizer clearly above transient drag clones (z=1000) and easier to grab
+  resizer.className = 'absolute bottom-0 right-0 w-6 h-6 cursor-se-resize';
   resizer.style.background = 'rgba(0,0,0,0.2)';
+  resizer.style.zIndex = '1100';
+  resizer.style.pointerEvents = 'auto';
+  // Add a subtle border to make it more visible
+  resizer.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+  resizer.style.borderLeft = '1px solid rgba(255,255,255,0.05)';
   el.appendChild(resizer);
   resizer.addEventListener('mousedown', function (e) {
     e.preventDefault();

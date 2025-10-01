@@ -17,39 +17,47 @@
 
   <link href="./style.css" rel="stylesheet" />
 </head>
-<body id="desktop" class="containerbox bg-default-bg h-screen w-screen relative font-sans">
-  <div id="sr-announcements" aria-live="polite" aria-atomic="true" class="sr-only"></div>
-  <div id="sr-alerts" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
-  <!-- Skip to main content link for keyboard users -->
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded">
-    Skip to main content
-  </a>
+<body>
+  <div id="desktop" class="containerbox bg-default-bg h-screen w-screen relative font-sans">
+    <div id="sr-announcements" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+    <div id="sr-alerts" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+    <!-- Skip to main content link for keyboard users -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded">
+      Skip to main content
+    </a>
 
-  <audio id="splash-audio" src="./audio/startup.mp3" aria-label="System startup sound"></audio>
-  <audio id="error-popup-audio" src="./audio/error-pop-up.mp3" aria-label="Error notification sound"></audio>
+    <audio id="splash-audio" src="./audio/startup.mp3" aria-label="System startup sound"></audio>
+    <audio id="error-popup-audio" src="./audio/error-pop-up.mp3" aria-label="Error notification sound"></audio>
 
-  <!-- Desktop Stage (virtual canvas larger than small viewports) -->
-  <div id="desktop-stage" class="absolute top-0 left-0 w-full h-[calc(100vh-40px)] touch-pan-y touch-pan-x" aria-hidden="false">
-    <!-- Container for Windows (modals) -->
-    <div id="windows-container" class="relative w-full h-full" role="application" aria-label="Desktop windows" style="background-color:#20b1b1;"></div>
+    <!-- Desktop Stage (virtual canvas larger than small viewports) -->
+    <div id="desktop-stage" class="absolute top-0 left-0 w-full h-[calc(100vh-40px)] touch-pan-y touch-pan-x" aria-hidden="false">
+      <!-- Container for Windows (modals) -->
+      <div id="windows-container" class="relative w-full h-full" role="application" aria-label="Desktop windows" style="background-color:#20b1b1;"></div>
 
-    <!-- Desktop Icons (rendered dynamically by JS) -->
-    <main id="main-content">
-      <div id="desktop-icons" class="absolute top-4 left-4 z-10" role="group" aria-label="Desktop icons"></div>
-    </main>
-  </div>
+      <!-- Desktop Icons (rendered dynamically by JS) -->
+      <main id="main-content">
+        <div id="desktop-icons" class="absolute top-4 left-4 z-10" role="group" aria-label="Desktop icons"></div>
+      </main>
+    </div>
 
-  <!-- Context Menu (for right-click) -->
-  <div id="context-menu" class="absolute bg-white border border-gray-500 shadow-lg hidden z-50" role="menu" aria-hidden="true"></div>
+    <!-- Context Menu (for right-click) -->
+    <div id="context-menu" class="absolute bg-white border border-gray-500 shadow-lg hidden z-50" role="menu" aria-hidden="true"></div>
 
-  <!-- Window Cycle Popup -->
-  <div id="window-cycle-popup" class="fixed inset-0 bg-black/10 hidden items-center justify-center" style="z-index: 10000;" role="dialog" aria-label="Window switcher">
-    <div class="bg-gray-200 border-2 border-gray-500 rounded-lg p-4 max-w-md" style="border-style: outset; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);">
-      <div class="text-center mb-3 font-bold text-gray-800">Switch Windows</div>
-      <div id="window-cycle-list" class="flex flex-wrap gap-2 justify-center">
-        <!-- Window items will be populated here -->
+    <!-- Window Cycle Popup -->
+    <div id="window-cycle-popup" class="fixed inset-0 bg-black/10 hidden items-center justify-center" style="z-index: 10000;" role="dialog" aria-label="Window switcher">
+      <div class="bg-gray-200 border-2 border-gray-500 rounded-lg p-4 max-w-md" style="border-style: outset; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);">
+        <div class="text-center mb-3 font-bold text-gray-800">Switch Windows</div>
+        <div id="window-cycle-list" class="flex flex-wrap gap-2 justify-center">
+          <!-- Window items will be populated here -->
+        </div>
       </div>
     </div>
+
+    <div id="error-overlay" class="hidden fixed inset-0 bg-black z-50" role="alert" aria-live="assertive">
+      <img src="./image/error.webp" alt="Application Error - System has encountered an error" class="w-full h-full inset-0 object-contain bg-[#0000aa]">
+    </div>
+
+    <script type="module" src="./js/index.js"></script>
   </div>
 
   <!-- Taskbar -->
@@ -81,11 +89,5 @@
       </div>
     </div>
   </nav>
-
-  <div id="error-overlay" class="hidden fixed inset-0 bg-black z-50" role="alert" aria-live="assertive">
-    <img src="./image/error.webp" alt="Application Error - System has encountered an error" class="w-full h-full inset-0 object-contain bg-[#0000aa]">
-  </div>
-
-  <script type="module" src="./js/index.js"></script>
 </body>
 </html>

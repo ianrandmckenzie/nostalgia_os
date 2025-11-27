@@ -95,7 +95,7 @@ import { launchChess, initializeChessUI } from './apps/chess.js';
 import { launchBombbroomer, initializeBombbroomerUI } from './apps/bombbroomer.js';
 import { launchHappyTurd, initializeHappyTurdUI } from './apps/happyturd.js';
 import { initializeLetterPad, initializeAllLetterPadEditors, applyFormatting, convertMarkdownToHTML } from './apps/letterpad.js';
-import { launchMailbox } from './apps/mailbox.js';
+import { launchSuggestionBox } from './apps/suggestion_box.js';
 import { launchSnake, initializeSnakeUI } from './apps/snake.js';
 // Import watercolour functions
 import {
@@ -252,8 +252,8 @@ if (typeof window !== 'undefined') {
   window.applyFormatting = applyFormatting;
   window.convertMarkdownToHTML = convertMarkdownToHTML;
 
-  // Mailbox functions
-  window.launchMailbox = launchMailbox;
+  // Suggestion Box functions
+  window.launchSuggestionBox = launchSuggestionBox;
 
   // Watercolour functions
   window.launchWatercolour = launchWatercolour;

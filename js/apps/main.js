@@ -1,4 +1,4 @@
-import { launchMailbox } from './mailbox.js';
+import { launchSuggestionBox } from './suggestion_box.js';
 import { launchTubeStream } from './tube_stream.js';
 import { launchWatercolour } from './watercolour/main.js';
 import { launchCalculator } from './calculator.js';
@@ -30,6 +30,7 @@ export function openApp(id) {
   }
 
   console.log(`🔍 Checking app cases for ${id}...`);
+  if (id === 'suggestionbox' || id.includes('shortcut-suggestionboxapp')) launchSuggestionBox();
   if (id === 'watercolour' || id.includes('shortcut-watercolourapp')) launchWatercolour();
   if (id === 'calculator' || id.includes('shortcut-calcapp')) launchCalculator();
   if (id === 'solitaire' || id.includes('shortcut-solapp')) launchSolitaire();

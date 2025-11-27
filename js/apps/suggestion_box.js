@@ -1,20 +1,28 @@
 import { createWindow, closeWindow } from '../gui/window.js';
 
-export function launchMailbox() {
+export function launchSuggestionBox() {
+  // Play "you've got mail" sound when app opens
+  try {
+    const audio = new Audio('audio/youve_got_mail.mp3');
+    audio.play().catch(err => console.log('Audio playback prevented:', err));
+  } catch (err) {
+    console.log('Could not play audio:', err);
+  }
+
   // Check if running in Reddit context and prevent launch
   const isReddit = window.location.href.includes('reddit.com');
   if (isReddit) {
     // Check if error dialog is already open to prevent duplicates
-    if (document.getElementById('mailbox-error')) {
+    if (document.getElementById('suggestionbox-error')) {
       return;
     }
 
     // Create a simple error dialog without using showDialogBox
     const errorWindow = createWindow(
       '⚠️ Error',
-      '<div class="text-center p-4"><p class="mb-4">Mail app is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8" aria-label="Close error dialog" title="Close this error message"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
+      '<div class="text-center p-4"><p class="mb-4">Suggestion Box is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8" aria-label="Close error dialog" title="Close this error message"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
       false,
-      'mailbox-error',
+      'suggestionbox-error',
       false,
       false,
       { type: 'integer', width: 300, height: 150 },
@@ -27,7 +35,7 @@ export function launchMailbox() {
         errorBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          closeWindow('mailbox-error');
+          closeWindow('suggestionbox-error');
         });
       }
     }, 100);
@@ -35,13 +43,13 @@ export function launchMailbox() {
   }
 
   // ──────────────────────────────────────────────────────
-  // 1.  Create an empty window for the mailbox UI
+  // 1.  Create an empty window for the suggestion box UI
   // ──────────────────────────────────────────────────────
   const win = createWindow(
-    'Mailbox',
+    'Suggestion Box',
     '',                      // start with no markup
     false,
-    'mailbox',
+    'suggestionbox',
     false,
     false,
     { type: 'integer', width: 600, height: 400 },
@@ -62,7 +70,7 @@ export function launchMailbox() {
   root.appendChild(mainArea);
 
   const listPane   = document.createElement('div');
-  listPane.id      = 'mailbox-list';
+  listPane.id      = 'suggestionbox-list';
   listPane.className =
     'w-1/3 border-r border-gray-300 flex flex-col overflow-y-auto';
   mainArea.appendChild(listPane);
@@ -82,7 +90,7 @@ export function launchMailbox() {
   // 3.  Build the right-hand detail pane with placeholder
   // ──────────────────────────────────────────────────────
   const detailPane = document.createElement('div');
-  detailPane.id    = 'mailbox-detail';
+  detailPane.id    = 'suggestionbox-detail';
   detailPane.className = 'flex-1 p-2 overflow-y-auto';
   mainArea.appendChild(detailPane);
 
@@ -231,10 +239,10 @@ export function launchMailbox() {
   // ──────────────────────────────────────────────────────
   function openCompose() {
     const cw = createWindow(
-      'Compose Message',
+      'New Suggestion',
       '',
       false,
-      'Compose Message',
+      'compose-suggestion',
       false,
       false,
       { type: 'integer', width: 400, height: 600 },
@@ -270,16 +278,16 @@ export function launchMailbox() {
     fromInput.setAttribute('aria-describedby', 'from-help');
     fromInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('From', fromInput));
+    form.appendChild(makeField('Your Email', fromInput));
 
     // To (fixed)
     const toInput = document.createElement('input');
-    toInput.type  = 'email';
+    toInput.type  = 'text';
     toInput.name  = 'to';
-    toInput.value = 'person@example.com';
+    toInput.value = 'Nostalgia OS Team';
     toInput.readOnly = true;
     toInput.id = 'to-email';
-    toInput.setAttribute('aria-label', 'Recipient email address');
+    toInput.setAttribute('aria-label', 'Recipient');
     toInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2 bg-gray-100';
     form.appendChild(makeField('To', toInput));
@@ -292,7 +300,7 @@ export function launchMailbox() {
     subjInput.setAttribute('aria-label', 'Email subject line (optional)');
     subjInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('Subject (optional)', subjInput));
+    form.appendChild(makeField('Suggestion Title (optional)', subjInput));
 
     // Message body
     const msgArea = document.createElement('textarea');
@@ -302,7 +310,7 @@ export function launchMailbox() {
     msgArea.setAttribute('aria-label', 'Email message content');
     msgArea.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('Message', msgArea));
+    form.appendChild(makeField('Your Suggestion', msgArea));
 
     // Phone (optional)
     const phoneInput = document.createElement('input');
@@ -338,8 +346,8 @@ export function launchMailbox() {
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     cancelBtn.innerHTML =
       '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>'; // ⬅︎ ≤-- just markup string; safe & short
-    cancelBtn.setAttribute('aria-label', 'Cancel email composition');
-    cancelBtn.setAttribute('title', 'Cancel and discard email');
+    cancelBtn.setAttribute('aria-label', 'Cancel suggestion composition');
+    cancelBtn.setAttribute('title', 'Cancel and discard suggestion');
     btnRow.appendChild(cancelBtn);
 
     const sendBtn = document.createElement('button');
@@ -347,9 +355,9 @@ export function launchMailbox() {
     sendBtn.className =
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     sendBtn.innerHTML =
-      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Send</span>';
-    sendBtn.setAttribute('aria-label', 'Send email');
-    sendBtn.setAttribute('title', 'Send the composed email');
+      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>';
+    sendBtn.setAttribute('aria-label', 'Submit suggestion');
+    sendBtn.setAttribute('title', 'Submit your suggestion');
     btnRow.appendChild(sendBtn);
 
     // ─── Compose-form handlers ───────────────────────────
@@ -390,17 +398,17 @@ export function launchMailbox() {
       })
         .then(r => {
           if (r.ok) {
-            showDialogBox('Message sent successfully!', 'success');
+            showDialogBox('Suggestion submitted successfully!', 'success');
             loadMessages();
-            closeWindow('Compose Message');
+            closeWindow('compose-suggestion');
           } else {
             throw new Error('Failed to submit form');
           }
         })
-        .catch(() => showDialogBox('Error sending message.', 'error'));
+        .catch(() => showDialogBox('Error submitting suggestion.', 'error'));
     });
 
-    cancelBtn.addEventListener('click', () => closeWindow('Compose Message'));
+    cancelBtn.addEventListener('click', () => closeWindow('compose-suggestion'));
   }
 
   // ──────────────────────────────────────────────────────

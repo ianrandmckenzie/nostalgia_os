@@ -19,7 +19,7 @@ async function loadPrimaryStream() {
     return `${base_url}/${video_id}?list=${playlist_id}&${custom_params}`;
   } catch (error) {
     console.error('Error loading stream:', error);
-    return 'https://www.youtube.com/embed/b6ZhmHfnklQ?autoplay=true'; // Default fallback URL
+    return 'https://www.youtube.com/embed/qhCsL1cx4Qc?autoplay=true'; // Default fallback URL
   }
 }
 
@@ -45,26 +45,10 @@ const myPlaylist = {
   "playlists": [
     {
       "id": "111",
-      "name": "Psytrance Mix",
-      "description": "Example usage #1",
-      "playlist_id": "PL7SZQy1OjmvdHsvEG1e8H305y3SxaIzxY",
-      "beginning_video_id": "b6ZhmHfnklQ",
-      "custom_parameters": "autoplay=true&loop=false"
-    },
-    {
-      "id": "222",
-      "name": "Skits",
-      "description": "Example usage #2",
-      "playlist_id": "PLfznZzH31A448eZ2rWURNfkmRGC0lsCaA",
-      "beginning_video_id": "24ny5EJr-hQ",
-      "custom_parameters": "autoplay=true&loop=true"
-    },
-    {
-      "id": "333",
-      "name": "Studio Shows",
-      "description": "Example usage #3",
-      "playlist_id": "PLfznZzH31A46GppLOHadmvL3I8H7ied2d",
-      "beginning_video_id": "J5a029oRpDA",
+      "name": "FUTV STREAM TEST",
+      "description": "This is a test of our public broadcast system. Please stand by.",
+      "playlist_id": "PLfznZzH31A46XXPSw2dcb-gqhMXcBMOHV",
+      "beginning_video_id": "qhCsL1cx4Qc",
       "custom_parameters": "autoplay=true&loop=false"
     }
   ]

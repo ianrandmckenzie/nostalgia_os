@@ -25,6 +25,12 @@ const DEFAULT_START_MENU_ITEMS = [
     type: 'item'
   },
   {
+    id: 'tubestreamapp',
+    text: 'TubeStream',
+    icon: 'image/video.webp',
+    type: 'item'
+  },
+  {
     id: 'watercolourapp',
     text: 'Watercolour',
     icon: 'image/watercolour.webp',
@@ -417,6 +423,9 @@ function handleStartMenuItemClick(itemId) {
       break;
     case 'mediaapp':
       if (typeof openApp === 'function') openApp('mediaplayer');
+      break;
+    case 'tubestreamapp':
+      if (typeof openApp === 'function') openApp('tubestream');
       break;
     case 'rstrtcomp':
       if (typeof restart === 'function') restart();

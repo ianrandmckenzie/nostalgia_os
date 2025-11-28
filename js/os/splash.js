@@ -1,3 +1,5 @@
+import { processSystemManifest } from './manage_data.js';
+
 export function showSplash() {
   const splashDiv = document.createElement('div');
   splashDiv.className = 'w-3xl fixed left-0 top-0 h-full w-full bg-gradient-to-b from-40% from-blue-500 to-cyan-500';
@@ -36,7 +38,7 @@ export function showSplash() {
   });
 }
 
-export function showOSLoading() {
+export async function showOSLoading() {
   const splashDiv = document.createElement('div');
   splashDiv.className = 'w-3xl fixed left-0 top-0 h-full w-full bg-gradient-to-b from-blue-500 to-cyan-500';
   splashDiv.id = "splash-screen";
@@ -49,9 +51,19 @@ export function showOSLoading() {
   </div>
 `;
   document.body.appendChild(splashDiv);
+
+  // Run system update check while loading screen is shown
+  try {
+    if (typeof processSystemManifest === 'function') {
+      await processSystemManifest();
+    }
+  } catch (error) {
+    console.warn('System update check failed:', error);
+  }
+
   setTimeout(function () {
     splashDiv.remove();
-  }, 3000);
+  }, 1000); // Reduced timeout since we're doing actual work now
 }
 
 // Make functions globally available for backward compatibility
@@ -60,4 +72,4 @@ if (typeof window !== 'undefined') {
   window.showOSLoading = showOSLoading;
 }
 
-// showOSLoading();
+showOSLoading();

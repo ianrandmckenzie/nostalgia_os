@@ -11,7 +11,7 @@ class KeyboardService {
     this.preventDefaults = new Set();
     this.sequenceBuffer = [];
     this.sequenceTimer = null;
-    this.shortcutMode = false; // Leader/command mode toggled by F12
+    this.shortcutMode = false; // Leader/command mode toggled by Alt+K
 
     // Sequence map (space separated key sequences, no modifiers)
     this.sequenceMap = {
@@ -22,7 +22,7 @@ class KeyboardService {
       'w m': () => typeof window.minimizeActiveWindow === 'function' && window.minimizeActiveWindow()
     };
 
-    // Shortcut Mode mappings (active only right after F12)
+    // Shortcut Mode mappings (active only right after Alt+K)
     this.shortcutModeMap = {
       'c': () => typeof window.closeActiveWindow === 'function' && window.closeActiveWindow(),
       'm': () => typeof window.minimizeActiveWindow === 'function' && window.minimizeActiveWindow(),
@@ -33,15 +33,15 @@ class KeyboardService {
 
     // Default keyboard shortcuts mapping
     this.defaultShortcuts = {
-      // Global (function keys)
-      'global.toggleStartMenu': { key: 'F1', description: 'Open/Close Start Menu' },
-      'global.cycleWindows': { key: 'F2', description: 'Cycle open windows' },
-      'global.minimizeActiveWindow': { key: 'F3', description: 'Minimize active window' },
-      'global.closeActiveWindow': { key: 'F4', description: 'Close active window' },
-      'global.showDesktop': { key: 'F5', description: 'Show desktop (minimize all)' },
-      'fileExplorer.rename': { key: 'F6', description: 'Rename selected file (when explorer focused)' },
+      // Global (Alt combinations to avoid OS conflicts)
+      'global.toggleStartMenu': { key: 'Alt+S', description: 'Open/Close Start Menu' },
+      'global.cycleWindows': { key: 'Alt+W', description: 'Cycle open windows' },
+      'global.minimizeActiveWindow': { key: 'Alt+M', description: 'Minimize active window' },
+      'global.closeActiveWindow': { key: 'Alt+Q', description: 'Close active window' },
+      'global.showDesktop': { key: 'Alt+D', description: 'Show desktop (minimize all)' },
+      'fileExplorer.rename': { key: 'Alt+R', description: 'Rename selected file' },
       'global.escapeAction': { key: 'Escape', description: 'Close menus/dialogs' },
-      'global.toggleShortcutMode': { key: 'F12', description: 'Enter Shortcut Mode (next key triggers command)' },
+      'global.toggleShortcutMode': { key: 'Alt+K', description: 'Enter Shortcut Mode' },
 
       // Desktop navigation
       'desktop.activateIcon': { key: 'Enter', description: 'Activate selected desktop icon' },
@@ -201,17 +201,25 @@ class KeyboardService {
   }
 
   getKeyCombo(event) {
-    const isFunctionKey = /^F\d{1,2}$/i.test(event.key);
-    const special = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Escape','Enter','Space'];
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Meta');
+
     let keyName = event.key === ' ' ? 'Space' : event.key;
-    if (isFunctionKey || special.includes(keyName)) {
-      if (event.shiftKey && keyName.startsWith('Arrow')) return 'Shift+' + keyName; // fine move
-      return keyName;
+
+    // Fix for macOS Alt+Letter producing special chars
+    if (event.altKey && event.code && event.code.startsWith('Key')) {
+      keyName = event.code.slice(3);
     }
-    if (event.shiftKey && keyName.startsWith('Arrow')) {
-      return 'Shift+' + keyName;
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(keyName)) {
+      return parts.join('+');
     }
-    return keyName;
+
+    parts.push(keyName);
+    return parts.join('+');
   }
 
   matchesKeyCombo(eventCombo, shortcutKey) {
@@ -516,7 +524,7 @@ class KeyboardService {
 
     switch (action) {
       case 'rename':
-        console.log('F2 - Rename functionality would trigger here');
+        console.log('Rename functionality would trigger here');
         break;
       case 'delete':
         console.log('Delete - Delete functionality would trigger here');

@@ -143,7 +143,7 @@ export function launchSuggestionBox() {
       }
 
       // Fetch messages from API
-      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data')
+      fetch('https://staging.failyourunit.tv/end_data/public/contact-form-data')
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch submissions');
@@ -389,7 +389,7 @@ export function launchSuggestionBox() {
         }
       };
 
-      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', {
+      fetch('https://staging.failyourunit.tv/end_data/public/contact-form-create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -426,10 +426,10 @@ Contact Form API - Easy integration for developers
 🚀 Quick Start
 Our Contact Form API allows you to easily integrate contact form functionality into any website or application. Simply POST form data to our endpoint and we'll handle the rest.
 
-Base URL: https://endpoints.relentlesscurious.com
+Base URL: https://staging.failyourunit.tv
 📝 Submit Contact Form
 POST Submit a new contact form
-https://endpoints.relentlesscurious.com/end_data/public/contact-form-create
+https://staging.failyourunit.tv/end_data/public/contact-form-create
 Parameters
 Field	Type	Required	Description
 name	string	Required	Full name of the person contacting
@@ -439,26 +439,26 @@ message	string	Required	The message content
 phone	string	Optional	Phone number for contact
 company	string	Optional	Company name
 JavaScript Example
-async function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (response.ok) { const result = await response.json(); console.log('Success:', result); return result; } else { throw new Error('Failed to submit form'); } } catch (error) { console.error('Error:', error); throw error; } } // Usage example: const formData = { name: 'John Doe', email: 'john@example.com', subject: 'General Inquiry', message: 'Hello, I have a question about your services.', phone: '555-123-4567', company: 'Example Corp' }; submitContactForm(formData) .then(result => console.log('Form submitted successfully')) .catch(error => console.error('Submission failed:', error));
+async function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; try { const response = await fetch('https://staging.failyourunit.tv/end_data/public/contact-form-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (response.ok) { const result = await response.json(); console.log('Success:', result); return result; } else { throw new Error('Failed to submit form'); } } catch (error) { console.error('Error:', error); throw error; } } // Usage example: const formData = { name: 'John Doe', email: 'john@example.com', subject: 'General Inquiry', message: 'Hello, I have a question about your services.', phone: '555-123-4567', company: 'Example Corp' }; submitContactForm(formData) .then(result => console.log('Form submitted successfully')) .catch(error => console.error('Submission failed:', error));
 
 jQuery Example
-function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; return $.ajax({ url: 'https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', method: 'POST', contentType: 'application/json', data: JSON.stringify(data) }); } // Usage with jQuery: $('#contactForm').on('submit', function(e) { e.preventDefault(); const formData = { name: $('#name').val(), email: $('#email').val(), subject: $('#subject').val(), message: $('#message').val(), phone: $('#phone').val(), company: $('#company').val() }; submitContactForm(formData) .done(function(result) { alert('Thank you! Your message has been sent.'); $('#contactForm')[0].reset(); }) .fail(function() { alert('Sorry, there was an error sending your message.'); }); });
+function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; return $.ajax({ url: 'https://staging.failyourunit.tv/end_data/public/contact-form-create', method: 'POST', contentType: 'application/json', data: JSON.stringify(data) }); } // Usage with jQuery: $('#contactForm').on('submit', function(e) { e.preventDefault(); const formData = { name: $('#name').val(), email: $('#email').val(), subject: $('#subject').val(), message: $('#message').val(), phone: $('#phone').val(), company: $('#company').val() }; submitContactForm(formData) .done(function(result) { alert('Thank you! Your message has been sent.'); $('#contactForm')[0].reset(); }) .fail(function() { alert('Sorry, there was an error sending your message.'); }); });
 
 📊 List Submissions (Public)
 GET Retrieve contact form submissions
-https://endpoints.relentlesscurious.com/end_data/public/contact-form-data
+https://staging.failyourunit.tv/end_data/public/contact-form-data
 This endpoint returns all contact form submissions. Note: In a production environment, you may want to add authentication to this endpoint.
 
 JavaScript Example
-async function getContactSubmissions() { try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data'); if (response.ok) { const result = await response.json(); const submissions = parseSubmissionData(result.data); return submissions; } else { throw new Error('Failed to fetch submissions'); } } catch (error) { console.error('Error:', error); throw error; } } function parseSubmissionData(apiData) { const submissionGroups = {}; apiData.forEach(field => { const submissionId = field.creator_model_id; if (!submissionGroups[submissionId]) { submissionGroups[submissionId] = { id: submissionId, fields: {}, created_at: field.created_at, updated_at: field.updated_at }; } submissionGroups[submissionId].fields[field.html_input_label] = { content: field.string_content || '', fieldId: field.id }; }); return Object.values(submissionGroups).map(group => ({ id: group.id, name: group.fields.name?.content || 'Unknown', email: group.fields.email?.content || '', phone: group.fields.phone?.content || '', company: group.fields.company?.content || '', subject: group.fields.subject?.content || 'No Subject', message: group.fields.message?.content || '', created_at: group.created_at, updated_at: group.updated_at })); } // Usage: getContactSubmissions() .then(submissions => { console.log('Retrieved submissions:', submissions); // Process submissions here }) .catch(error => console.error('Failed to get submissions:', error));
+async function getContactSubmissions() { try { const response = await fetch('https://staging.failyourunit.tv/end_data/public/contact-form-data'); if (response.ok) { const result = await response.json(); const submissions = parseSubmissionData(result.data); return submissions; } else { throw new Error('Failed to fetch submissions'); } } catch (error) { console.error('Error:', error); throw error; } } function parseSubmissionData(apiData) { const submissionGroups = {}; apiData.forEach(field => { const submissionId = field.creator_model_id; if (!submissionGroups[submissionId]) { submissionGroups[submissionId] = { id: submissionId, fields: {}, created_at: field.created_at, updated_at: field.updated_at }; } submissionGroups[submissionId].fields[field.html_input_label] = { content: field.string_content || '', fieldId: field.id }; }); return Object.values(submissionGroups).map(group => ({ id: group.id, name: group.fields.name?.content || 'Unknown', email: group.fields.email?.content || '', phone: group.fields.phone?.content || '', company: group.fields.company?.content || '', subject: group.fields.subject?.content || 'No Subject', message: group.fields.message?.content || '', created_at: group.created_at, updated_at: group.updated_at })); } // Usage: getContactSubmissions() .then(submissions => { console.log('Retrieved submissions:', submissions); // Process submissions here }) .catch(error => console.error('Failed to get submissions:', error));
 
 🔒 Authentication Required Endpoints
 The following endpoints require authentication and appropriate user roles (Manager or Admin):
 
 PUT Update a submission
-https://endpoints.relentlesscurious.com/end_data/contact-form-update
+https://staging.failyourunit.tv/end_data/contact-form-update
 DELETE Delete a submission
-https://endpoints.relentlesscurious.com/end_data/contact-form-delete?id={submission_id}
+https://staging.failyourunit.tv/end_data/contact-form-delete?id={submission_id}
 Note: These endpoints require user authentication and appropriate permissions. Contact your system administrator for access.
 📝 Response Format
 Success Response

@@ -46,6 +46,7 @@ const DEFAULT_START_MENU_ITEMS = [
       { id: 'keyboard', text: 'Keyboard', icon: 'image/keyboard.webp' },
       { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
       { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
+      { id: 'osupdateapp', text: 'OS Update', icon: 'image/power.webp' },
       { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' }
     ]
   },
@@ -386,6 +387,12 @@ function handleStartMenuItemClick(itemId) {
     case 'suggestionboxapp':
       if (typeof openApp === 'function') openApp('suggestionbox');
       break;
+    case 'osupdateapp':
+      if (typeof openApp === 'function') openApp('osupdate');
+      break;
+    // case 'mailapp':
+    //   if (typeof launchMailbox === 'function') launchMailbox();
+    //   break;
     case 'watercolourapp':
       if (typeof openApp === 'function') openApp('watercolour');
       break;

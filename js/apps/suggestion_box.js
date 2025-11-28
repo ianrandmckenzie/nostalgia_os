@@ -128,8 +128,11 @@ export function launchSuggestionBox() {
     return Object.values(submissionGroups).map(group => ({
       id: group.id,
       email: group.fields.email?.content || group.fields.name?.content || 'Unknown',
-      textarea: group.fields.message?.content || '',
-      subject: group.fields.subject?.content || 'No Subject',
+      title: group.fields.subject?.content || 'No Subject',
+      suggestion: group.fields.message?.content || '',
+      phone: group.fields.phone?.content || '',
+      company: group.fields.company?.content || '',
+      timestamp: group.created_at,
       public: false,
       files: {} // Files not supported in this API format
     }));
@@ -157,7 +160,7 @@ export function launchSuggestionBox() {
             const item = document.createElement('div');
             item.className =
               'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
-            item.textContent = sub.subject || sub.email;
+            item.textContent = sub.title || sub.email;
             item.addEventListener('click', () => showMessage(sub));
             listPane.appendChild(item);
           });
@@ -185,24 +188,27 @@ export function launchSuggestionBox() {
 
     // Header
     const header = document.createElement('div');
-    header.className = 'mb-2';
+    header.className = 'mb-4 border-b border-gray-200 pb-2';
 
-    const fromRow = document.createElement('div');
-    const fromLbl = document.createElement('strong');
-    fromLbl.textContent = 'From: ';
-    fromRow.append(fromLbl, document.createTextNode(msg.email));
-    header.appendChild(fromRow);
+    const createRow = (label, value) => {
+      const row = document.createElement('div');
+      row.className = 'mb-1';
+      const lbl = document.createElement('strong');
+      lbl.textContent = label + ': ';
+      row.append(lbl, document.createTextNode(value || ''));
+      return row;
+    };
 
-    const subjRow = document.createElement('div');
-    const subjLbl = document.createElement('strong');
-    subjLbl.textContent = 'Subject: ';
-    subjRow.append(subjLbl, document.createTextNode(msg.subject || '(No Subject)'));
-    header.appendChild(subjRow);
+    header.appendChild(createRow('From', msg.email));
+    header.appendChild(createRow('Title', msg.title || '(No Title)'));
+    if (msg.phone) header.appendChild(createRow('Phone', msg.phone));
+    if (msg.company) header.appendChild(createRow('Company', msg.company));
+    if (msg.timestamp) header.appendChild(createRow('Date', new Date(msg.timestamp).toLocaleString()));
 
     // Body
     const body = document.createElement('div');
-    body.className = 'mb-2 whitespace-pre-wrap';
-    body.textContent = msg.textarea;
+    body.className = 'mb-2 whitespace-pre-wrap font-sans';
+    body.textContent = msg.suggestion;
 
     detailPane.append(header, body);
 
@@ -365,26 +371,26 @@ export function launchSuggestionBox() {
       e.preventDefault();
       const fd = new FormData(form);
 
-      // Prepare data for API submission
-      const formData = {
-        name: fd.get('from'),
+      // Semantic data structure
+      const suggestionData = {
         email: fd.get('from'),
-        subject: fd.get('subject') || 'No Subject',
-        message: fd.get('message'),
+        title: fd.get('subject') || 'No Subject',
+        suggestion: fd.get('message'),
         phone: fd.get('phone') || '',
         company: fd.get('company') || ''
       };
 
-      const data = {
+      // Map semantic data to API structure
+      const apiPayload = {
         creator_model: {
-          title: `Contact: ${formData.subject}`,
+          title: `Contact: ${suggestionData.title}`,
           creator_fields_attributes: {
-            "0": { html_input_label: "name", string_content: formData.name },
-            "1": { html_input_label: "email", string_content: formData.email },
-            "2": { html_input_label: "phone", string_content: formData.phone },
-            "3": { html_input_label: "company", string_content: formData.company },
-            "4": { html_input_label: "subject", string_content: formData.subject },
-            "5": { html_input_label: "message", string_content: formData.message }
+            "0": { html_input_label: "name", string_content: suggestionData.email }, // Using email as name for now
+            "1": { html_input_label: "email", string_content: suggestionData.email },
+            "2": { html_input_label: "phone", string_content: suggestionData.phone },
+            "3": { html_input_label: "company", string_content: suggestionData.company },
+            "4": { html_input_label: "subject", string_content: suggestionData.title },
+            "5": { html_input_label: "message", string_content: suggestionData.suggestion }
           }
         }
       };
@@ -394,7 +400,7 @@ export function launchSuggestionBox() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(apiPayload)
       })
         .then(r => {
           if (r.ok) {

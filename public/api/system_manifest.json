@@ -1,0 +1,177 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-27",
+  "defaultFiles": [
+    {
+      "id": "default-file-welcome",
+      "name": "welcome.md",
+      "version": "1.0.0",
+      "path": "default_files/welcome.md",
+      "targetFolder": "C://Documents",
+      "contentType": "md",
+      "icon": "image/file.webp"
+    },
+    {
+      "id": "default-file-todo",
+      "name": "todo.md",
+      "version": "1.0.0",
+      "path": "default_files/todo.md",
+      "targetFolder": "C://Documents",
+      "contentType": "md",
+      "icon": "image/file.webp"
+    },
+    {
+      "id": "default-file-sample-desktop",
+      "name": "sample_desktop.webp",
+      "version": "1.0.0",
+      "path": "default_files/sample_desktop.webp",
+      "targetFolder": "C://Media",
+      "contentType": "webp",
+      "icon": "image/image.webp"
+    },
+    {
+      "id": "default-file-watercolour-icon",
+      "name": "watercolour_icon.webp",
+      "version": "1.0.0",
+      "path": "default_files/watercolour_icon.webp",
+      "targetFolder": "C://Media",
+      "contentType": "webp",
+      "icon": "image/image.webp",
+      "description": "Watercolour app icon"
+    },
+    {
+      "id": "default-file-startup-sound",
+      "name": "startup_sound.mp3",
+      "version": "1.0.0",
+      "path": "default_files/startup_sound.mp3",
+      "targetFolder": "C://Media",
+      "contentType": "mp3",
+      "icon": "image/audio.webp",
+      "description": "System startup sound"
+    },
+    {
+      "id": "default-file-notification",
+      "name": "notification.mp3",
+      "version": "1.0.0",
+      "path": "default_files/notification.mp3",
+      "targetFolder": "C://Media",
+      "contentType": "mp3",
+      "icon": "image/audio.webp",
+      "description": "Notification sound effect"
+    }
+  ],
+  "apps": [
+    {
+      "id": "mycomp",
+      "name": "My Computer",
+      "version": "1.0.0",
+      "icon": "image/computer.webp",
+      "type": "system"
+    },
+    {
+      "id": "mediaapp",
+      "name": "Media Player",
+      "version": "1.0.0",
+      "icon": "image/video.webp",
+      "type": "app"
+    },
+    {
+      "id": "watercolourapp",
+      "name": "Watercolour",
+      "version": "1.0.0",
+      "icon": "image/watercolour.webp",
+      "type": "app"
+    },
+    {
+      "id": "letterpad",
+      "name": "LetterPad",
+      "version": "1.0.0",
+      "icon": "image/file.webp",
+      "type": "app"
+    },
+    {
+      "id": "calcapp",
+      "name": "Calculator",
+      "version": "1.0.0",
+      "icon": "image/calculator.webp",
+      "type": "app"
+    },
+    {
+      "id": "keyboard",
+      "name": "Keyboard",
+      "version": "1.0.0",
+      "icon": "image/keyboard.webp",
+      "type": "app"
+    },
+    {
+      "id": "sysset",
+      "name": "System Settings",
+      "version": "1.0.0",
+      "icon": "image/gears.webp",
+      "type": "system"
+    },
+    {
+      "id": "storageapp",
+      "name": "Storage Manager",
+      "version": "1.0.0",
+      "icon": "image/drive_c.webp",
+      "type": "system"
+    },
+    {
+      "id": "abtcomp",
+      "name": "About This Computer",
+      "version": "1.0.0",
+      "icon": "image/info.webp",
+      "type": "system"
+    },
+    {
+      "id": "solapp",
+      "name": "Solitaire",
+      "version": "1.0.0",
+      "icon": "image/solitaire.webp",
+      "type": "game"
+    },
+    {
+      "id": "chessapp",
+      "name": "Guillotine Chess",
+      "version": "1.0.0",
+      "icon": "image/guillotine_chess.webp",
+      "type": "game"
+    },
+    {
+      "id": "bombapp",
+      "name": "Bombbroomer",
+      "version": "1.0.0",
+      "icon": "image/bombbroomer.webp",
+      "type": "game"
+    },
+    {
+      "id": "pongapp",
+      "name": "Pong",
+      "version": "1.0.0",
+      "icon": "image/pong.webp",
+      "type": "game"
+    },
+    {
+      "id": "snakeapp",
+      "name": "Snake",
+      "version": "1.0.0",
+      "icon": "image/snake.webp",
+      "type": "game"
+    },
+    {
+      "id": "happyturdapp",
+      "name": "Happy Turd",
+      "version": "1.0.0",
+      "icon": "image/happyturd.webp",
+      "type": "game"
+    },
+    {
+      "id": "osupdateapp",
+      "name": "OS Update",
+      "version": "1.0.0",
+      "icon": "image/power.webp",
+      "type": "system"
+    }
+  ]
+}

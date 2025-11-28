@@ -14,13 +14,7 @@ export let fileSystemState = {
       "Media": { id: 'Media', name: 'Media', type: 'folder', fullPath: 'C://Media', contents: {} },
     },
     "A://": {
-      "folder-34862398": { id: 'folder-34862398', name: 'example folder', type: 'folder', fullPath: 'A://folder-34862398', contents: {
-        "folder-9523759823": { id: 'folder-9523759823', name: "nested in example", type: 'folder', fullPath: 'A://folder-34862398/folder-9523759823', contents: {
-          "folder-53829539": { id: 'folder-53829539', name: 'supernested', type: 'folder', fullPath: 'A://folder-34862398/folder-9523759823/folder-53829539', contents: {
-            "file-593485739": { id: 'file-593485739', name: 'some md example', type: 'ugc-file', content_type: 'md', fullPath: 'A://folder-34862398/folder-9523759823/folder-53829539/file-593485739', contents: 'lol sup' }
-          }}
-        }}
-      }}
+      "folder-34862398": { id: 'folder-34862398', name: 'example folder', type: 'folder', fullPath: 'A://folder-34862398', contents: {}}
     },
     "D://": {}
   }
@@ -187,7 +181,7 @@ export function updateContent(windowId, newContent) {
 }
 
 // Utility function to add a file to the file system
-export async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null) {
+export async function addFileToFileSystem(fileName, fileContent, targetFolderPath, contentType, fileObj = null, skipSave = false) {
   const fs = await getFileSystemState();
 
   // Ensure file system is initialized with proper structure
@@ -386,7 +380,7 @@ export async function addFileToFileSystem(fileName, fileContent, targetFolderPat
 
   // Save changes (for non-binary files or immediate save)
   setFileSystemState(fs);
-  if (!fileObj || !['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType)) {
+  if (!skipSave && (!fileObj || !['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'avi', 'mov'].includes(contentType))) {
     try {
       await saveState();
     } catch (error) {
@@ -597,16 +591,7 @@ export async function initializeAppState() {
     }, 100);
 
     // Initialize Documents folder with default files
-    setTimeout(async () => {
-      if (typeof fetchDocuments === 'function') {
-        await fetchDocuments();
-      } else {
-        console.warn('fetchDocuments function not available, trying sync version');
-        if (typeof fetchDocumentsSync === 'function') {
-          fetchDocumentsSync();
-        }
-      }
-    }, 200);
+    await processSystemManifest();
   } else {
     // Load state from IndexedDB with validation
     const storedState = appStateData;
@@ -697,17 +682,7 @@ export async function initializeAppState() {
       }
 
       // Also check if Documents folder needs to be populated
-      const documentsItems = fs.folders['C://Documents'] || {};
-      const documentsCount = Object.keys(documentsItems).length;
-
-      if (documentsCount === 0) {
-        if (typeof fetchDocuments === 'function') {
-          await fetchDocuments();
-        } else if (typeof fetchDocumentsSync === 'function') {
-          fetchDocumentsSync();
-        }
-      } else {
-      }
+      await processSystemManifest();
     }, 100);
   }
 
@@ -1188,11 +1163,6 @@ async function testSessionPersistence() {
     const appState = await storage.getItem('appState');
     const explicitRestart = await storage.getItem('explicitRestart');
 
-
-    if (appState) {
-    } else {
-    }
-
     return !!appState;
   } catch (error) {
     console.error('✗ Session persistence test failed:', error);
@@ -1219,7 +1189,9 @@ if (typeof window !== 'undefined') {
   window.getFileSystemState = getFileSystemState;
   window.setFileSystemState = setFileSystemState;
   window.updateContent = updateContent;
-}// Add beforeunload handler to ensure data is saved before page closes
+}
+
+// Add beforeunload handler to ensure data is saved before page closes
 window.addEventListener('beforeunload', async (event) => {
   try {
     // Force immediate save using sync method to ensure it completes before unload
@@ -1293,3 +1265,86 @@ function findFolderByPath(fs, targetPath) {
 // Initialize async
 restoreFileSystemState().then(() => {
 }).catch(console.error);
+
+export async function processSystemManifest() {
+  try {
+    const response = await fetch('/api/system_manifest.json');
+    if (!response.ok) throw new Error('Manifest fetch failed');
+    const manifest = await response.json();
+
+    const storedVersion = await storage.getItem('systemVersion');
+    const shouldUpdate = !storedVersion || (manifest.version !== storedVersion);
+
+    if (shouldUpdate) {
+      console.log('System update detected:', storedVersion, '->', manifest.version);
+
+      // Process default files
+      for (const fileDef of manifest.defaultFiles) {
+        const fs = await getFileSystemState();
+        const targetFolder = fs.folders[fileDef.targetFolder];
+
+        // Check if file exists by name
+        let existingFileId = null;
+        if (targetFolder) {
+           existingFileId = Object.keys(targetFolder).find(key => targetFolder[key].name === fileDef.name);
+        }
+
+        if (!existingFileId) {
+           // File doesn't exist, add it
+           let content = '';
+           if (['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
+             try {
+               const contentRes = await fetch(fileDef.path);
+               if (contentRes.ok) content = await contentRes.text();
+             } catch (e) {
+               console.warn('Failed to fetch content for', fileDef.name);
+             }
+           }
+
+           const newFile = await addFileToFileSystem(
+             fileDef.name,
+             content,
+             fileDef.targetFolder,
+             fileDef.contentType,
+             null,
+             true // skipSave
+           );
+
+           if (newFile) {
+             // Add extra properties
+             if (fileDef.path && !['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
+                newFile.path = fileDef.path;
+             }
+             newFile.isSystemFile = true;
+             newFile.version = fileDef.version;
+             if (fileDef.description) newFile.description = fileDef.description;
+           }
+        } else {
+           // File exists, update if needed
+           const fileEntry = targetFolder[existingFileId];
+           if (fileEntry.isSystemFile || !fileEntry.version || fileEntry.version !== fileDef.version) {
+              // Update content
+               if (['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
+                 try {
+                   const contentRes = await fetch(fileDef.path);
+                   if (contentRes.ok) fileEntry.contents = await contentRes.text();
+                 } catch (e) {}
+               }
+
+               if (fileDef.path && !['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
+                  fileEntry.path = fileDef.path;
+               }
+               fileEntry.version = fileDef.version;
+               if (fileDef.description) fileEntry.description = fileDef.description;
+               fileEntry.isSystemFile = true;
+           }
+        }
+      }
+
+      await storage.setItem('systemVersion', manifest.version);
+      await saveState();
+    }
+  } catch (error) {
+    console.warn('System manifest processing failed:', error);
+  }
+}

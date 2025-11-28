@@ -4,7 +4,7 @@ import { storage } from '../../os/indexeddb_storage.js';
    Getter & Setter for fileSystemState
    Always retrieve and update state from IndexedDB.
 ====================== */
-async function getFileSystemState() {
+export async function getFileSystemState() {
   try {
     const appState = await storage.getItem('appState');
     if (appState && appState.fileSystemState) {

@@ -1,4 +1,14 @@
 import { createWindow, closeWindow } from '../gui/window.js';
+import { API_BASE_URL, SUGGESTIONS_LIST_PATH, SUGGESTIONS_SUBMISSIONS_PATH } from '../config.js';
+
+export function launchMailBox() {
+  // Play "you've got mail" sound when app opens
+  try {
+    const audio = new Audio('audio/youve_got_mail.mp3');
+    audio.play().catch(err => console.log('Audio playback prevented:', err));
+  } catch (err) {
+    console.log('Could not play audio:', err);
+  }
 
 export function launchSuggestionBox() {
   // Play "you've got mail" sound when app opens
@@ -144,7 +154,7 @@ export function launchSuggestionBox() {
       }
 
       // Fetch messages from API
-      fetch('http://abc.localhost:3000/end_data/public/ananan')
+      fetch(`${API_BASE_URL}${SUGGESTIONS_LIST_PATH}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch submissions');
@@ -424,7 +434,7 @@ export function launchSuggestionBox() {
         }
       };
 
-      fetch('http://abc.localhost:3000/end_data/public/kfjbwef', {
+      fetch(`${API_BASE_URL}${SUGGESTIONS_SUBMISSIONS_PATH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

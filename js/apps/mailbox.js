@@ -59,8 +59,18 @@ export function launchMailbox() {
     'white'
   );
 
+  initializeMailboxUI(win);
+}
+
+export function initializeMailboxUI(win) {
+  if (!win) return;
+
   // content area provided by createWindow
   const root = win.querySelector('.p-2');
+  if (!root) return;
+  
+  // Clear existing content to ensure clean state
+  root.innerHTML = '';
   root.classList.add('flex', 'flex-col', 'h-full');
 
   // ──────────────────────────────────────────────────────

@@ -2,6 +2,9 @@ import { storage } from './indexeddb_storage.js';
 import { loadStorageData } from '../apps/storage_manager.js'
 // Needed for compost bin restoration (was causing ReferenceError)
 import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
+import { refreshUpdateCheck } from '../apps/os_update.js';
+import { initializeTubeStreamUI } from '../apps/tube_stream.js';
+import { initializeMailboxUI } from '../apps/mailbox.js';
 
 export let fileSystemState = {
   folders: {
@@ -966,8 +969,20 @@ async function initializeRestoredApp(windowId) {
     },
     'tubestream': () => {
       // TubeStream needs its interface initialized
-      if (typeof initializeTubeStream === 'function') {
-        setTimeout(initializeTubeStream, 100);
+      const win = document.getElementById('tubestream');
+      if (win && typeof initializeTubeStreamUI === 'function') {
+        initializeTubeStreamUI(win);
+      }
+    },
+    'mailbox': () => {
+      const win = document.getElementById('mailbox');
+      if (win && typeof initializeMailboxUI === 'function') {
+        initializeMailboxUI(win);
+      }
+    },
+    'os-update-window': () => {
+      if (typeof refreshUpdateCheck === 'function') {
+        refreshUpdateCheck();
       }
     },
     'explorer-window': () => {

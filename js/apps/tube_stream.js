@@ -3,6 +3,17 @@ import { createWindow } from '../gui/window.js';
 import { API_BASE_URL } from '../config.js';
 
 async function launchTubeStream() {
+  const win = createWindow('TubeStream', '<div class="p-2 h-full flex items-center justify-center">Loading...</div>', false, 'tubestream', false, false, { type: 'integer', width: 580, height: 380 }, 'default', null, 'white');
+  
+  await initializeTubeStreamUI(win);
+}
+
+async function initializeTubeStreamUI(win) {
+  if (!win) return;
+  
+  const contentDiv = win.querySelector('.p-2');
+  if (!contentDiv) return;
+
   const youtube_url = await loadPrimaryStream(); // Await the async function
 
   // Check if YouTube is reachable
@@ -10,15 +21,19 @@ async function launchTubeStream() {
 
   let content;
   if (isOnline) {
-    content = `<iframe width="560" height="315" style="margin:0 auto;" src="${youtube_url}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+    content = `<iframe width="100%" height="100%" style="margin:0 auto; border:none;" src="${youtube_url}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
   } else {
     content = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; flex-direction: column; text-align: center; padding: 20px; font-family: 'MS Sans Serif', sans-serif;">
       <p>Unable to connect to YouTube.</p>
       <p>You might be offline or there is a network error.</p>
     </div>`;
   }
-
-  createWindow('TubeStream', content, false, 'tubestream', false, false, { type: 'integer', width: 580, height: 380 }, 'default', null, 'white');
+  
+  // Update content
+  contentDiv.innerHTML = content;
+  contentDiv.style.padding = '0'; // Remove padding for iframe
+  contentDiv.style.height = '100%';
+  contentDiv.style.overflow = 'hidden';
 }
 
 function checkYouTubeConnectivity() {
@@ -102,5 +117,6 @@ const myPlaylist = {
 // Export functions
 export {
   launchTubeStream,
-  loadPrimaryStream
+  loadPrimaryStream,
+  initializeTubeStreamUI
 };

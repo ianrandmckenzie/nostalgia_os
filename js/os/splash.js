@@ -72,4 +72,5 @@ if (typeof window !== 'undefined') {
   window.showOSLoading = showOSLoading;
 }
 
-showOSLoading();
+// Removed top-level call to prevent circular dependency issues
+// showOSLoading();

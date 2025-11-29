@@ -38,7 +38,7 @@ import {
 } from './os/manage_data.js';
 import { renderDesktopIcons, makeIconDraggable } from './gui/desktop.js';
 import { initializeStartMenu, addStartMenuKeyboardNavigation } from './gui/start_menu.js';
-import { showSplash } from './os/splash.js';
+import { showSplash, showOSLoading } from './os/splash.js';
 import { restart, logout } from './os/restart.js';
 import {
   createWindow,
@@ -134,6 +134,9 @@ import {
 import { initializeDesktopPan } from './os/desktop_pan.js';
 
 export const version = '1.0';
+
+// Show loading screen immediately
+showOSLoading();
 
 // Initialize storage-dependent code after storage is ready
 async function initializeApp() {

@@ -257,7 +257,7 @@ if (typeof window !== 'undefined') {
   window.applyFormatting = applyFormatting;
   window.convertMarkdownToHTML = convertMarkdownToHTML;
 
-  // Mailbox functions
+  // Mail Box functions
   window.launchMailbox = launchMailbox;
 
   // Watercolour functions

@@ -12,16 +12,22 @@ const DEFAULT_START_MENU_ITEMS = [
     icon: 'image/computer.webp',
     type: 'item'
   },
-  // {
-  //   id: 'mailapp',
-  //   text: 'Mailbox',
-  //   icon: 'image/mail.webp',
-  //   type: 'item'
-  // },
+  {
+    id: 'mailboxapp',
+    text: 'Mail Box',
+    icon: 'image/mail.webp',
+    type: 'item'
+  },
   {
     id: 'mediaapp',
     text: 'Media Player',
     icon: 'image/video.webp',
+    type: 'item'
+  },
+  {
+    id: 'tubestreamapp',
+    text: 'TubeStream',
+    icon: 'image/youtube.webp',
     type: 'item'
   },
   {
@@ -378,6 +384,9 @@ function handleStartMenuItemClick(itemId) {
     case 'storageapp':
       if (typeof openApp === 'function') openApp('storage');
       break;
+    case 'mailboxapp':
+      if (typeof openApp === 'function') openApp('mailbox');
+      break;
     case 'osupdateapp':
       if (typeof openApp === 'function') openApp('osupdate');
       break;
@@ -421,6 +430,9 @@ function handleStartMenuItemClick(itemId) {
       break;
     case 'mediaapp':
       if (typeof openApp === 'function') openApp('mediaplayer');
+      break;
+    case 'tubestreamapp':
+      if (typeof openApp === 'function') openApp('tubestream');
       break;
     case 'rstrtcomp':
       if (typeof restart === 'function') restart();

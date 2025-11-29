@@ -413,7 +413,8 @@ export function launchMailbox() {
       const apiPayload = {
         creator_model: {
           title: `Contact: ${mailData.title}`,
-          feed_slug: "mails",
+          feed_slug: "suggestions",
+          model_type: 'page',
           creator_fields_attributes: {
             "0": { html_input_label: "name", string_content: mailData.email }, // Using email as name for now
             "1": { html_input_label: "email", string_content: mailData.email },

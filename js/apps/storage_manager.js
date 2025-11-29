@@ -487,6 +487,7 @@ async function checkForMissingApps() {
     // Get the complete list of default applications from start menu
     const defaultApps = [
       { id: 'mycomp', text: 'My Computer', icon: 'image/computer.webp' },
+      { id: 'mailboxapp', text: 'Mail Box', icon: 'image/mail.webp' },
       { id: 'mediaapp', text: 'Media Player', icon: 'image/video.webp' },
       { id: 'watercolourapp', text: 'Watercolour', icon: 'image/watercolour.webp' },
       { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },

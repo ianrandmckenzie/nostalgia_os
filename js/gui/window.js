@@ -20,7 +20,7 @@ export function getAppIcon(windowId, title) {
     'compostbin': 'image/compost-bin.webp',
     'storage': 'image/drive_c.webp',
     'explorer-window': 'image/computer.webp',
-    'tubestream': 'image/video.webp'
+    'tubestream': 'image/youtube.webp'
   };
 
   // Map of window titles to their icons (for navigation windows and other special cases)
@@ -38,11 +38,11 @@ export function getAppIcon(windowId, title) {
     'Happy Turd': 'image/happyturd.webp',
     'Guillotine Chess': 'image/guillotine_chess.webp',
     'Chess': 'image/guillotine_chess.webp',
-    'Inpeek Mailbox': 'image/mail.webp',
+    'Mail Box': 'image/mail.webp',
     'Watercolour': 'image/watercolour.webp',
     'Compost Bin': 'image/compost-bin.webp',
     'Storage Manager': 'image/drive_c.webp',
-    'TubeStream': 'image/video.webp',
+    'TubeStream': 'image/youtube.webp',
     'Security Policy': 'image/info.webp'
   };
 

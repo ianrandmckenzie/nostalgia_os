@@ -35,7 +35,7 @@ async function loadPrimaryStream() {
   let data;
 
   try {
-    const response = await fetch(`${API_BASE_URL}api/playlists/primary.json`);
+    const response = await fetch(`${API_BASE_URL}${TUBE_STREAMS_PATH}`);
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
     data = json.playlists[0];

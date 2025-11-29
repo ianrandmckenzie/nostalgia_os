@@ -1,7 +1,7 @@
 import { createWindow, closeWindow } from '../gui/window.js';
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL, SUGGESTIONS_LIST_PATH, SUGGESTIONS_SUBMISSIONS_PATH } from '../config.js';
 
-export function launchMailBox() {
+export function launchMailbox() {
   // Play "you've got mail" sound when app opens
   try {
     const audio = new Audio('audio/youve_got_mail.mp3');
@@ -145,7 +145,7 @@ export function launchMailBox() {
       }
 
       // Fetch messages from API
-      fetch(`${API_BASE_URL}end_data/public/ananan`)
+      fetch(`${API_BASE_URL}${SUGGESTIONS_LIST_PATH}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch submissions');
@@ -425,7 +425,7 @@ export function launchMailBox() {
         }
       };
 
-      fetch(`${API_BASE_URL}end_data/public/kfjbwef`, {
+      fetch(`${API_BASE_URL}${SUGGESTIONS_SUBMISSIONS_PATH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

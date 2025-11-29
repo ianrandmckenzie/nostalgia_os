@@ -1,8 +1,12 @@
 import { startMenuOrder, saveState, setFileSystemState } from '../os/manage_data.js';
 import { storage } from '../os/indexeddb_storage.js';
 import { restart } from '../os/restart.js'
+import { probeApiEndpoints } from '../utils/api_probe.js';
 
 // Start Menu Drag and Drop Functionality
+
+// Track unavailable apps based on API probes
+let unavailableApps = new Set();
 
 // Default start menu configuration
 const DEFAULT_START_MENU_ITEMS = [
@@ -156,12 +160,25 @@ function generateStartMenuHTML() {
   const ul = document.createElement('ul');
 
   itemsToRender.forEach(item => {
+    // Skip unavailable items
+    if (unavailableApps.has(item.id)) {
+      return;
+    }
+
     if (item.type === 'item') {
       const li = createMenuItem(item);
       ul.appendChild(li);
     } else if (item.type === 'group') {
-      const li = createGroupItem(item);
-      ul.appendChild(li);
+      // Filter items within the group
+      const filteredSubItems = item.items.filter(subItem => !unavailableApps.has(subItem.id));
+      
+      // Only render group if it has visible items
+      if (filteredSubItems.length > 0) {
+        // Create a copy of the group with filtered items
+        const filteredGroup = { ...item, items: filteredSubItems };
+        const li = createGroupItem(filteredGroup);
+        ul.appendChild(li);
+      }
     }
   });
 
@@ -1697,11 +1714,37 @@ window.testRestore = function() {
   restoreStartMenuOrder();
 };
 
+// Initialize API probes
+async function initializeApiProbes() {
+  try {
+    const results = await probeApiEndpoints();
+    
+    // Update unavailable apps based on results
+    if (!results.mailbox) unavailableApps.add('mailboxapp');
+    if (!results.tubestream) unavailableApps.add('tubestreamapp');
+    
+    // Regenerate menu if any apps were marked unavailable
+    if (unavailableApps.size > 0) {
+      console.log('🔍 Hiding unavailable apps:', Array.from(unavailableApps));
+      generateStartMenuHTML();
+      // Re-initialize drag and drop since DOM changed
+      setTimeout(() => {
+        safeInitializeStartMenuDragDrop();
+      }, 50);
+    }
+  } catch (error) {
+    console.error('Failed to initialize API probes:', error);
+  }
+}
+
 // Initialize start menu on page load
 export function initializeStartMenu() {
 
   // Generate initial menu or restore from saved state
   restoreStartMenuOrder();
+  
+  // Start API probes in background
+  initializeApiProbes();
 
 }
 

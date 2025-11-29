@@ -13,8 +13,8 @@ const DEFAULT_START_MENU_ITEMS = [
     type: 'item'
   },
   {
-    id: 'suggestionboxapp',
-    text: 'Suggestion Box',
+    id: 'mailboxapp',
+    text: 'Mail Box',
     icon: 'image/mail.webp',
     type: 'item'
   },
@@ -384,8 +384,8 @@ function handleStartMenuItemClick(itemId) {
     case 'storageapp':
       if (typeof openApp === 'function') openApp('storage');
       break;
-    case 'suggestionboxapp':
-      if (typeof openApp === 'function') openApp('suggestionbox');
+    case 'mailboxapp':
+      if (typeof openApp === 'function') openApp('mailbox');
       break;
     case 'osupdateapp':
       if (typeof openApp === 'function') openApp('osupdate');

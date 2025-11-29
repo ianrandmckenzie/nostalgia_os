@@ -11,7 +11,7 @@ export default defineConfig({
   publicDir: 'public', // Ensure public files are copied
   server: {
     port: 5173,
-    strictPort: true, // Fail if port 8080 is not available
-    allowedHosts: ['localhost', '251339511ece.ngrok.app'] // Only bind to localhost for security
+    strictPort: true, // Fail if port 5173 is not available
+    allowedHosts: ['localhost']
   }
 })

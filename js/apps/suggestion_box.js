@@ -106,36 +106,34 @@ export function launchSuggestionBox() {
 
   // Helper function to parse API submission data
   function parseSubmissionData(apiData) {
-    const submissionGroups = {};
+    // The API now returns an array of objects directly, not a flat list of fields
+    return apiData.map(item => {
+      const files = {};
+      ['file_1', 'file_2', 'file_3'].forEach(key => {
+        if (item[key]) {
+          const url = item[key];
+          let name = 'attachment';
+          try {
+            name = url.split('/').pop().split('?')[0];
+          } catch (e) {
+            name = key;
+          }
+          files[key] = { name, url };
+        }
+      });
 
-    apiData.forEach(field => {
-      const submissionId = field.creator_model_id;
-      if (!submissionGroups[submissionId]) {
-        submissionGroups[submissionId] = {
-          id: submissionId,
-          fields: {},
-          created_at: field.created_at,
-          updated_at: field.updated_at
-        };
-      }
-
-      submissionGroups[submissionId].fields[field.html_input_label] = {
-        content: field.string_content || '',
-        fieldId: field.id
+      return {
+        id: item.id,
+        email: item.email || item.name || 'Unknown',
+        title: item.subject || 'No Subject',
+        suggestion: item.message || '',
+        phone: item.phone || '',
+        company: item.company || '',
+        timestamp: item.created_at || null,
+        public: false,
+        files: files
       };
     });
-
-    return Object.values(submissionGroups).map(group => ({
-      id: group.id,
-      email: group.fields.email?.content || group.fields.name?.content || 'Unknown',
-      title: group.fields.subject?.content || 'No Subject',
-      suggestion: group.fields.message?.content || '',
-      phone: group.fields.phone?.content || '',
-      company: group.fields.company?.content || '',
-      timestamp: group.created_at,
-      public: false,
-      files: {} // Files not supported in this API format
-    }));
   }
 
   function loadMessages() {
@@ -146,7 +144,7 @@ export function launchSuggestionBox() {
       }
 
       // Fetch messages from API
-      fetch('https://staging.failyourunit.tv/end_data/public/contact-form-data')
+      fetch('http://abc.localhost:3000/end_data/public/ananan')
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch submissions');
@@ -215,27 +213,57 @@ export function launchSuggestionBox() {
     // Attachments
     if (msg.files && Object.keys(msg.files).length) {
       const atDiv = document.createElement('div');
-      atDiv.className = 'mt-2';
+      atDiv.className = 'mt-4 border-t border-gray-200 pt-2';
 
       const atTitle = document.createElement('strong');
       atTitle.textContent = 'Attachments:';
       atDiv.appendChild(atTitle);
 
-      const ul = document.createElement('ul');
-      ul.className = 'list-disc list-inside';
+      const container = document.createElement('div');
+      container.className = 'flex flex-col gap-2 mt-2';
 
       Object.values(msg.files).forEach(f => {
-        const li   = document.createElement('li');
+        const url = f.url || f.contents;
+        if (!url) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'border p-2 rounded bg-gray-50';
+
+        // Determine type by extension
+        const ext = url.split('.').pop().toLowerCase().split('?')[0];
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = f.name;
+          img.className = 'max-w-full h-auto max-h-96 object-contain block mb-1';
+          wrapper.appendChild(img);
+        } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.src = url;
+          audio.className = 'w-full mb-1';
+          wrapper.appendChild(audio);
+        } else if (['mp4', 'webm'].includes(ext)) {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.src = url;
+          video.className = 'max-w-full h-auto max-h-96 mb-1';
+          wrapper.appendChild(video);
+        }
+
+        // Link to open/download
         const link = document.createElement('a');
-        link.href        = f.url || f.contents || '#';
-        link.className   = 'text-blue-500 hover:underline';
+        link.href        = url;
+        link.className   = 'text-blue-500 hover:underline text-sm break-all';
         link.textContent = f.name;
         link.target      = '_blank';
-        li.appendChild(link);
-        ul.appendChild(li);
+        wrapper.appendChild(link);
+
+        container.appendChild(wrapper);
       });
 
-      atDiv.appendChild(ul);
+      atDiv.appendChild(container);
       detailPane.appendChild(atDiv);
     }
   }
@@ -384,6 +412,7 @@ export function launchSuggestionBox() {
       const apiPayload = {
         creator_model: {
           title: `Contact: ${suggestionData.title}`,
+          feed_slug: "suggestions",
           creator_fields_attributes: {
             "0": { html_input_label: "name", string_content: suggestionData.email }, // Using email as name for now
             "1": { html_input_label: "email", string_content: suggestionData.email },
@@ -395,7 +424,7 @@ export function launchSuggestionBox() {
         }
       };
 
-      fetch('https://staging.failyourunit.tv/end_data/public/contact-form-create', {
+      fetch('http://abc.localhost:3000/end_data/public/kfjbwef', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

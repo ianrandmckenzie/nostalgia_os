@@ -34,7 +34,7 @@ async function loadPrimaryStream() {
   let data;
 
   try {
-    const response = await fetch('https://example.com/some-backend');
+    const response = await fetch('https://staging.failyourunit.tv/tube-streams.json');
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
     data = json.playlists[0];

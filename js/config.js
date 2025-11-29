@@ -14,12 +14,12 @@ const CONFIG = {
     trusted_providers: [
       {
         domains: ['s3.ca-central-1.amazonaws.com', 'www.relentlesscurious.com'],
-        dev_domains: ['localhost', '*.localhost'],
+        dev_domains: ['localhost', '*.localhost', 'abc.localhost:3000'],
         types: ['img', 'audio', 'video']
       },
       {
         domains: ['www.relentlesscurious.com'],
-        dev_domains: ['abc.localhost'],
+        dev_domains: ['abc.localhost:3000'],
         types: ['connect']
       },
       {

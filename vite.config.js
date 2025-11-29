@@ -66,7 +66,7 @@ const cspInjectionPlugin = () => {
                     // But let's keep it as is if it's already in CSP format
                   }
                   // Add protocol if missing and not a wildcard/localhost
-                  if (!cspDomain.startsWith('http') && !cspDomain.startsWith('*') && cspDomain !== 'localhost') {
+                  if (!cspDomain.startsWith('http') && !cspDomain.startsWith('*') && !cspDomain.includes('localhost')) {
                      // Actually CSP domains don't strictly need protocol, but it's safer to match config
                      // If the config has just domain, we might want to allow https://domain
                      if (!cspDomain.includes('://')) {

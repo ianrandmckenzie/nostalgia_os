@@ -1,6 +1,15 @@
 import { createWindow, closeWindow } from '../gui/window.js';
+import { API_BASE_URL } from '../config.js';
 
-export function launchMailbox() {
+export function launchMailBox() {
+  // Play "you've got mail" sound when app opens
+  try {
+    const audio = new Audio('audio/youve_got_mail.mp3');
+    audio.play().catch(err => console.log('Audio playback prevented:', err));
+  } catch (err) {
+    console.log('Could not play audio:', err);
+  }
+
   // Check if running in Reddit context and prevent launch
   const isReddit = window.location.href.includes('reddit.com');
   if (isReddit) {
@@ -12,7 +21,7 @@ export function launchMailbox() {
     // Create a simple error dialog without using showDialogBox
     const errorWindow = createWindow(
       '⚠️ Error',
-      '<div class="text-center p-4"><p class="mb-4">Mail app is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8" aria-label="Close error dialog" title="Close this error message"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
+      '<div class="text-center p-4"><p class="mb-4">Mail Box is not available in Reddit context.</p><button id="error-ok-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 h-8" aria-label="Close error dialog" title="Close this error message"><span class="border-b-2 border-r-2 border-black block h-full w-full py-1 px-3 leading-6">OK</span></button></div>',
       false,
       'mailbox-error',
       false,
@@ -35,10 +44,10 @@ export function launchMailbox() {
   }
 
   // ──────────────────────────────────────────────────────
-  // 1.  Create an empty window for the mailbox UI
+  // 1.  Create an empty window for the mail box UI
   // ──────────────────────────────────────────────────────
   const win = createWindow(
-    'Mailbox',
+    'Mail Box',
     '',                      // start with no markup
     false,
     'mailbox',
@@ -98,33 +107,34 @@ export function launchMailbox() {
 
   // Helper function to parse API submission data
   function parseSubmissionData(apiData) {
-    const submissionGroups = {};
+    // The API now returns an array of objects directly, not a flat list of fields
+    return apiData.map(item => {
+      const files = {};
+      ['file_1', 'file_2', 'file_3'].forEach(key => {
+        if (item[key]) {
+          const url = item[key];
+          let name = 'attachment';
+          try {
+            name = url.split('/').pop().split('?')[0];
+          } catch (e) {
+            name = key;
+          }
+          files[key] = { name, url };
+        }
+      });
 
-    apiData.forEach(field => {
-      const submissionId = field.creator_model_id;
-      if (!submissionGroups[submissionId]) {
-        submissionGroups[submissionId] = {
-          id: submissionId,
-          fields: {},
-          created_at: field.created_at,
-          updated_at: field.updated_at
-        };
-      }
-
-      submissionGroups[submissionId].fields[field.html_input_label] = {
-        content: field.string_content || '',
-        fieldId: field.id
+      return {
+        id: item.id,
+        email: item.email || item.name || 'Unknown',
+        title: item.subject || 'No Subject',
+        mail: item.message || '',
+        phone: item.phone || '',
+        company: item.company || '',
+        timestamp: item.created_at || null,
+        public: false,
+        files: files
       };
     });
-
-    return Object.values(submissionGroups).map(group => ({
-      id: group.id,
-      email: group.fields.email?.content || group.fields.name?.content || 'Unknown',
-      textarea: group.fields.message?.content || '',
-      subject: group.fields.subject?.content || 'No Subject',
-      public: false,
-      files: {} // Files not supported in this API format
-    }));
   }
 
   function loadMessages() {
@@ -135,7 +145,7 @@ export function launchMailbox() {
       }
 
       // Fetch messages from API
-      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data')
+      fetch(`${API_BASE_URL}end_data/public/ananan`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch submissions');
@@ -149,7 +159,7 @@ export function launchMailbox() {
             const item = document.createElement('div');
             item.className =
               'p-2 border-b border-gray-300 hover:bg-gray-200 cursor-pointer truncate';
-            item.textContent = sub.subject || sub.email;
+            item.textContent = sub.title || sub.email;
             item.addEventListener('click', () => showMessage(sub));
             listPane.appendChild(item);
           });
@@ -177,51 +187,84 @@ export function launchMailbox() {
 
     // Header
     const header = document.createElement('div');
-    header.className = 'mb-2';
+    header.className = 'mb-4 border-b border-gray-200 pb-2';
 
-    const fromRow = document.createElement('div');
-    const fromLbl = document.createElement('strong');
-    fromLbl.textContent = 'From: ';
-    fromRow.append(fromLbl, document.createTextNode(msg.email));
-    header.appendChild(fromRow);
+    const createRow = (label, value) => {
+      const row = document.createElement('div');
+      row.className = 'mb-1';
+      const lbl = document.createElement('strong');
+      lbl.textContent = label + ': ';
+      row.append(lbl, document.createTextNode(value || ''));
+      return row;
+    };
 
-    const subjRow = document.createElement('div');
-    const subjLbl = document.createElement('strong');
-    subjLbl.textContent = 'Subject: ';
-    subjRow.append(subjLbl, document.createTextNode(msg.subject || '(No Subject)'));
-    header.appendChild(subjRow);
+    header.appendChild(createRow('From', msg.email));
+    header.appendChild(createRow('Title', msg.title || '(No Title)'));
+    if (msg.phone) header.appendChild(createRow('Phone', msg.phone));
+    if (msg.company) header.appendChild(createRow('Company', msg.company));
+    if (msg.timestamp) header.appendChild(createRow('Date', new Date(msg.timestamp).toLocaleString()));
 
     // Body
     const body = document.createElement('div');
-    body.className = 'mb-2 whitespace-pre-wrap';
-    body.textContent = msg.textarea;
+    body.className = 'mb-2 whitespace-pre-wrap font-sans';
+    body.textContent = msg.mail;
 
     detailPane.append(header, body);
 
     // Attachments
     if (msg.files && Object.keys(msg.files).length) {
       const atDiv = document.createElement('div');
-      atDiv.className = 'mt-2';
+      atDiv.className = 'mt-4 border-t border-gray-200 pt-2';
 
       const atTitle = document.createElement('strong');
       atTitle.textContent = 'Attachments:';
       atDiv.appendChild(atTitle);
 
-      const ul = document.createElement('ul');
-      ul.className = 'list-disc list-inside';
+      const container = document.createElement('div');
+      container.className = 'flex flex-col gap-2 mt-2';
 
       Object.values(msg.files).forEach(f => {
-        const li   = document.createElement('li');
+        const url = f.url || f.contents;
+        if (!url) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'border p-2 rounded bg-gray-50';
+
+        // Determine type by extension
+        const ext = url.split('.').pop().toLowerCase().split('?')[0];
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = f.name;
+          img.className = 'max-w-full h-auto max-h-96 object-contain block mb-1';
+          wrapper.appendChild(img);
+        } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.src = url;
+          audio.className = 'w-full mb-1';
+          wrapper.appendChild(audio);
+        } else if (['mp4', 'webm'].includes(ext)) {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.src = url;
+          video.className = 'max-w-full h-auto max-h-96 mb-1';
+          wrapper.appendChild(video);
+        }
+
+        // Link to open/download
         const link = document.createElement('a');
-        link.href        = f.url || f.contents || '#';
-        link.className   = 'text-blue-500 hover:underline';
+        link.href        = url;
+        link.className   = 'text-blue-500 hover:underline text-sm break-all';
         link.textContent = f.name;
         link.target      = '_blank';
-        li.appendChild(link);
-        ul.appendChild(li);
+        wrapper.appendChild(link);
+
+        container.appendChild(wrapper);
       });
 
-      atDiv.appendChild(ul);
+      atDiv.appendChild(container);
       detailPane.appendChild(atDiv);
     }
   }
@@ -231,10 +274,10 @@ export function launchMailbox() {
   // ──────────────────────────────────────────────────────
   function openCompose() {
     const cw = createWindow(
-      'Compose Message',
+      'New Mail',
       '',
       false,
-      'Compose Message',
+      'compose-mail',
       false,
       false,
       { type: 'integer', width: 400, height: 600 },
@@ -270,16 +313,16 @@ export function launchMailbox() {
     fromInput.setAttribute('aria-describedby', 'from-help');
     fromInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('From', fromInput));
+    form.appendChild(makeField('Your Email', fromInput));
 
     // To (fixed)
     const toInput = document.createElement('input');
-    toInput.type  = 'email';
+    toInput.type  = 'text';
     toInput.name  = 'to';
-    toInput.value = 'person@example.com';
+    toInput.value = 'Nostalgia OS Team';
     toInput.readOnly = true;
     toInput.id = 'to-email';
-    toInput.setAttribute('aria-label', 'Recipient email address');
+    toInput.setAttribute('aria-label', 'Recipient');
     toInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2 bg-gray-100';
     form.appendChild(makeField('To', toInput));
@@ -292,7 +335,7 @@ export function launchMailbox() {
     subjInput.setAttribute('aria-label', 'Email subject line (optional)');
     subjInput.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('Subject (optional)', subjInput));
+    form.appendChild(makeField('Mail Title (optional)', subjInput));
 
     // Message body
     const msgArea = document.createElement('textarea');
@@ -302,7 +345,7 @@ export function launchMailbox() {
     msgArea.setAttribute('aria-label', 'Email message content');
     msgArea.className =
       'mt-1 block w-full border border-gray-300 rounded p-2';
-    form.appendChild(makeField('Message', msgArea));
+    form.appendChild(makeField('Your Mail', msgArea));
 
     // Phone (optional)
     const phoneInput = document.createElement('input');
@@ -338,8 +381,8 @@ export function launchMailbox() {
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     cancelBtn.innerHTML =
       '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Cancel</span>'; // ⬅︎ ≤-- just markup string; safe & short
-    cancelBtn.setAttribute('aria-label', 'Cancel email composition');
-    cancelBtn.setAttribute('title', 'Cancel and discard email');
+    cancelBtn.setAttribute('aria-label', 'Cancel mail composition');
+    cancelBtn.setAttribute('title', 'Cancel and discard mail');
     btnRow.appendChild(cancelBtn);
 
     const sendBtn = document.createElement('button');
@@ -347,9 +390,9 @@ export function launchMailbox() {
     sendBtn.className =
       'bg-gray-200 border-t-2 border-l-2 border-gray-300 mr-2';
     sendBtn.innerHTML =
-      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Send</span>';
-    sendBtn.setAttribute('aria-label', 'Send email');
-    sendBtn.setAttribute('title', 'Send the composed email');
+      '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Submit</span>';
+    sendBtn.setAttribute('aria-label', 'Submit mail');
+    sendBtn.setAttribute('title', 'Submit your mail');
     btnRow.appendChild(sendBtn);
 
     // ─── Compose-form handlers ───────────────────────────
@@ -357,50 +400,51 @@ export function launchMailbox() {
       e.preventDefault();
       const fd = new FormData(form);
 
-      // Prepare data for API submission
-      const formData = {
-        name: fd.get('from'),
+      // Semantic data structure
+      const mailData = {
         email: fd.get('from'),
-        subject: fd.get('subject') || 'No Subject',
-        message: fd.get('message'),
+        title: fd.get('subject') || 'No Subject',
+        mail: fd.get('message'),
         phone: fd.get('phone') || '',
         company: fd.get('company') || ''
       };
 
-      const data = {
+      // Map semantic data to API structure
+      const apiPayload = {
         creator_model: {
-          title: `Contact: ${formData.subject}`,
+          title: `Contact: ${mailData.title}`,
+          feed_slug: "mails",
           creator_fields_attributes: {
-            "0": { html_input_label: "name", string_content: formData.name },
-            "1": { html_input_label: "email", string_content: formData.email },
-            "2": { html_input_label: "phone", string_content: formData.phone },
-            "3": { html_input_label: "company", string_content: formData.company },
-            "4": { html_input_label: "subject", string_content: formData.subject },
-            "5": { html_input_label: "message", string_content: formData.message }
+            "0": { html_input_label: "name", string_content: mailData.email }, // Using email as name for now
+            "1": { html_input_label: "email", string_content: mailData.email },
+            "2": { html_input_label: "phone", string_content: mailData.phone },
+            "3": { html_input_label: "company", string_content: mailData.company },
+            "4": { html_input_label: "subject", string_content: mailData.title },
+            "5": { html_input_label: "message", string_content: mailData.mail }
           }
         }
       };
 
-      fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', {
+      fetch(`${API_BASE_URL}end_data/public/kfjbwef`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(apiPayload)
       })
         .then(r => {
           if (r.ok) {
-            showDialogBox('Message sent successfully!', 'success');
+            showDialogBox('Mail submitted successfully!', 'success');
             loadMessages();
-            closeWindow('Compose Message');
+            closeWindow('compose-mail');
           } else {
             throw new Error('Failed to submit form');
           }
         })
-        .catch(() => showDialogBox('Error sending message.', 'error'));
+        .catch(() => showDialogBox('Error submitting mail.', 'error'));
     });
 
-    cancelBtn.addEventListener('click', () => closeWindow('Compose Message'));
+    cancelBtn.addEventListener('click', () => closeWindow('compose-mail'));
   }
 
   // ──────────────────────────────────────────────────────
@@ -418,10 +462,10 @@ Contact Form API - Easy integration for developers
 🚀 Quick Start
 Our Contact Form API allows you to easily integrate contact form functionality into any website or application. Simply POST form data to our endpoint and we'll handle the rest.
 
-Base URL: https://endpoints.relentlesscurious.com
+Base URL: https://staging.failyourunit.tv
 📝 Submit Contact Form
 POST Submit a new contact form
-https://endpoints.relentlesscurious.com/end_data/public/contact-form-create
+https://staging.failyourunit.tv/end_data/public/contact-form-create
 Parameters
 Field	Type	Required	Description
 name	string	Required	Full name of the person contacting
@@ -431,26 +475,26 @@ message	string	Required	The message content
 phone	string	Optional	Phone number for contact
 company	string	Optional	Company name
 JavaScript Example
-async function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (response.ok) { const result = await response.json(); console.log('Success:', result); return result; } else { throw new Error('Failed to submit form'); } } catch (error) { console.error('Error:', error); throw error; } } // Usage example: const formData = { name: 'John Doe', email: 'john@example.com', subject: 'General Inquiry', message: 'Hello, I have a question about your services.', phone: '555-123-4567', company: 'Example Corp' }; submitContactForm(formData) .then(result => console.log('Form submitted successfully')) .catch(error => console.error('Submission failed:', error));
+async function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; try { const response = await fetch('https://staging.failyourunit.tv/end_data/public/contact-form-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (response.ok) { const result = await response.json(); console.log('Success:', result); return result; } else { throw new Error('Failed to submit form'); } } catch (error) { console.error('Error:', error); throw error; } } // Usage example: const formData = { name: 'John Doe', email: 'john@example.com', subject: 'General Inquiry', message: 'Hello, I have a question about your services.', phone: '555-123-4567', company: 'Example Corp' }; submitContactForm(formData) .then(result => console.log('Form submitted successfully')) .catch(error => console.error('Submission failed:', error));
 
 jQuery Example
-function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; return $.ajax({ url: 'https://endpoints.relentlesscurious.com/end_data/public/contact-form-create', method: 'POST', contentType: 'application/json', data: JSON.stringify(data) }); } // Usage with jQuery: $('#contactForm').on('submit', function(e) { e.preventDefault(); const formData = { name: $('#name').val(), email: $('#email').val(), subject: $('#subject').val(), message: $('#message').val(), phone: $('#phone').val(), company: $('#company').val() }; submitContactForm(formData) .done(function(result) { alert('Thank you! Your message has been sent.'); $('#contactForm')[0].reset(); }) .fail(function() { alert('Sorry, there was an error sending your message.'); }); });
+function submitContactForm(formData) { const data = { creator_model: { title: `Contact: ${formData.subject}`, creator_fields_attributes: { "0": { html_input_label: "name", string_content: formData.name }, "1": { html_input_label: "email", string_content: formData.email }, "2": { html_input_label: "phone", string_content: formData.phone || '' }, "3": { html_input_label: "company", string_content: formData.company || '' }, "4": { html_input_label: "subject", string_content: formData.subject }, "5": { html_input_label: "message", string_content: formData.message } } } }; return $.ajax({ url: 'https://staging.failyourunit.tv/end_data/public/contact-form-create', method: 'POST', contentType: 'application/json', data: JSON.stringify(data) }); } // Usage with jQuery: $('#contactForm').on('submit', function(e) { e.preventDefault(); const formData = { name: $('#name').val(), email: $('#email').val(), subject: $('#subject').val(), message: $('#message').val(), phone: $('#phone').val(), company: $('#company').val() }; submitContactForm(formData) .done(function(result) { alert('Thank you! Your message has been sent.'); $('#contactForm')[0].reset(); }) .fail(function() { alert('Sorry, there was an error sending your message.'); }); });
 
 📊 List Submissions (Public)
 GET Retrieve contact form submissions
-https://endpoints.relentlesscurious.com/end_data/public/contact-form-data
+https://staging.failyourunit.tv/end_data/public/contact-form-data
 This endpoint returns all contact form submissions. Note: In a production environment, you may want to add authentication to this endpoint.
 
 JavaScript Example
-async function getContactSubmissions() { try { const response = await fetch('https://endpoints.relentlesscurious.com/end_data/public/contact-form-data'); if (response.ok) { const result = await response.json(); const submissions = parseSubmissionData(result.data); return submissions; } else { throw new Error('Failed to fetch submissions'); } } catch (error) { console.error('Error:', error); throw error; } } function parseSubmissionData(apiData) { const submissionGroups = {}; apiData.forEach(field => { const submissionId = field.creator_model_id; if (!submissionGroups[submissionId]) { submissionGroups[submissionId] = { id: submissionId, fields: {}, created_at: field.created_at, updated_at: field.updated_at }; } submissionGroups[submissionId].fields[field.html_input_label] = { content: field.string_content || '', fieldId: field.id }; }); return Object.values(submissionGroups).map(group => ({ id: group.id, name: group.fields.name?.content || 'Unknown', email: group.fields.email?.content || '', phone: group.fields.phone?.content || '', company: group.fields.company?.content || '', subject: group.fields.subject?.content || 'No Subject', message: group.fields.message?.content || '', created_at: group.created_at, updated_at: group.updated_at })); } // Usage: getContactSubmissions() .then(submissions => { console.log('Retrieved submissions:', submissions); // Process submissions here }) .catch(error => console.error('Failed to get submissions:', error));
+async function getContactSubmissions() { try { const response = await fetch('https://staging.failyourunit.tv/end_data/public/contact-form-data'); if (response.ok) { const result = await response.json(); const submissions = parseSubmissionData(result.data); return submissions; } else { throw new Error('Failed to fetch submissions'); } } catch (error) { console.error('Error:', error); throw error; } } function parseSubmissionData(apiData) { const submissionGroups = {}; apiData.forEach(field => { const submissionId = field.creator_model_id; if (!submissionGroups[submissionId]) { submissionGroups[submissionId] = { id: submissionId, fields: {}, created_at: field.created_at, updated_at: field.updated_at }; } submissionGroups[submissionId].fields[field.html_input_label] = { content: field.string_content || '', fieldId: field.id }; }); return Object.values(submissionGroups).map(group => ({ id: group.id, name: group.fields.name?.content || 'Unknown', email: group.fields.email?.content || '', phone: group.fields.phone?.content || '', company: group.fields.company?.content || '', subject: group.fields.subject?.content || 'No Subject', message: group.fields.message?.content || '', created_at: group.created_at, updated_at: group.updated_at })); } // Usage: getContactSubmissions() .then(submissions => { console.log('Retrieved submissions:', submissions); // Process submissions here }) .catch(error => console.error('Failed to get submissions:', error));
 
 🔒 Authentication Required Endpoints
 The following endpoints require authentication and appropriate user roles (Manager or Admin):
 
 PUT Update a submission
-https://endpoints.relentlesscurious.com/end_data/contact-form-update
+https://staging.failyourunit.tv/end_data/contact-form-update
 DELETE Delete a submission
-https://endpoints.relentlesscurious.com/end_data/contact-form-delete?id={submission_id}
+https://staging.failyourunit.tv/end_data/contact-form-delete?id={submission_id}
 Note: These endpoints require user authentication and appropriate permissions. Contact your system administrator for access.
 📝 Response Format
 Success Response

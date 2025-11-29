@@ -1,5 +1,6 @@
 // Import required functions
 import { createWindow } from '../gui/window.js';
+import { API_BASE_URL } from '../config.js';
 
 async function launchTubeStream() {
   const youtube_url = await loadPrimaryStream(); // Await the async function
@@ -34,7 +35,7 @@ async function loadPrimaryStream() {
   let data;
 
   try {
-    const response = await fetch('https://example.com/some-backend');
+    const response = await fetch(`${API_BASE_URL}api/playlists/primary.json`);
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
     data = json.playlists[0];

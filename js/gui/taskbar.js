@@ -1,7 +1,7 @@
 import { windowStates, activeMediaWindow, navWindows, desktopSettings } from '../os/manage_data.js';
 import { createWindow, minimizeWindow, bringToFront } from './window.js';
 import { toggleButtonActiveState } from './main.js';
-import { showCustomScrollbars } from '../os/custom_scrollbars.js';
+import { showCustomScrollbars, hideCustomScrollbars } from '../os/custom_scrollbars.js';
 
 // Function to update focusability of Start menu items
 export function updateStartMenuFocusability(isVisible) {
@@ -39,11 +39,20 @@ export function toggleStartMenu() {
     menu.setAttribute('aria-hidden', 'false');
     // Enable focus for menu items when visible
     updateStartMenuFocusability(true);
+    // Hide scrollbars on mobile to prevent overlap with Start menu
+    if (typeof hideCustomScrollbars === 'function') {
+      hideCustomScrollbars();
+    }
   } else {
     // Menu is becoming hidden
     menu.setAttribute('aria-hidden', 'true');
     // Disable focus for menu items when hidden
     updateStartMenuFocusability(false);
+    // Show scrollbars on mobile when Start menu closes (if no maximized windows)
+    const hasMaximizedWindows = Object.values(windowStates).some(state => state.fullScreen);
+    if (!hasMaximizedWindows && typeof showCustomScrollbars === 'function') {
+      showCustomScrollbars();
+    }
   }
 
   toggleButtonActiveState('start-button');

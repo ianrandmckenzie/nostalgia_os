@@ -111,8 +111,7 @@ import {
 
 // Import tube stream functions
 import {
-  launchTubeStream,
-  loadPrimaryStream
+  launchTubeStream
 } from './apps/tube_stream.js';
 
 // Import media player functions
@@ -274,7 +273,6 @@ if (typeof window !== 'undefined') {
 
   // TubeStream functions
   window.launchTubeStream = launchTubeStream;
-  window.loadPrimaryStream = loadPrimaryStream;
 
   // Media Player functions
   window.launchMediaPlayer = launchMediaPlayer;

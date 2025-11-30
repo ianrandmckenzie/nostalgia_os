@@ -8,16 +8,16 @@ export async function probeApiEndpoints() {
 
   const checkEndpoint = async (url) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
       const response = await fetch(url, {
         method: 'HEAD',
         signal: controller.signal
       });
-      
+
       if (response.ok) return true;
-      
+
       // If HEAD fails (e.g. 405), try GET
       if (response.status === 405 || response.status === 404) { // Some APIs return 404 for HEAD but work for GET? Unlikely but possible if route specific
          // Actually if 404 it probably doesn't exist. But let's try GET to be sure if it's just method not allowed.
@@ -29,7 +29,7 @@ export async function probeApiEndpoints() {
          });
          return getResponse.ok;
       }
-      
+
       return false;
     } catch (error) {
       console.warn(`Probe failed for ${url}:`, error);

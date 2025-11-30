@@ -1,6 +1,26 @@
 // Import required functions
 import { createWindow } from '../gui/window.js';
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL, TUBE_STREAMS_PATH } from '../config.js';
+
+let youtubeApiPromise = null;
+
+function loadYoutubeApi() {
+  if (youtubeApiPromise) return youtubeApiPromise;
+  youtubeApiPromise = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) {
+      resolve();
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    window.onYouTubeIframeAPIReady = () => {
+      resolve();
+    };
+  });
+  return youtubeApiPromise;
+}
 
 async function launchTubeStream() {
   const win = createWindow('TubeStream', '<div class="p-2 h-full flex items-center justify-center">Loading...</div>', false, 'tubestream', false, false, { type: 'integer', width: 580, height: 380 }, 'default', null, 'white');
@@ -14,26 +34,159 @@ async function initializeTubeStreamUI(win) {
   const contentDiv = win.querySelector('.p-2');
   if (!contentDiv) return;
 
-  const youtube_url = await loadPrimaryStream(); // Await the async function
-
   // Check if YouTube is reachable
   const isOnline = await checkYouTubeConnectivity();
 
-  let content;
-  if (isOnline) {
-    content = `<iframe width="100%" height="100%" style="margin:0 auto; border:none;" src="${youtube_url}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
-  } else {
-    content = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; flex-direction: column; text-align: center; padding: 20px; font-family: 'MS Sans Serif', sans-serif;">
+  if (!isOnline) {
+    contentDiv.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; flex-direction: column; text-align: center; padding: 20px; font-family: 'MS Sans Serif', sans-serif;">
       <p>Unable to connect to YouTube.</p>
       <p>You might be offline or there is a network error.</p>
     </div>`;
+    return;
   }
 
-  // Update content
-  contentDiv.innerHTML = content;
-  contentDiv.style.padding = '0'; // Remove padding for iframe
+  // Fetch playlist data
+  let playlistData = [];
+  try {
+    const response = await fetch(`${API_BASE_URL}${TUBE_STREAMS_PATH}`);
+    if (!response.ok) throw new Error('Network response was not ok');
+    const json = await response.json();
+    playlistData = json.playlists;
+  } catch (error) {
+    console.warn('Error fetching playlist, using fallback:', error);
+    playlistData = myPlaylist.playlists;
+  }
+
+  if (!playlistData || playlistData.length === 0) {
+      contentDiv.innerHTML = '<div class="p-4 text-center">No content available.</div>';
+      return;
+  }
+
+  // Initialize state
+  win.tubeStreamState = {
+      playlistData: playlistData,
+      currentIndex: 0,
+      player: null
+  };
+
+  // Load YouTube API
+  await loadYoutubeApi();
+
+  // Prepare container
+  contentDiv.innerHTML = '';
+  contentDiv.style.padding = '0';
   contentDiv.style.height = '100%';
   contentDiv.style.overflow = 'hidden';
+
+  const playerDivId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const playerDiv = document.createElement('div');
+  playerDiv.id = playerDivId;
+  contentDiv.appendChild(playerDiv);
+
+  loadVideo(win);
+}
+
+function loadVideo(win) {
+    const state = win.tubeStreamState;
+    if (!state || !state.playlistData) return;
+
+    const data = state.playlistData[state.currentIndex];
+
+    // Construct player vars
+    let playerVars = {
+        'autoplay': 1,
+        'controls': 1,
+        'rel': 0,
+        'fs': 1,
+        'enablejsapi': 1
+    };
+
+    // Parse custom parameters
+    if (data.custom_parameters) {
+        const params = new URLSearchParams(data.custom_parameters.replace(/&amp;/g, '&'));
+        for (const [key, value] of params) {
+            if (key === 'loop') continue;
+            playerVars[key] = value === 'true' ? 1 : (value === 'false' ? 0 : value);
+        }
+    }
+
+    let videoId = null;
+    let listId = null;
+
+    if (data.type === 'single' || data.type === 'livestream') {
+        videoId = data.video_id;
+    } else {
+        // Playlist
+        videoId = data.beginning_video_id;
+        listId = data.playlist_id;
+    }
+
+    if (state.player && typeof state.player.loadVideoById === 'function') {
+        if (listId) {
+             state.player.loadPlaylist({
+                 list: listId,
+                 listType: 'playlist',
+                 index: 0,
+                 startSeconds: 0
+             });
+        } else {
+            state.player.loadVideoById(videoId);
+        }
+    } else {
+        const playerConfig = {
+            height: '100%',
+            width: '100%',
+            playerVars: playerVars,
+            events: {
+                'onStateChange': (event) => onPlayerStateChange(event, win)
+            }
+        };
+
+        if (listId) {
+            playerConfig.playerVars.listType = 'playlist';
+            playerConfig.playerVars.list = listId;
+            if (videoId) {
+                playerConfig.videoId = videoId;
+            }
+        } else {
+            playerConfig.videoId = videoId;
+        }
+
+        state.player = new YT.Player(win.querySelector('div').id, playerConfig);
+    }
+}
+
+function onPlayerStateChange(event, win) {
+    if (event.data === YT.PlayerState.ENDED) {
+        const state = win.tubeStreamState;
+        const data = state.playlistData[state.currentIndex];
+
+        if (data.type === 'playlist') {
+             // Check if we are at the end of the YouTube playlist
+             const player = state.player;
+             if (player && player.getPlaylist) {
+                 const playlist = player.getPlaylist();
+                 const index = player.getPlaylistIndex();
+                 // If playlist is null or empty, or we are at the last index
+                 if (playlist && index === playlist.length - 1) {
+                     playNextItem(win);
+                 }
+             } else {
+                 playNextItem(win);
+             }
+        } else {
+            playNextItem(win);
+        }
+    }
+}
+
+function playNextItem(win) {
+    const state = win.tubeStreamState;
+    state.currentIndex++;
+    if (state.currentIndex >= state.playlistData.length) {
+        state.currentIndex = 0;
+    }
+    loadVideo(win);
 }
 
 function checkYouTubeConnectivity() {
@@ -43,43 +196,6 @@ function checkYouTubeConnectivity() {
     img.onerror = () => resolve(false);
     img.src = "https://img.youtube.com/vi/qhCsL1cx4Qc/default.jpg?" + new Date().getTime();
   });
-}
-
-async function loadPrimaryStream() {
-  const base_url = 'https://www.youtube.com/embed';
-  let data;
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${TUBE_STREAMS_PATH}`);
-    if (!response.ok) throw new Error('Network response was not ok');
-    const json = await response.json();
-    data = json.playlists[0];
-  } catch (error) {
-    console.warn('Error fetching playlist, using fallback:', error);
-    data = myPlaylist.playlists[0];
-  }
-
-  try {
-    let custom_params = data.custom_parameters;
-    // Decode HTML entities if present (e.g. &amp; -> &)
-    if (custom_params) {
-      custom_params = custom_params.replace(/&amp;/g, '&');
-    }
-
-    // Check if this is a single video/livestream or a playlist
-    if (data.type === 'single' || data.type === 'livestream') {
-      const video_id = data.video_id;
-      return `${base_url}/${video_id}?${custom_params}`;
-    } else {
-      // Default to playlist type
-      const video_id = data.beginning_video_id;
-      const playlist_id = data.playlist_id;
-      return `${base_url}/${video_id}?list=${playlist_id}&${custom_params}`;
-    }
-  } catch (error) {
-    console.error('Error constructing stream URL:', error);
-    return 'https://www.youtube.com/embed/qhCsL1cx4Qc?autoplay=true'; // Default fallback URL
-  }
 }
 
 const myPlaylist = {
@@ -117,6 +233,5 @@ const myPlaylist = {
 // Export functions
 export {
   launchTubeStream,
-  loadPrimaryStream,
   initializeTubeStreamUI
 };

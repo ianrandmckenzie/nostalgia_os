@@ -122,6 +122,7 @@ webpack-stats.json
 
 # Local development files
 *.local
+js/config.original.js
 
 # Archive files
 *.zip

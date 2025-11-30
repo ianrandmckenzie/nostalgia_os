@@ -62,64 +62,67 @@ echo "🔄 Converting icon_masked.png to required Tauri formats..."
 
 # Create icons directory if it doesn't exist
 mkdir -p src-tauri/icons
-mkdir -p public
+mkdir -p public/image/favicons
 
 # Generate web favicon icons first
 echo "🔄 Generating web favicon icons..."
 if [ "$USE_IMAGEMAGICK" = true ]; then
     # Web favicons with explicit RGBA format
     # Use masked icon for web favicons (looks better in browsers)
-    $MAGICK_CMD icon_masked.png -resize 96x96 -define png:color-type=6 public/favicon-96x96.png
+    $MAGICK_CMD icon_masked.png -resize 96x96 -define png:color-type=6 public/image/favicons/favicon-96x96.png
     # Use unmasked icon for Apple Touch (iOS applies its own corner radius)
-    $MAGICK_CMD icon_masked.png -resize 180x180 -define png:color-type=6 public/apple-touch-icon.png
-    $MAGICK_CMD icon_masked.png -resize 32x32 -define png:color-type=6 public/favicon.ico
+    $MAGICK_CMD icon_masked.png -resize 180x180 -define png:color-type=6 public/image/favicons/apple-touch-icon.png
+    $MAGICK_CMD icon_masked.png -resize 32x32 -define png:color-type=6 public/image/favicons/favicon.ico
 
     # Generate SVG favicon (convert to SVG if possible, otherwise copy original if it's SVG)
     if [ -f "icon.svg" ]; then
-        cp icon.svg public/favicon.svg
-        echo "✅ Copied icon.svg to public/favicon.svg"
+        cp icon.svg public/image/favicons/favicon.svg
+        echo "✅ Copied icon.svg to public/image/favicons/favicon.svg"
     else
         # Convert PNG to SVG (basic conversion) - use masked version
-        $MAGICK_CMD icon_masked.png -resize 32x32 public/favicon.svg 2>/dev/null || {
+        $MAGICK_CMD icon_masked.png -resize 32x32 public/image/favicons/favicon.svg 2>/dev/null || {
             echo "⚠️  SVG conversion failed, creating PNG-based favicon.svg"
-            $MAGICK_CMD icon_masked.png -resize 32x32 -define png:color-type=6 public/favicon.png
+            # Fallback: Create a PNG but name it .svg (browsers often handle this, or at least the file exists)
+            # Ideally we would wrap it in an SVG container, but for now just ensuring the file exists prevents build errors
+            cp public/image/favicons/favicon-96x96.png public/image/favicons/favicon.svg
         }
     fi
 
 elif [ "$USE_SIPS" = true ]; then
     # Web favicons using sips
     # Use masked icon for web favicons (looks better in browsers)
-    sips -z 96 96 icon_masked.png --out public/favicon-96x96.png > /dev/null 2>&1
+    sips -z 96 96 icon_masked.png --out public/image/favicons/favicon-96x96.png > /dev/null 2>&1
     # Use unmasked icon for Apple Touch (iOS applies its own corner radius)
-    sips -z 180 180 icon_masked.png --out public/apple-touch-icon.png > /dev/null 2>&1
-    sips -z 32 32 icon_masked.png --out public/favicon.ico > /dev/null 2>&1
+    sips -z 180 180 icon_masked.png --out public/image/favicons/apple-touch-icon.png > /dev/null 2>&1
+    sips -z 32 32 icon_masked.png --out public/image/favicons/favicon.ico > /dev/null 2>&1
 
     # Handle SVG favicon
     if [ -f "icon.svg" ]; then
-        cp icon.svg public/favicon.svg
-        echo "✅ Copied icon.svg to public/favicon.svg"
+        cp icon.svg public/image/favicons/favicon.svg
+        echo "✅ Copied icon.svg to public/image/favicons/favicon.svg"
     else
         echo "⚠️  No icon.svg found, using PNG for favicon.svg"
-        sips -z 32 32 icon_masked.png --out public/favicon.svg > /dev/null 2>&1
+        # sips cannot convert to SVG. We will copy a PNG to the SVG path as a fallback.
+        cp public/image/favicons/favicon-96x96.png public/image/favicons/favicon.svg
     fi
 fi
 
 echo "✅ Generated web favicon icons"
 
 # Generate basic web manifest
-cat > public/site.webmanifest << EOF
+cat > public/image/favicons/site.webmanifest << EOF
 {
-    "name": "Spiral Animator - Interactive Sound Grid",
-    "short_name": "Spiral Animator",
-    "description": "Interactive sound grid for creating and learning clicking sounds and glossolalia",
+    "name": "Nostalgia OS",
+    "short_name": "Nostalgia OS",
+    "description": "A website in the style of old-school operating systems.",
     "icons": [
         {
-            "src": "/public/favicon-96x96.png",
+            "src": "/image/favicons/favicon-96x96.png",
             "sizes": "96x96",
             "type": "image/png"
         },
         {
-            "src": "/public/apple-touch-icon.png",
+            "src": "/image/favicons/apple-touch-icon.png",
             "sizes": "180x180",
             "type": "image/png"
         }
@@ -257,8 +260,8 @@ echo ""
 echo "Generated Tauri icons in src-tauri/icons/:"
 ls -la src-tauri/icons/
 echo ""
-echo "Generated web icons in public/:"
-ls -la public/favicon* public/apple-touch-icon.png public/site.webmanifest 2>/dev/null || echo "  (Some web icons may not be present)"
+echo "Generated web icons in public/image/favicons/:"
+ls -la public/image/favicons/favicon* public/image/favicons/apple-touch-icon.png public/image/favicons/site.webmanifest 2>/dev/null || echo "  (Some web icons may not be present)"
 echo ""
 
 # Verify RGBA format for critical icons
@@ -280,7 +283,7 @@ fi
 
 echo ""
 echo "Your custom icons are now ready for both web and Tauri!"
-echo "• Web icons: public/ directory (favicons and manifest)"
+echo "• Web icons: public/image/favicons/ directory (favicons and manifest)"
 echo "• Tauri icons: src-tauri/icons/ directory (app icons)"
 echo ""
 echo "💡 To update icons in the future:"

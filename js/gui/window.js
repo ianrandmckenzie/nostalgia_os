@@ -1411,7 +1411,7 @@ window.addEventListener('resize', () => {
       if (!e.touches || e.touches.length !== 1) { clearTimer(); return; }
 
       // Ignore editable fields
-      const t = e.target.closest('input, textarea, [contenteditable="true"]');
+      const t = e.target.closest && e.target.closest('input, textarea, [contenteditable="true"]');
       if (t) { clearTimer(); return; }
 
       const touch = e.touches[0];

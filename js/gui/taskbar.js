@@ -173,9 +173,18 @@ document.getElementById('min-all-btn').addEventListener('click', () => {
 });
 
 
-document.getElementById('start-button').addEventListener('click', () => {
+document.getElementById('start-button').addEventListener('click', (e) => {
+  e.preventDefault(); // Prevent any default behavior
+  e.stopPropagation(); // Stop bubbling
   toggleStartMenu();
 });
+
+// Add touchstart listener for better mobile responsiveness
+document.getElementById('start-button').addEventListener('touchstart', (e) => {
+  e.preventDefault(); // Prevent ghost clicks
+  e.stopPropagation();
+  toggleStartMenu();
+}, { passive: false });
 
 function toggleStartIcon() {
   const btnIcon = document.getElementById('start-button').querySelector('img');

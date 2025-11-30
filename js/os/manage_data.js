@@ -537,28 +537,84 @@ export async function initializeAppState() {
   }
 
   if (!appStateData) {
+    let initialData = null;
 
-    // Initialize startMenuOrder to empty array for new installs
-    startMenuOrder = [];
-    if (typeof window !== 'undefined') {
-      window.startMenuOrder = startMenuOrder;
+    try {
+        // Check for custom config
+        const customConfigResponse = await fetch('custom-config.js', { method: 'HEAD' });
+        if (customConfigResponse.ok) {
+            try {
+                const customDataResponse = await fetch('custom_data/data.json');
+                if (customDataResponse.ok) {
+                    initialData = await customDataResponse.json();
+                    console.log('Loaded initial state from custom_data');
+                }
+            } catch (e) {
+                console.warn('Failed to load custom_data/data.json despite custom-config.js presence', e);
+            }
+        }
+
+        // If no custom data loaded, try default data
+        if (!initialData) {
+            try {
+                const defaultDataResponse = await fetch('default_data/data.json');
+                if (defaultDataResponse.ok) {
+                    initialData = await defaultDataResponse.json();
+                    console.log('Loaded initial state from default_data');
+                }
+            } catch (e) {
+                console.warn('Failed to load default_data/data.json', e);
+            }
+        }
+    } catch (e) {
+        console.warn('Error checking for initial data', e);
     }
 
-    // Migrate the default file system to the unified structure
-    const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
+    if (initialData) {
+        // Use the loaded data
+        if (initialData.fileSystemState) {
+             initialData.fileSystemState = migrateFileSystemToUnifiedStructure(initialData.fileSystemState);
+        }
 
-    // No saved state; initialize using the migrated file system.
-    const initialState = {
-      fileSystemState: migratedFileSystemState,
-      windowStates: windowStates,
-      desktopIconsState: desktopIconsState,
-      desktopSettings: desktopSettings,
-      navWindows: navWindows
-    };
-    try {
-      await storage.setItem('appState', initialState);
-    } catch (error) {
-      console.error('Failed to save initial app state:', error);
+        fileSystemState = initialData.fileSystemState || fileSystemState;
+        windowStates = initialData.windowStates || {};
+        desktopIconsState = initialData.desktopIconsState || {};
+        desktopSettings = initialData.desktopSettings || desktopSettings;
+        navWindows = initialData.navWindows || {};
+        startMenuOrder = initialData.startMenuOrder || [];
+
+        if (typeof window !== 'undefined') {
+            window.startMenuOrder = startMenuOrder;
+        }
+
+        try {
+            await storage.setItem('appState', initialData);
+        } catch (error) {
+            console.error('Failed to save loaded initial state:', error);
+        }
+    } else {
+        // Initialize startMenuOrder to empty array for new installs
+        startMenuOrder = [];
+        if (typeof window !== 'undefined') {
+          window.startMenuOrder = startMenuOrder;
+        }
+
+        // Migrate the default file system to the unified structure
+        const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
+
+        // No saved state; initialize using the migrated file system.
+        const initialState = {
+          fileSystemState: migratedFileSystemState,
+          windowStates: windowStates,
+          desktopIconsState: desktopIconsState,
+          desktopSettings: desktopSettings,
+          navWindows: navWindows
+        };
+        try {
+          await storage.setItem('appState', initialState);
+        } catch (error) {
+          console.error('Failed to save initial app state:', error);
+        }
     }
 
     // Add the default song to the Media folder on first load

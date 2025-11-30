@@ -134,6 +134,7 @@ import {
   openSecurityPolicy
 } from './os/router.js';
 import { initializeDesktopPan } from './os/desktop_pan.js';
+import './utils/dev_tools.js';
 
 export const version = '1.0';
 
@@ -471,7 +472,7 @@ document.addEventListener('keydown', function(e) {
     completeCurrentWindowCycle();
   }
 
-  if (e.ctrlKey || e.metaKey) {
+  if (e.ctrlKey) {
     switch(e.key) {
       case 'w':
         e.preventDefault();

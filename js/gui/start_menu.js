@@ -1959,7 +1959,10 @@ function focusMenuItem(index, showSubmenu = false) {
   // Add global keyboard listener for Windows/Cmd key to open start menu
   document.addEventListener('keydown', function(e) {
     // Check for Windows key (Meta key) on both Windows and macOS
-    if (e.key === 'Meta' || e.key === 'OS') {
+    // But ignore on Mac to prevent interfering with OS shortcuts
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    
+    if ((e.key === 'Meta' || e.key === 'OS') && !isMac) {
       e.preventDefault();
       const startMenu = document.getElementById('start-menu');
       const startButton = document.getElementById('start-button');

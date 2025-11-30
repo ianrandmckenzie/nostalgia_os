@@ -152,6 +152,12 @@ class KeyboardService {
   handleGlobalKeyboard(event) {
     const target = event.target;
     const inEditable = /input|textarea|select/i.test(target.tagName) || target.isContentEditable;
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
+    // Ignore all Meta key combinations on Mac to prevent overriding OS behavior
+    if (isMac && event.metaKey) {
+      return;
+    }
 
     // Shortcut Mode processing
     if (this.shortcutMode) {

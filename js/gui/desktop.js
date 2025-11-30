@@ -587,16 +587,16 @@ export async function renderDesktopIcons() {
           e.preventDefault();
           endKeyboardDrag(false);
         }
-      } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
-        // Ctrl/Cmd + D to start drag mode
+      } else if (e.key === 'd' && e.ctrlKey) {
+        // Ctrl + D to start drag mode
         e.preventDefault();
         startKeyboardDrag(iconElem);
-      } else if (e.key === 'x' && (e.ctrlKey || e.metaKey)) {
-        // Ctrl/Cmd + X to cut
+      } else if (e.key === 'x' && e.ctrlKey) {
+        // Ctrl + X to cut
         e.preventDefault();
         cutIcon(iconElem);
-      } else if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
-        // Ctrl/Cmd + V to paste
+      } else if (e.key === 'v' && e.ctrlKey) {
+        // Ctrl + V to paste
         e.preventDefault();
         pasteIcon();
       } else if (e.key === 'g' && keyboardDragState.isActive && keyboardDragState.selectedIcon === iconElem) {

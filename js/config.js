@@ -35,7 +35,8 @@ const CONFIG = {
     ],
     db_name: 'FailureUnitTV',
     site_name: 'FU TV',
-    branding_images: 'custom_branding'
+    branding_images: 'custom_branding',
+    disable_devvit: true
 };
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '0.0.0.0';
@@ -45,3 +46,4 @@ export const API_BASE_URL = CONFIG[currentEnv].API_BASE_URL;
 export const SUGGESTIONS_LIST_PATH = CONFIG[currentEnv].SUGGESTIONS_LIST_PATH;
 export const SUGGESTIONS_SUBMISSIONS_PATH = CONFIG[currentEnv].SUGGESTIONS_SUBMISSIONS_PATH;
 export const TUBE_STREAMS_PATH = CONFIG[currentEnv].TUBE_STREAMS_PATH;
+export const DISABLE_DEVVIT = CONFIG.disable_devvit || false;

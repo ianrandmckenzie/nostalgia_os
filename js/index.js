@@ -1,28 +1,31 @@
 // Main entry point for Nostalgia OS
+import { DISABLE_DEVVIT } from './config.js';
 import { storage } from './os/indexeddb_storage.js';
 
 // Set default Devvit flag
 window.isDevvit = false;
 
 // Add message listener for Devvit communication
-window.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'devvit-message') {
-    const message = event.data.data.message;
-    if (message.type === 'initialData') {
-      window.isDevvit = true;
-      // Store the game scores for later use
-      window.devvitGameScores = message.data.gameScores;
-    } else if (message.type === 'updateGameScore') {
-      // Update the stored scores when Devvit sends updates
-      if (window.devvitGameScores) {
-        window.devvitGameScores[message.data.game] = {
-          ...window.devvitGameScores[message.data.game],
-          score: message.data.score
-        };
+if (!DISABLE_DEVVIT) {
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'devvit-message') {
+      const message = event.data.data.message;
+      if (message.type === 'initialData') {
+        window.isDevvit = true;
+        // Store the game scores for later use
+        window.devvitGameScores = message.data.gameScores;
+      } else if (message.type === 'updateGameScore') {
+        // Update the stored scores when Devvit sends updates
+        if (window.devvitGameScores) {
+          window.devvitGameScores[message.data.game] = {
+            ...window.devvitGameScores[message.data.game],
+            score: message.data.score
+          };
+        }
       }
     }
-  }
-});
+  });
+}
 import {
   initializeAppState,
   restoreWindows,
@@ -378,7 +381,7 @@ window.addEventListener('click', async function (e) {
 
 window.addEventListener('load', async function () {
   // Send webViewReady message to Devvit if we're in an iframe (likely Devvit context)
-  if (window.parent !== window) {
+  if (!DISABLE_DEVVIT && window.parent !== window) {
     window.parent.postMessage({
       type: 'webViewReady'
     }, '*');

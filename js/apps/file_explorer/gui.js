@@ -462,7 +462,7 @@ document.addEventListener('click', e => {
 });
 
 // Looks up a file by its ID (from desktop or current folder) and opens it.
-export function openFile(incoming_file, e) {
+export async function openFile(incoming_file, e) {
   const existingWindow = document.getElementById(incoming_file);
   if (existingWindow) {
     const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
@@ -514,51 +514,32 @@ export function openFile(incoming_file, e) {
         }
       }, 100);
     } else if (file.content_type === 'markdown' || file.content_type === 'md') {
+      // Pre-populate storage to ensure data is available for the editor
+      const storageKey = `letterpad_${file.id}`;
+      let contentToStore = file.content || file.contents || '';
+
+      try {
+        const existingData = await storage.getItem(storageKey);
+        if (existingData && existingData.content !== undefined) {
+          contentToStore = existingData.content;
+        }
+      } catch (e) {
+        console.warn('Error checking existing storage for markdown file:', e);
+      }
+
+      await storage.setItem(storageKey, { content: contentToStore });
+
       content = `<div id="file-content" style="padding:10px;">
         <div class="letterpad_editor min-h-48 h-full w-full" data-letterpad-editor-id="${file.id}"></div>
       </div>`;
       windowType = 'editor';
 
-      // Initialize the LetterPad editor with existing content after the window is created
+      // Initialize the LetterPad editor after the window is created
       setTimeout(async () => {
-        // Store the file content in the expected storage format for the editor
-        const storageKey = `letterpad_${file.id}`;
-
-        // Check if there's already content in storage (from previous edits)
-        let contentToStore = file.content || file.contents || '';
-
-        try {
-          const existingData = await storage.getItem(storageKey);
-          if (existingData && existingData.content !== undefined) {
-            // If there's existing content in storage, use that instead of file content
-            contentToStore = existingData.content;
-          }
-
-          await storage.setItem(storageKey, { content: contentToStore });
-
-          // Initialize the editor
           const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
           if (editorContainer && typeof initializeLetterPad === 'function') {
             await initializeLetterPad(editorContainer);
           }
-        } catch (error) {
-          console.warn('Failed to initialize LetterPad editor:', error);
-          // Fallback to sync methods if async fails
-          try {
-            const existingData = storage.getItemSync(storageKey);
-            if (existingData && existingData.content !== undefined) {
-              contentToStore = existingData.content;
-            }
-            storage.setItemSync(storageKey, { content: contentToStore });
-
-            const editorContainer = document.querySelector(`[data-letterpad-editor-id="${file.id}"]`);
-            if (editorContainer && typeof initializeLetterPad === 'function') {
-              await initializeLetterPad(editorContainer);
-            }
-          } catch (fallbackError) {
-            console.error('Failed to initialize LetterPad editor with fallback:', fallbackError);
-          }
-        }
       }, 100);
     } else if (file.content_type === 'html') {
       content = file.content || file.contents || `<p style="padding:10px;">Empty HTML file.</p>`;
@@ -604,6 +585,10 @@ export function openFile(incoming_file, e) {
       } else if (file.file && file.file instanceof File) {
         const imageURL = URL.createObjectURL(file.file);
         content = `<img src="${imageURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+      } else if (file.isDefault || file.isSystemFile || file.path) {
+        // Handle default/system image files that reference static media files
+        const imagePath = file.path || `media/${file.name}`;
+        content = `<img src="${imagePath}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
       } else {
         content = `<p style="padding:10px;">Image file not found or invalid.<br>Debug: isLargeFile=${file.isLargeFile}, storage=${file.storageLocation}</p>`;
       }

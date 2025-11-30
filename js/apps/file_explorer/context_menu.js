@@ -8,6 +8,7 @@ import { makeWin95Button, toggleButtonActiveState, makeWin95Prompt } from '../..
 import { renderDesktopIcons } from '../../gui/desktop.js';
 import { storage } from '../../os/indexeddb_storage.js';
 import { initializeLetterPad } from '../letterpad.js';
+import { moveItemToCompostBin } from '../../apps/compost_bin.js';
 
 /* =====================
    Context Menu & Creation Functions
@@ -195,7 +196,7 @@ export function showContextMenu(e, target, fromFullPath) {
       }
 
       addItem('Edit Name',  isVendor, ev => editItemName(ev));
-      addItem('Delete',     isVendor, ev => deleteItem(ev));
+      addItem('Send to Compost Bin', isVendor, ev => sendToCompostBin(ev));
       addItem('New Folder', true);
       addItem('New File',   true);
       addItem('New Shortcut', true);
@@ -403,10 +404,7 @@ function editItemName(e, menuItem) {
   });
 }
 
-/* =====================================================
-   Delete item – uses a custom confirmation window
-   ===================================================== */
-function deleteItem(e) {
+function sendToCompostBin(e) {
   e.stopPropagation();
   hideContextMenu();
 
@@ -417,106 +415,13 @@ function deleteItem(e) {
     return;
   }
 
-  /* ── gather context data ───────────────────────────── */
-  const fileId       = targetElem.getAttribute('data-item-id');
+  const fileId = targetElem.getAttribute('data-item-id');
   const explorerElem = targetElem.closest('.file-explorer-window');
-  const contextPath  = explorerElem
+  const contextPath = explorerElem
         ? explorerElem.getAttribute('data-current-path')
         : targetElem.getAttribute('data-current-path');
 
-  const fs   = getFileSystemStateSync();
-
-  // Safety check to ensure file system state is properly initialized
-  if (!fs || !fs.folders) {
-    console.error('File system state not properly initialized:', fs);
-    showDialogBox('File system not initialized. Please refresh the page.', 'error');
-    return;
-  }
-
-  // Use the modern unified approach: fs.folders[contextPath] for folder contents
-  let folderContents = fs.folders[contextPath];
-
-  if (!folderContents) {
-    console.error('Folder contents not found for path:', contextPath);
-    console.error('Available folders:', Object.keys(fs.folders));
-    showDialogBox('Folder not found in file system.', 'error');
-    return;
-  }
-
-  if (!(fileId in folderContents)) {
-    console.error('Item not found in folder:', fileId, 'at path:', contextPath);
-    console.error('Available items:', Object.keys(folderContents));
-    showDialogBox('Item not found.', 'error');
-    return;
-  }
-
-  /* ── confirmation window ───────────────────────────── */
-  const winId = `window-${Date.now()}`;
-  const win   = createWindow(
-    'Delete File?', '', false, winId, false, false,
-    { type:'integer', width:320, height:140 }, 'Default'
-  );
-  const box   = win.querySelector('.p-2');
-  box.classList.add('p-4', 'flex', 'flex-col', 'justify-between', 'h-full');
-
-  const msg = document.createElement('p');
-  msg.textContent = 'Are you sure you want to delete this file?';
-  box.appendChild(msg);
-
-  const btnRow = document.createElement('div');
-  btnRow.className = 'flex justify-end space-x-2';
-  box.appendChild(btnRow);
-
-  // helpers already defined earlier
-  const cancelBtn = makeWin95Button('Cancel');
-  const deleteBtn = makeWin95Button('Delete');
-  btnRow.append(cancelBtn, deleteBtn);
-
-  /* ── handlers ──────────────────────────────────────── */
-  cancelBtn.addEventListener('click', () => closeWindow(winId));
-
-  deleteBtn.addEventListener('click', async () => {
-    // Get the file object before deletion to check if it's a music file
-    const deletedFile = folderContents[fileId];
-    const isMediaFile = deletedFile && deletedFile.content_type && ['mp3', 'wav', 'ogg', 'audio'].includes(deletedFile.content_type);
-    const isFromMediaFolder = contextPath === 'C://Media';
-
-    // Clean up desktop icon position if deleting from desktop
-    if (contextPath === 'C://Desktop') {
-      const iconId = 'icon-' + fileId;
-      if (desktopIconsState[iconId]) {
-        delete desktopIconsState[iconId];
-      }
-    }
-
-    // remove file
-    delete folderContents[fileId];
-
-    // Update the filesystem state with the modified folder contents
-    fs.folders[contextPath] = folderContents;
-
-    // Save state first, then update UI
-    await setFileSystemStateStorage(fs);
-
-    // Refresh all explorer windows showing this path
-    refreshAllExplorerWindows(contextPath);
-
-    // If deleting from desktop, also refresh desktop icons
-    if (contextPath === 'C://Desktop') {
-      renderDesktopIcons();
-    }
-
-    // If a music file was deleted from C://Media, refresh the media player playlist
-    if (isMediaFile && isFromMediaFolder) {
-      if (typeof window.refreshMediaPlayerPlaylist === 'function') {
-        setTimeout(() => {
-          window.refreshMediaPlayerPlaylist();
-        }, 100);
-      }
-    }
-
-    closeWindow(winId);
-  });
+  moveItemToCompostBin(fileId, contextPath);
 }
 
 export function createNewFolder(e, fromFullPath) {

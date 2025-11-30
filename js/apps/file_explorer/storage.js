@@ -1,5 +1,7 @@
 import { storage } from '../../os/indexeddb_storage.js';
 
+let fileSystemState; // Local variable to hold state
+
 /* =====================
    Getter & Setter for fileSystemState
    Always retrieve and update state from IndexedDB.
@@ -45,6 +47,9 @@ export async function setFileSystemState(newFS) {
     appState.fileSystemState = newFS;
     await storage.setItem('appState', appState);
     fileSystemState = newFS; // update global variable for consistency
+    if (typeof window !== 'undefined') {
+      window.fileSystemState = newFS;
+    }
   } catch (error) {
     console.warn('Failed to set file system state in IndexedDB:', error);
     // Fallback to sync method
@@ -53,6 +58,9 @@ export async function setFileSystemState(newFS) {
       appState.fileSystemState = newFS;
       storage.setItemSync('appState', appState);
       fileSystemState = newFS;
+      if (typeof window !== 'undefined') {
+        window.fileSystemState = newFS;
+      }
     } catch (fallbackError) {
       console.error('Failed to set file system state with fallback:', fallbackError);
     }
@@ -258,10 +266,16 @@ function fetchDocumentsSync() {
       appState.fileSystemState = fs;
       storage.setItemSync('appState', appState);
       fileSystemState = fs;
+      if (typeof window !== 'undefined') {
+        window.fileSystemState = fs;
+      }
     } catch (error) {
       console.warn('Failed to save file system state sync:', error);
       // At least update the global variable
       fileSystemState = fs;
+      if (typeof window !== 'undefined') {
+        window.fileSystemState = fs;
+      }
     }
   } catch (error) {
     console.error("Error loading documents sync:", error);

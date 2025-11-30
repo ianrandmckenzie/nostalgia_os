@@ -35,7 +35,8 @@ export function launchSolitaire() {
 export async function initializeSolitaireUI(win) {
   // Get the content area
   const content = win.querySelector('.p-2');
-  content.className = 'p-2 bg-green-600 h-full overflow-hidden';
+  // Remove padding so the menu bar spans the full width
+  content.className = 'bg-green-600 h-full overflow-hidden';
   content.style.backgroundImage = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%)';
 
   // Clear any existing content
@@ -76,7 +77,7 @@ export async function initializeSolitaireUI(win) {
 
   // Menu bar
   const menuBar = document.createElement('div');
-  menuBar.className = 'bg-gray-200 border-b border-gray-400 p-1 flex items-center space-x-4';
+  menuBar.className = 'bg-gray-200 border-b border-gray-400 p-1 flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4';
 
   const gameMenu = document.createElement('button');
   gameMenu.className = 'px-2 py-1 hover:bg-gray-300 text-sm border border-transparent hover:border-gray-400';
@@ -107,7 +108,7 @@ export async function initializeSolitaireUI(win) {
   });
 
   const scoreDisplay = document.createElement('div');
-  scoreDisplay.className = 'text-sm font-mono ml-auto flex space-x-4';
+  scoreDisplay.className = 'text-xs md:text-sm font-mono ml-auto flex space-x-2 md:space-x-4';
   scoreDisplay.innerHTML = `<span>Score: <span id="score">0</span></span><span>High: <span id="high-score">${highScore}</span></span><span>Time: <span id="time">0:00</span></span>`;
 
   // menuBar.appendChild(gameMenu); // doesn't do anything right now
@@ -117,7 +118,7 @@ export async function initializeSolitaireUI(win) {
 
   // Game area
   const gameArea = document.createElement('div');
-  gameArea.className = 'flex-1 p-4 relative overflow-scroll';
+  gameArea.className = 'flex-1 p-2 md:p-4 relative overflow-scroll';
   gameArea.id = 'solitaire-game-area';
 
   // Top row - deck, waste, and foundations
@@ -128,13 +129,13 @@ export async function initializeSolitaireUI(win) {
   const deckArea = document.createElement('div');
   deckArea.className = 'flex space-x-4 mb-4 lg:mb-0';
   const deckSlot = document.createElement('div');
-  deckSlot.className = 'w-16 h-24 border-2 border-gray-400 rounded bg-blue-800 flex items-center justify-center cursor-pointer';
+  deckSlot.className = 'w-12 h-[4.5rem] md:w-16 md:h-24 border-2 border-gray-400 rounded bg-blue-800 flex items-center justify-center cursor-pointer';
   deckSlot.style.borderStyle = 'outset';
   deckSlot.id = 'deck-slot';
   deckSlot.addEventListener('click', drawFromDeck);
 
   const wasteSlot = document.createElement('div');
-  wasteSlot.className = 'w-16 h-24 border-2 border-gray-400 rounded bg-green-700 relative';
+  wasteSlot.className = 'w-12 h-[4.5rem] md:w-16 md:h-24 border-2 border-gray-400 rounded bg-green-700 relative';
   wasteSlot.style.borderStyle = 'inset';
   wasteSlot.id = 'waste-slot';
 
@@ -147,7 +148,7 @@ export async function initializeSolitaireUI(win) {
 
   for (let i = 0; i < 4; i++) {
     const foundation = document.createElement('div');
-    foundation.className = 'w-16 h-24 border-2 border-gray-400 rounded bg-green-700 relative';
+    foundation.className = 'w-12 h-[4.5rem] md:w-16 md:h-24 border-2 border-gray-400 rounded bg-green-700 relative';
     foundation.style.borderStyle = 'inset';
     foundation.id = `foundation-${i}`;
     foundation.dataset.foundationIndex = i;
@@ -164,7 +165,7 @@ export async function initializeSolitaireUI(win) {
 
   for (let i = 0; i < 7; i++) {
     const column = document.createElement('div');
-    column.className = 'w-16 min-h-32 relative';
+    column.className = 'w-12 min-h-[6rem] md:w-16 md:min-h-32 relative';
     column.id = `tableau-${i}`;
     column.dataset.tableauIndex = i;
     column.addEventListener('click', (e) => handleTableauClick(e, i));
@@ -181,8 +182,7 @@ export async function initializeSolitaireUI(win) {
   // Card creation function
   function createCard(suit, value, faceUp = true) {
     const card = document.createElement('div');
-    card.className = `card absolute w-16 h-24 border border-gray-800 rounded bg-white cursor-pointer transition-all duration-200`;
-  card.style.fontSize = '10px';
+    card.className = `card absolute w-12 h-[4.5rem] md:w-16 md:h-24 border border-gray-800 rounded bg-white cursor-pointer transition-all duration-200 text-[10px] md:text-xs`;
   // Use the system default serif stack for card text
   card.style.fontFamily = "ui-serif, Georgia, 'Cambria', 'Times New Roman', Times, serif";
     card.style.userSelect = 'none';
@@ -195,15 +195,15 @@ export async function initializeSolitaireUI(win) {
       const color = suitColors[suit];
       card.style.color = color;
       card.innerHTML = `
-        <div class="p-1 h-full flex flex-col justify-between">
-          <div class="flex justify-between">
-            <span class="font-bold">${value}</span>
-            <span class="text-lg">${suit}</span>
+        <div class="p-0.5 md:p-1 h-full flex flex-col justify-between leading-none">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-xs md:text-sm">${value}</span>
+            <span class="text-sm md:text-lg">${suit}</span>
           </div>
-          <div class="text-center text-2xl">${suit}</div>
-          <div class="flex justify-between rotate-180">
-            <span class="font-bold">${value}</span>
-            <span class="text-lg">${suit}</span>
+          <div class="text-center text-xl md:text-2xl">${suit}</div>
+          <div class="flex justify-between items-center rotate-180">
+            <span class="font-bold text-xs md:text-sm">${value}</span>
+            <span class="text-sm md:text-lg">${suit}</span>
           </div>
         </div>
       `;
@@ -317,14 +317,16 @@ export async function initializeSolitaireUI(win) {
 
       // Add empty slot indicator
       if (gameState.tableaus[col].length === 0) {
-        column.innerHTML = '<div class="w-16 h-24 border-2 border-gray-400 border-dashed rounded bg-green-700 opacity-50"></div>';
+        column.innerHTML = '<div class="w-12 h-[4.5rem] md:w-16 md:h-24 border-2 border-gray-400 border-dashed rounded bg-green-700 opacity-50"></div>';
       }
 
       gameState.tableaus[col].forEach((card, index) => {
         const cardElement = createCard(card.suit, card.value, card.faceUp);
         cardElement.classList.add('card');
         cardElement.style.position = 'absolute';
-        cardElement.style.top = `${index * 20}px`;
+        // Responsive vertical spacing
+        const verticalSpacing = window.innerWidth < 768 ? 15 : 20;
+        cardElement.style.top = `${index * verticalSpacing}px`;
         cardElement.style.left = '0';
         cardElement.style.zIndex = index + 1;
         cardElement.dataset.tableauIndex = col;

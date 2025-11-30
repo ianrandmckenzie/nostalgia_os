@@ -57,6 +57,19 @@ async function initializeTubeStreamUI(win) {
     playlistData = myPlaylist.playlists;
   }
 
+  // Filter out invalid items (e.g. empty objects)
+  if (Array.isArray(playlistData)) {
+      playlistData = playlistData.filter(item => {
+          if (!item || typeof item !== 'object' || Object.keys(item).length === 0) return false;
+          
+          if (item.type === 'single' || item.type === 'livestream') {
+              return !!(item.video_id || item.beginning_video_id);
+          }
+          // Default case (playlist)
+          return !!item.playlist_id;
+      });
+  }
+
   if (!playlistData || playlistData.length === 0) {
       contentDiv.innerHTML = '<div class="p-4 text-center">No content available.</div>';
       return;
@@ -78,11 +91,6 @@ async function initializeTubeStreamUI(win) {
   contentDiv.style.height = '100%';
   contentDiv.style.overflow = 'hidden';
 
-  const playerDivId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const playerDiv = document.createElement('div');
-  playerDiv.id = playerDivId;
-  contentDiv.appendChild(playerDiv);
-
   loadVideo(win);
 }
 
@@ -90,7 +98,34 @@ function loadVideo(win) {
     const state = win.tubeStreamState;
     if (!state || !state.playlistData) return;
 
+    const contentDiv = win.querySelector('.p-2');
+    if (!contentDiv) return;
+
+    // Destroy existing player to avoid state issues
+    if (state.player) {
+        try {
+            if (typeof state.player.destroy === 'function') {
+                state.player.destroy();
+            }
+        } catch (e) {
+            console.warn("Error destroying player:", e);
+        }
+        state.player = null;
+    }
+
+    // Create fresh container
+    contentDiv.innerHTML = '';
+    const playerDivId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    state.playerDivId = playerDivId;
+    const playerDiv = document.createElement('div');
+    playerDiv.id = playerDivId;
+    contentDiv.appendChild(playerDiv);
+
     const data = state.playlistData[state.currentIndex];
+    if (!data) {
+        console.warn('No data for current index', state.currentIndex);
+        return;
+    }
 
     // Construct player vars
     let playerVars = {
@@ -114,74 +149,63 @@ function loadVideo(win) {
     let listId = null;
 
     if (data.type === 'single' || data.type === 'livestream') {
-        videoId = data.video_id;
+        videoId = data.video_id || data.beginning_video_id;
     } else {
         // Playlist
         videoId = data.beginning_video_id;
         listId = data.playlist_id;
     }
 
-    if (state.player && typeof state.player.loadVideoById === 'function') {
-        if (listId) {
-             state.player.loadPlaylist({
-                 list: listId,
-                 listType: 'playlist',
-                 index: 0,
-                 startSeconds: 0
-             });
-        } else {
-            state.player.loadVideoById(videoId);
+    const playerConfig = {
+        height: '100%',
+        width: '100%',
+        playerVars: playerVars,
+        events: {
+            'onStateChange': (event) => onPlayerStateChange(event, win)
         }
-    } else {
-        const playerConfig = {
-            height: '100%',
-            width: '100%',
-            playerVars: playerVars,
-            events: {
-                'onStateChange': (event) => onPlayerStateChange(event, win)
-            }
-        };
+    };
 
-        if (listId) {
-            playerConfig.playerVars.listType = 'playlist';
-            playerConfig.playerVars.list = listId;
-            if (videoId) {
-                playerConfig.videoId = videoId;
-            }
-        } else {
+    if (listId) {
+        playerConfig.playerVars.listType = 'playlist';
+        playerConfig.playerVars.list = listId;
+        if (videoId) {
             playerConfig.videoId = videoId;
         }
-
-        state.player = new YT.Player(win.querySelector('div').id, playerConfig);
+    } else {
+        playerConfig.videoId = videoId;
     }
+
+    state.player = new YT.Player(playerDivId, playerConfig);
 }
 
 function onPlayerStateChange(event, win) {
     if (event.data === YT.PlayerState.ENDED) {
         const state = win.tubeStreamState;
+        if (!state) return;
         const data = state.playlistData[state.currentIndex];
 
         if (data.type === 'playlist') {
              // Check if we are at the end of the YouTube playlist
              const player = state.player;
-             if (player && player.getPlaylist) {
+             if (player && typeof player.getPlaylist === 'function') {
                  const playlist = player.getPlaylist();
                  const index = player.getPlaylistIndex();
                  // If playlist is null or empty, or we are at the last index
-                 if (playlist && index === playlist.length - 1) {
-                     playNextItem(win);
+                 if (!playlist || playlist.length === 0 || index === playlist.length - 1) {
+                     setTimeout(() => playNextItem(win), 200);
                  }
              } else {
-                 playNextItem(win);
+                 setTimeout(() => playNextItem(win), 200);
              }
         } else {
-            playNextItem(win);
+            setTimeout(() => playNextItem(win), 200);
         }
     }
 }
 
 function playNextItem(win) {
     const state = win.tubeStreamState;
+    if (!state) return;
     state.currentIndex++;
     if (state.currentIndex >= state.playlistData.length) {
         state.currentIndex = 0;

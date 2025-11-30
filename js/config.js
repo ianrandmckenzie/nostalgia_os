@@ -30,7 +30,7 @@ const CONFIG = {
       {
         domains: ['www.youtube.com'],
         dev_domains: [],
-        types: ['frame']
+        types: ['frame', 'script']
       }
     ],
     db_name: 'NostalgiaOS',

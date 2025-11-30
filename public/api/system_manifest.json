@@ -26,7 +26,7 @@
       "name": "sample_desktop.webp",
       "version": "1.0.0",
       "path": "default_files/sample_desktop.webp",
-      "targetFolder": "C://Media",
+      "targetFolder": "C://Documents",
       "contentType": "webp",
       "icon": "image/image.webp"
     }

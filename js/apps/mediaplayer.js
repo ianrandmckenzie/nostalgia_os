@@ -276,10 +276,11 @@ async function initializeMediaPlayerUI(win) {
             }
 
             // Determine the correct path/source for the song (prioritize persistent storage)
-            if (file.isDefault && file.path) {
+            if ((file.isDefault || file.isSystemFile) && file.path) {
               // Default songs that reference static files
               playlistEntry.path = file.path;
-              playlistEntry.isDefault = true;
+              playlistEntry.isDefault = file.isDefault;
+              playlistEntry.isSystemFile = file.isSystemFile;
             } else if (file.dataURL || playlistEntry.dataURL) {
               // Songs with stored data URLs (persistent after reload)
               playlistEntry.dataURL = file.dataURL || playlistEntry.dataURL;

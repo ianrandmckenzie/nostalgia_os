@@ -188,7 +188,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
         `data-open-shortcut="true" data-url="${item.url}" title="${item.name}${extraDesc}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${item.name} shortcut icon"> ${item.name}${extraDesc}</li>`
+        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${item.name} shortcut icon"> ${item.name}</li>`
       );
     } else {
       // Validate that the item has a proper name property
@@ -199,7 +199,7 @@ export function getExplorerWindowContent(currentPath = 'C://') {
       list.push(
         `<li class="${classes}" data-item-id="${item.id}" ` +
         `data-open-file="${item.id}" title="${displayName}${extraDesc}">` +
-        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${displayName} file icon"> ${displayName}${extraDesc}</li>`
+        `<img src="${icon}" class="inline h-4 w-4 mr-2" alt="${displayName} file icon"> ${displayName}</li>`
       );
     }
   });

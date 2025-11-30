@@ -367,10 +367,29 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
       win.style.left = savedPosition.left;
       win.style.top = savedPosition.top;
     }
-    // Apply saved dimensions if restoring
+    // Apply saved dimensions if restoring, but constrain to viewport
     if (restore && savedDimensions && savedDimensions.type === 'integer') {
-      win.style.width = savedDimensions.width + 'px';
-      win.style.height = savedDimensions.height + 'px';
+      const vpWidth = window.innerWidth;
+      const vpHeight = window.innerHeight - 48; // minus taskbar
+      const headerHeight = 30;
+      const maxWidth = vpWidth - 10;
+      const maxHeight = vpHeight - headerHeight - 10;
+
+      // Constrain dimensions to viewport while maintaining minimums
+      const constrainedWidth = Math.max(320, Math.min(savedDimensions.width, maxWidth));
+      const constrainedHeight = Math.max(200, Math.min(savedDimensions.height, maxHeight));
+
+      win.style.width = constrainedWidth + 'px';
+      win.style.height = constrainedHeight + 'px';
+
+      // Update state with constrained dimensions
+      if (windowStates[windowId]) {
+        windowStates[windowId].dimensions = {
+          type: 'integer',
+          width: constrainedWidth,
+          height: constrainedHeight
+        };
+      }
     }
     if (!restore || !savedPosition) {
       if (parentWin) {
@@ -1202,7 +1221,8 @@ function showTaskbarContextMenu(e, windowId, win) {
 
   // Clear old entries
   menu.replaceChildren();
-  menu.style.zIndex = (highestZ || 1000) + 100;
+  // Ensure z-index is above scrollbars (9999) and windows
+  menu.style.zIndex = Math.max((highestZ || 1000) + 100, 10000);
 
   const addItem = (text, disabled, onclick) => {
     const item = document.createElement('div');
@@ -1281,11 +1301,28 @@ function clampWindowToViewport(win) {
   // Current size
   const rect = win.getBoundingClientRect();
   let changed = false;
-  // Constrain width/height if bigger than viewport
+
+  // Constrain width if bigger than viewport
   if (rect.width > vpWidth) {
     win.style.width = Math.max(350, vpWidth - 10) + 'px';
-    if (state) state.dimensions = { type: 'integer', width: parseInt(win.style.width), height: parseInt(win.style.height || rect.height) };
     changed = true;
+  }
+
+  // Constrain height if bigger than viewport (account for window header)
+  const headerHeight = 30; // Approximate header height
+  const maxHeight = vpHeight - headerHeight - 10; // 10px padding
+  if (rect.height > vpHeight) {
+    win.style.height = Math.max(200, maxHeight) + 'px';
+    changed = true;
+  }
+
+  // Update state dimensions if changed
+  if (changed && state) {
+    state.dimensions = {
+      type: 'integer',
+      width: parseInt(win.style.width),
+      height: parseInt(win.style.height)
+    };
   }
 
   // Reposition if off-screen (consider desktop-stage pan)

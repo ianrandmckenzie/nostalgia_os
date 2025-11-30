@@ -115,6 +115,54 @@ export function initializeMailboxUI(win) {
   // 4.  Fetch and render message list from API
   // ──────────────────────────────────────────────────────
 
+  // Helper to extract file details from URL
+  function getFileDetails(url) {
+    let name = '';
+    let ext = '';
+    try {
+      const urlObj = new URL(url, window.location.origin);
+
+      // 1. Try content-disposition for filename
+      const disposition = urlObj.searchParams.get('response-content-disposition');
+      if (disposition) {
+        const filenameMatch = disposition.match(/filename\\*?=(?:UTF-8'')?("?)([^";]+)\\1/i);
+        if (filenameMatch && filenameMatch[2]) {
+          name = decodeURIComponent(filenameMatch[2]);
+        }
+      }
+
+      // 2. Fallback to path for filename
+      if (!name) {
+        name = urlObj.pathname.split('/').pop();
+      }
+
+      // 3. Try content-type for extension
+      const contentType = urlObj.searchParams.get('response-content-type');
+      if (contentType) {
+        ext = contentType.split('/').pop();
+      }
+
+      // 4. Fallback to filename extension
+      if (!ext && name && name.includes('.')) {
+        ext = name.split('.').pop();
+      }
+
+    } catch (e) {
+      // Fallback for non-URL strings
+      const parts = url.split('/');
+      const last = parts.pop().split('?')[0];
+      name = last;
+      if (last.includes('.')) {
+        ext = last.split('.').pop();
+      }
+    }
+
+    return {
+      name: name || 'attachment',
+      ext: (ext || '').toLowerCase()
+    };
+  }
+
   // Helper function to parse API submission data
   function parseSubmissionData(apiData) {
     // The API now returns an array of objects directly, not a flat list of fields
@@ -123,13 +171,8 @@ export function initializeMailboxUI(win) {
       ['file_1', 'file_2', 'file_3'].forEach(key => {
         if (item[key]) {
           const url = item[key];
-          let name = 'attachment';
-          try {
-            name = url.split('/').pop().split('?')[0];
-          } catch (e) {
-            name = key;
-          }
-          files[key] = { name, url };
+          const details = getFileDetails(url);
+          files[key] = { name: details.name, url, ext: details.ext };
         }
       });
 
@@ -241,7 +284,10 @@ export function initializeMailboxUI(win) {
         wrapper.className = 'border p-2 rounded bg-gray-50';
 
         // Determine type by extension
-        const ext = url.split('.').pop().toLowerCase().split('?')[0];
+        let ext = f.ext;
+        if (!ext) {
+          ext = url.split('.').pop().toLowerCase().split('?')[0];
+        }
 
         if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
           const img = document.createElement('img');
@@ -377,7 +423,33 @@ export function initializeMailboxUI(win) {
       'mt-1 block w-full border border-gray-300 rounded p-2';
     form.appendChild(makeField('Company (optional)', companyInput));
 
-    // Remove attachment field as API doesn't support files
+    // Attachments
+    const attachmentsDiv = document.createElement('div');
+    attachmentsDiv.className = 'border-t border-gray-200 pt-2 mt-2';
+    form.appendChild(attachmentsDiv);
+
+    const attLabel = document.createElement('label');
+    attLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+    attLabel.textContent = 'Attachments (max 3)';
+    attachmentsDiv.appendChild(attLabel);
+
+    const fileInput1 = document.createElement('input');
+    fileInput1.type = 'file';
+    fileInput1.name = 'file1';
+    fileInput1.className = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2';
+    attachmentsDiv.appendChild(fileInput1);
+
+    const fileInput2 = document.createElement('input');
+    fileInput2.type = 'file';
+    fileInput2.name = 'file2';
+    fileInput2.className = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2';
+    attachmentsDiv.appendChild(fileInput2);
+
+    const fileInput3 = document.createElement('input');
+    fileInput3.type = 'file';
+    fileInput3.name = 'file3';
+    fileInput3.className = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100';
+    attachmentsDiv.appendChild(fileInput3);
 
     // Buttons
     const btnRow  = document.createElement('div');
@@ -406,53 +478,73 @@ export function initializeMailboxUI(win) {
     btnRow.appendChild(sendBtn);
 
     // ─── Compose-form handlers ───────────────────────────
-    form.addEventListener('submit', e => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
+
+      // Loading state
+      const originalBtnContent = sendBtn.innerHTML;
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span class="border-b-2 border-r-2 border-black block h-full w-full py-1.5 px-3">Sending...</span>';
+
       const fd = new FormData(form);
 
-      // Semantic data structure
-      const mailData = {
-        email: fd.get('from'),
-        title: fd.get('subject') || 'No Subject',
-        mail: fd.get('message'),
-        phone: fd.get('phone') || '',
-        company: fd.get('company') || ''
-      };
+      // Construct FormData payload for multipart/form-data
+      const payload = new FormData();
+      
+      // Base model fields
+      const title = fd.get('subject') || 'No Subject';
+      payload.append('creator_model[title]', `Contact: ${title}`);
+      payload.append('creator_model[feed_slug]', 'suggestions');
+      payload.append('creator_model[model_type]', 'page');
 
-      // Map semantic data to API structure
-      const apiPayload = {
-        creator_model: {
-          title: `Contact: ${mailData.title}`,
-          feed_slug: "suggestions",
-          model_type: 'page',
-          creator_fields_attributes: {
-            "0": { html_input_label: "name", string_content: mailData.email }, // Using email as name for now
-            "1": { html_input_label: "email", string_content: mailData.email },
-            "2": { html_input_label: "phone", string_content: mailData.phone },
-            "3": { html_input_label: "company", string_content: mailData.company },
-            "4": { html_input_label: "subject", string_content: mailData.title },
-            "5": { html_input_label: "message", string_content: mailData.mail }
+      // Helper to append nested attributes
+      const appendAttr = (index, label, content, isFile = false) => {
+        const prefix = `creator_model[creator_fields_attributes][${index}]`;
+        payload.append(`${prefix}[html_input_label]`, label);
+        if (isFile) {
+          // Only append if it's a valid file
+          if (content instanceof File && content.size > 0) {
+            payload.append(`${prefix}[file]`, content);
           }
+        } else {
+          payload.append(`${prefix}[string_content]`, content || '');
         }
       };
 
-      fetch(`${API_BASE_URL}${SUGGESTIONS_SUBMISSIONS_PATH}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(apiPayload)
-      })
-        .then(r => {
-          if (r.ok) {
-            showDialogBox('Mail submitted successfully!', 'success');
-            loadMessages();
-            closeWindow('compose-mail');
-          } else {
-            throw new Error('Failed to submit form');
-          }
-        })
-        .catch(() => showDialogBox('Error submitting mail.', 'error'));
+      // Text fields
+      appendAttr(0, 'name', fd.get('from')); // Using email as name
+      appendAttr(1, 'email', fd.get('from'));
+      appendAttr(2, 'phone', fd.get('phone'));
+      appendAttr(3, 'company', fd.get('company'));
+      appendAttr(4, 'subject', title);
+      appendAttr(5, 'message', fd.get('message'));
+
+      // File fields
+      appendAttr(6, 'file_1', fd.get('file1'), true);
+      appendAttr(7, 'file_2', fd.get('file2'), true);
+      appendAttr(8, 'file_3', fd.get('file3'), true);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}${SUGGESTIONS_SUBMISSIONS_PATH}`, {
+          method: 'POST',
+          // Note: Content-Type header is omitted to let browser set multipart/form-data with boundary
+          body: payload
+        });
+
+        if (response.ok) {
+          showDialogBox('Mail submitted successfully!', 'success');
+          loadMessages();
+          closeWindow('compose-mail');
+        } else {
+          throw new Error('Failed to submit form');
+        }
+      } catch (err) {
+        console.error(err);
+        showDialogBox('Error submitting mail.', 'error');
+        // Reset button state
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalBtnContent;
+      }
     });
 
     cancelBtn.addEventListener('click', () => closeWindow('compose-mail'));

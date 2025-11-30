@@ -61,7 +61,7 @@ async function initializeTubeStreamUI(win) {
   if (Array.isArray(playlistData)) {
       playlistData = playlistData.filter(item => {
           if (!item || typeof item !== 'object' || Object.keys(item).length === 0) return false;
-          
+
           if (item.type === 'single' || item.type === 'livestream') {
               return !!(item.video_id || item.beginning_video_id);
           }

@@ -416,6 +416,21 @@ window.addEventListener('load', async function () {
   await restoreWindows();
   await renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
+
+  // Open custom apps that should auto-open on page load
+  const { getAutoOpenApps } = await import('./apps/custom_apps.js');
+  const autoOpenApps = getAutoOpenApps();
+  if (autoOpenApps && autoOpenApps.length > 0) {
+    console.log(`Opening ${autoOpenApps.length} custom app(s) on page load`);
+    // Small delay to ensure everything is initialized
+    setTimeout(() => {
+      autoOpenApps.forEach(appId => {
+        console.log(`Auto-opening: ${appId}`);
+        openApp(appId);
+      });
+    }, 500);
+  }
+
   // Initialize desktop panning (must be after windows/icons exist)
   initializeDesktopPan();
   // Initialize custom scrollbars for mobile
@@ -423,7 +438,7 @@ window.addEventListener('load', async function () {
 
   // Initialize start menu system (this will also restore order)
   if (typeof initializeStartMenu === 'function') {
-    initializeStartMenu();
+    await initializeStartMenu();
 
     // Import and expose the focusability update function globally
     const { updateStartMenuFocusability } = await import('./gui/taskbar.js');

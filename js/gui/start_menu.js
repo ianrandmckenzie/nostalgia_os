@@ -2,6 +2,7 @@ import { startMenuOrder, saveState, setFileSystemState } from '../os/manage_data
 import { storage } from '../os/indexeddb_storage.js';
 import { restart } from '../os/restart.js'
 import { probeApiEndpoints } from '../utils/api_probe.js';
+import { getCustomAppsForStartMenu, isCustomApp } from '../apps/custom_apps.js';
 
 // Start Menu Drag and Drop Functionality
 
@@ -97,10 +98,69 @@ function generateStartMenuHTML() {
 
   // Get the current order or use default
   const currentOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+
+  // Merge default items with custom apps
   let itemsToRender = [...DEFAULT_START_MENU_ITEMS];
+
+  // Insert custom apps into the menu
+  try {
+    const customAppsByLocation = getCustomAppsForStartMenu();
+    console.log('[START MENU] Custom apps by location:', customAppsByLocation);
+
+    // Add custom apps to 'default' location (insert before utilities group)
+    if (customAppsByLocation.default && customAppsByLocation.default.length > 0) {
+      console.log('[START MENU] Adding', customAppsByLocation.default.length, 'custom app(s) to default location');
+      const utilitiesIndex = itemsToRender.findIndex(item => item.id === 'utilities-group');
+      const insertIndex = utilitiesIndex >= 0 ? utilitiesIndex : itemsToRender.length - 1;
+      itemsToRender.splice(insertIndex, 0, ...customAppsByLocation.default);
+      console.log('[START MENU] itemsToRender now has', itemsToRender.length, 'items');
+    } else {
+      console.log('[START MENU] No custom apps for default location');
+    }
+
+    // Add custom apps to existing groups or create new groups
+    Object.keys(customAppsByLocation).forEach(location => {
+      if (location === 'default') return; // Already handled
+
+      const apps = customAppsByLocation[location];
+      if (apps.length === 0) return;
+
+      // Map location names to group IDs
+      const locationToGroupId = {
+        'games': 'games-group',
+        'utilities': 'utilities-group'
+      };
+
+      const groupId = locationToGroupId[location.toLowerCase()];
+
+      if (groupId) {
+        // Add to existing group
+        const groupIndex = itemsToRender.findIndex(item => item.id === groupId);
+        if (groupIndex >= 0) {
+          itemsToRender[groupIndex].items.push(...apps);
+        }
+      } else {
+        // Create new custom group
+        const newGroup = {
+          id: `custom-group-${location}`,
+          text: location,
+          type: 'group',
+          items: apps
+        };
+        // Insert before restart button
+        const restartIndex = itemsToRender.findIndex(item => item.id === 'rstrtcomp');
+        const insertIndex = restartIndex >= 0 ? restartIndex : itemsToRender.length;
+        itemsToRender.splice(insertIndex, 0, newGroup);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load custom apps for start menu:', error);
+  }
 
   // If we have a saved order, rearrange items accordingly
   if (currentOrder && currentOrder.length > 0) {
+    console.log('[START MENU] Processing saved order with', currentOrder.length, 'items');
+    console.log('[START MENU] itemsToRender before order processing:', itemsToRender.map(i => i.id || i.text));
     const orderedItems = [];
     const processedItemIds = new Set();
 
@@ -139,21 +199,26 @@ function generateStartMenuHTML() {
       }
     });
 
-    // Add any remaining default items that weren't in the saved order
-    DEFAULT_START_MENU_ITEMS.forEach(item => {
+    // Add any remaining items (including custom apps) that weren't in the saved order
+    itemsToRender.forEach(item => {
       if (!processedItemIds.has(item.id) && !item.fixed) {
         orderedItems.push(item);
       }
     });
 
     // Always add fixed items (like restart) at the end
-    DEFAULT_START_MENU_ITEMS.forEach(item => {
+    itemsToRender.forEach(item => {
       if (item.fixed) {
         orderedItems.push(item);
       }
     });
 
     itemsToRender = orderedItems;
+    console.log('[START MENU] After order processing, itemsToRender has', itemsToRender.length, 'items');
+    console.log('[START MENU] Final items:', itemsToRender.map(i => i.id || i.text));
+  } else {
+    console.log('[START MENU] No saved order, using default order with', itemsToRender.length, 'items');
+    console.log('[START MENU] Final items:', itemsToRender.map(i => i.id || i.text));
   }
 
   // Generate HTML
@@ -171,7 +236,7 @@ function generateStartMenuHTML() {
     } else if (item.type === 'group') {
       // Filter items within the group
       const filteredSubItems = item.items.filter(subItem => !unavailableApps.has(subItem.id));
-      
+
       // Only render group if it has visible items
       if (filteredSubItems.length > 0) {
         // Create a copy of the group with filtered items
@@ -385,6 +450,12 @@ function handleStartMenuItemClick(itemId) {
       const startButton = document.getElementById('start-button');
       if (startButton) startButton.setAttribute('aria-expanded', 'false');
     }
+  }
+
+  // Check if it's a custom app first
+  if (isCustomApp(itemId)) {
+    if (typeof openApp === 'function') openApp(itemId);
+    return;
   }
 
   // Handle different item types
@@ -1718,11 +1789,11 @@ window.testRestore = function() {
 async function initializeApiProbes() {
   try {
     const results = await probeApiEndpoints();
-    
+
     // Update unavailable apps based on results
     if (!results.mailbox) unavailableApps.add('mailboxapp');
     if (!results.tubestream) unavailableApps.add('tubestreamapp');
-    
+
     // Regenerate menu if any apps were marked unavailable
     if (unavailableApps.size > 0) {
       console.log('🔍 Hiding unavailable apps:', Array.from(unavailableApps));
@@ -1738,11 +1809,14 @@ async function initializeApiProbes() {
 }
 
 // Initialize start menu on page load
-export function initializeStartMenu() {
+export async function initializeStartMenu() {
+  // Load custom apps first
+  const { loadCustomApps } = await import('../apps/custom_apps.js');
+  await loadCustomApps();
 
   // Generate initial menu or restore from saved state
   restoreStartMenuOrder();
-  
+
   // Start API probes in background
   initializeApiProbes();
 
@@ -1961,7 +2035,7 @@ function focusMenuItem(index, showSubmenu = false) {
     // Check for Windows key (Meta key) on both Windows and macOS
     // But ignore on Mac to prevent interfering with OS shortcuts
     const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-    
+
     if ((e.key === 'Meta' || e.key === 'OS') && !isMac) {
       e.preventDefault();
       const startMenu = document.getElementById('start-menu');

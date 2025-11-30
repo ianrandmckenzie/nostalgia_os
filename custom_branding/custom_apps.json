@@ -1,0 +1,34 @@
+{
+  "apps": [
+    {
+      "title": "About Us",
+      "html_file": "about-us.html",
+      "app_icon": "about-us.png",
+      "open_on_pageload": "false",
+      "compostable": "false",
+      "filepath": "C://Desktop",
+      "start_menu": "true",
+      "start_menu_location": "default"
+    },
+    {
+      "title": "Spore Rot",
+      "html_file": "spore-rot.html",
+      "app_icon": "spore-rot.png",
+      "open_on_pageload": "false",
+      "compostable": "false",
+      "filepath": "C://Documents",
+      "start_menu": "true",
+      "start_menu_location": "games"
+    },
+    {
+      "title": "BSOD",
+      "html_file": "bsod.html",
+      "app_icon": "bsod.png",
+      "open_on_pageload": "false",
+      "compostable": "false",
+      "filepath": "C://",
+      "start_menu": "false",
+      "start_menu_location": ""
+    }
+  ]
+}

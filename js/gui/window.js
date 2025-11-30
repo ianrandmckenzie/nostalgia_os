@@ -6,6 +6,12 @@ import { showCustomScrollbars, hideCustomScrollbars } from '../os/custom_scrollb
 
 // Function to get app icon based on window ID or title
 export function getAppIcon(windowId, title) {
+  // Check if this is a custom app with a stored icon
+  const windowElement = document.getElementById(windowId);
+  if (windowElement && windowElement.dataset.customAppIcon) {
+    return windowElement.dataset.customAppIcon;
+  }
+
   // Map of app window IDs to their icons
   const appIconMap = {
     'calculator': 'image/calculator.webp',
@@ -124,7 +130,7 @@ export function getAppIcon(windowId, title) {
   return null;
 }
 
-export function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white', zIndex = null) {
+export function createWindow(title, content, isNav = false, windowId = null, initialMinimized = false, restore = false, dimensions = { type: 'default' }, windowType = 'default', parentWin = null, color = 'white', zIndex = null, icon = null) {
   let contentToPrint = content;
   if (!windowId) {
     windowId = 'window-' + Date.now();
@@ -151,6 +157,11 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   win.style.cssText = styleDimensions;
   win.style.minWidth = "320px";
   win.style.minHeight = "200px";
+
+  // Set custom app icon if provided
+  if (icon) {
+    win.dataset.customAppIcon = icon;
+  }
 
   // Add ARIA attributes for accessibility
   win.setAttribute('role', 'dialog');

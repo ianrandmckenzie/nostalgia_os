@@ -490,7 +490,7 @@ export function initializeMailboxUI(win) {
 
       // Construct FormData payload for multipart/form-data
       const payload = new FormData();
-      
+
       // Base model fields
       const title = fd.get('subject') || 'No Subject';
       payload.append('creator_model[title]', `Contact: ${title}`);

@@ -51,10 +51,10 @@ async function initializeTubeStreamUI(win) {
     const response = await fetch(`${API_BASE_URL}${TUBE_STREAMS_PATH}`);
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
-    playlistData = json.playlists;
+    playlistData = json.data;
   } catch (error) {
     console.warn('Error fetching playlist, using fallback:', error);
-    playlistData = myPlaylist.playlists;
+    playlistData = myPlaylist.data;
   }
 
   // Filter out invalid items (e.g. empty objects)
@@ -223,31 +223,25 @@ function checkYouTubeConnectivity() {
 }
 
 const myPlaylist = {
-  "playlists": [
+  "data": [
     {
-      "id": "111",
+      "slug": "111",
       "type": "playlist",
-      "name": "FUTV STREAM TEST",
-      "description": "This is a test of our public broadcast system. Please stand by.",
       "playlist_id": "PLfznZzH31A46XXPSw2dcb-gqhMXcBMOHV",
       "beginning_video_id": "qhCsL1cx4Qc",
       "custom_parameters": "autoplay=true&loop=false"
     }
     // Example single video:
     // {
-    //   "id": "112",
+    //   "slug": "112",
     //   "type": "single",
-    //   "name": "Single Video Example",
-    //   "description": "A single video",
     //   "video_id": "dQw4w9WgXcQ",
     //   "custom_parameters": "autoplay=true"
     // }
     // Example livestream:
     // {
-    //   "id": "113",
+    //   "slug": "113",
     //   "type": "livestream",
-    //   "name": "Live Stream Example",
-    //   "description": "A live stream",
     //   "video_id": "jfKfPfyJRdk",
     //   "custom_parameters": "autoplay=true"
     // }

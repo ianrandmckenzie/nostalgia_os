@@ -118,6 +118,9 @@ function generateStartMenuHTML() {
       console.log('[START MENU] No custom apps for default location');
     }
 
+    // Track which custom apps are added to groups (to avoid duplicates in saved order processing)
+    const customAppsInGroups = new Set();
+
     // Add custom apps to existing groups or create new groups
     Object.keys(customAppsByLocation).forEach(location => {
       if (location === 'default') return; // Already handled
@@ -137,7 +140,14 @@ function generateStartMenuHTML() {
         // Add to existing group
         const groupIndex = itemsToRender.findIndex(item => item.id === groupId);
         if (groupIndex >= 0) {
-          itemsToRender[groupIndex].items.push(...apps);
+          // Create a new items array with custom apps to avoid mutating the original
+          const updatedGroup = {
+            ...itemsToRender[groupIndex],
+            items: [...itemsToRender[groupIndex].items, ...apps]
+          };
+          itemsToRender[groupIndex] = updatedGroup;
+          // Track these custom app IDs
+          apps.forEach(app => customAppsInGroups.add(app.id));
         }
       } else {
         // Create new custom group

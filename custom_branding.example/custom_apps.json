@@ -27,8 +27,8 @@
       "open_on_pageload": "false",
       "compostable": "false",
       "filepath": "C://",
-      "start_menu": "false",
-      "start_menu_location": ""
+      "start_menu": "true",
+      "start_menu_location": "games"
     }
   ]
 }

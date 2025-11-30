@@ -172,18 +172,23 @@ async function loadCustomAppContent(win, app) {
 
 /**
  * Get custom apps formatted for the file system
- * This creates file system entries for desktop shortcuts
+ * This creates file system entries for shortcuts
  */
 export function getCustomAppsForFileSystem() {
   return customApps
-    .filter(app => app.filepath === 'C://Desktop')
+    .filter(app => app.filepath) // Include all apps with a filepath
     .map(app => {
       const appId = generateCustomAppId(app);
+      // Normalize the filepath - keep drive paths like C:// but remove single trailing slash
+      let filepath = app.filepath;
+      if (filepath.endsWith('/') && !filepath.endsWith('://')) {
+        filepath = filepath.slice(0, -1);
+      }
       return {
         id: appId,
         name: app.title,
         type: 'app',
-        fullPath: `C://Desktop/${appId}`,
+        fullPath: `${filepath}/${appId}`,
         content_type: 'html',
         contents: {},
         icon: app.app_icon ? `/custom_branding/${app.app_icon}` : './image/file.webp',

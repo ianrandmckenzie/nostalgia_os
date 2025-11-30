@@ -1502,7 +1502,9 @@ export async function integrateCustomApps() {
 
     // Add custom apps to their designated locations
     customAppsForFS.forEach(app => {
-      const targetFolder = fs.folders['C://Desktop'];
+      // Extract the folder path from the app's fullPath
+      const folderPath = app.fullPath.substring(0, app.fullPath.lastIndexOf('/'));
+      const targetFolder = fs.folders[folderPath];
 
       if (targetFolder) {
         // Check if app already exists
@@ -1511,14 +1513,15 @@ export async function integrateCustomApps() {
         if (!existingApp) {
           // Add new app
           targetFolder[app.id] = app;
-          console.log(`✅ Added custom app to desktop: ${app.name} (id: ${app.id})`);
+          console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
         } else {
           // Update existing app (in case config changed)
           targetFolder[app.id] = { ...existingApp, ...app };
-          console.log(`🔄 Updated custom app: ${app.name} (id: ${app.id})`);
+          console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id})`);
         }
       } else {
-        console.error('❌ Desktop folder not found in file system');
+        console.error(`❌ Target folder not found in file system: ${folderPath}`);
+        console.log('Available folders:', Object.keys(fs.folders));
       }
     });
 

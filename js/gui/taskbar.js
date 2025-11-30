@@ -1,6 +1,7 @@
 import { windowStates, activeMediaWindow, navWindows, desktopSettings } from '../os/manage_data.js';
 import { createWindow, minimizeWindow, bringToFront } from './window.js';
 import { toggleButtonActiveState } from './main.js';
+import { showCustomScrollbars } from '../os/custom_scrollbars.js';
 
 // Function to update focusability of Start menu items
 export function updateStartMenuFocusability(isVisible) {
@@ -69,6 +70,15 @@ export function minimizeAllWindows() {
   document.querySelectorAll('#window-tabs > div').forEach(tab => {
     tab.classList.remove('bg-gray-50');
   });
+  
+  // Show scrollbars when all windows are minimized
+  if (typeof showCustomScrollbars === 'function') {
+    showCustomScrollbars();
+  }
+  const stage = document.getElementById('desktop-stage');
+  if (stage) {
+    stage.style.overflow = 'scroll';
+  }
 }
 
 export function openNav(title, content = '', dimensions = { type: 'default' }, windowType = 'default') {

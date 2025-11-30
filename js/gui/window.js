@@ -2,6 +2,7 @@ import { saveState, windowStates, navWindows, highestZ, activeMediaWindow, setHi
 import { setupFolderDrop } from '../apps/file_explorer/drag_and_drop.js';
 import { toggleButtonActiveState } from './main.js';
 import { getSettingsContent, updateDesktopSettings } from './desktop.js';
+import { showCustomScrollbars, hideCustomScrollbars } from '../os/custom_scrollbars.js';
 
 // Function to get app icon based on window ID or title
 export function getAppIcon(windowId, title) {
@@ -412,6 +413,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
 export function minimizeWindow(windowId) {
   const win = document.getElementById(windowId);
   if (win) {
+    const wasMaximized = windowStates[windowId] && windowStates[windowId].fullScreen;
+    
     win.style.display = 'none';
     win.setAttribute('aria-hidden', 'true');
     if (windowStates[windowId]) {
@@ -422,6 +425,24 @@ export function minimizeWindow(windowId) {
     if (tab) {
       tab.classList.remove('bg-gray-50');
       tab.setAttribute('aria-pressed', 'false');
+    }
+    
+    // If we just minimized a maximized window, check if any other windows are still maximized
+    if (wasMaximized) {
+      const hasOtherMaximizedWindows = Object.values(windowStates).some(state => 
+        state.fullScreen && !state.isMinimized
+      );
+      
+      // If no other maximized windows exist, show scrollbars and enable scrolling
+      if (!hasOtherMaximizedWindows) {
+        if (typeof showCustomScrollbars === 'function') {
+          showCustomScrollbars();
+        }
+        const stage = document.getElementById('desktop-stage');
+        if (stage) {
+          stage.style.overflow = 'scroll';
+        }
+      }
     }
   }
 }
@@ -450,6 +471,13 @@ export function bringToFront(win) {
     // console.debug('bringToFront sync failed', e);
   }
 
+  // Store maximized windows before bringing to front
+  const wasMaximized = windowStates[win.id] && windowStates[win.id].fullScreen;
+  const maximizedWindows = Object.keys(windowStates)
+    .filter(id => windowStates[id].fullScreen)
+    .map(id => document.getElementById(id))
+    .filter(w => w);
+
   if (win.style.display === 'none') {
     win.style.display = 'block';
     win.setAttribute('aria-hidden', 'false');
@@ -463,7 +491,40 @@ export function bringToFront(win) {
     if (tab) {
       tab.setAttribute('aria-pressed', 'true');
     }
+    
+    // If window being restored is not maximized, minimize all currently maximized windows
+    if (!wasMaximized && maximizedWindows.length > 0) {
+      maximizedWindows.forEach(maxWin => {
+        if (maxWin.id !== win.id) {
+          minimizeWindow(maxWin.id);
+        }
+      });
+      // Show scrollbars since we're going back to desktop
+      if (typeof showCustomScrollbars === 'function') {
+        showCustomScrollbars();
+      }
+      const stage = document.getElementById('desktop-stage');
+      if (stage) {
+        stage.style.overflow = 'scroll';
+      }
+    }
   }
+  
+  // If bringing a maximized window to front, restore it and show scrollbars
+  if (wasMaximized) {
+    // Re-maximize all previously maximized windows
+    maximizedWindows.forEach(maxWin => {
+      if (windowStates[maxWin.id] && windowStates[maxWin.id].fullScreen) {
+        // Ensure they stay maximized
+        const stage = document.getElementById('desktop-stage');
+        const scrollLeft = stage ? stage.scrollLeft : 0;
+        const scrollTop = stage ? stage.scrollTop : 0;
+        maxWin.style.left = scrollLeft + 'px';
+        maxWin.style.top = scrollTop + 'px';
+      }
+    });
+  }
+  
   setHighestZ(highestZ + 1);
   win.style.zIndex = highestZ;
 
@@ -856,27 +917,18 @@ export function toggleFullScreen(winId) {
   if (!win) return;
   let state = windowStates[winId];
 
-  // Get current pan
-  let panX = 0, panY = 0;
+  // Get current scroll position (instead of pan transform)
   const stage = document.getElementById('desktop-stage');
-  if (stage) {
-    const transform = getComputedStyle(stage).transform;
-    if (transform && transform !== 'none') {
-      const parts = transform.match(/matrix\(([^)]+)\)/);
-      if (parts && parts[1]) {
-        const nums = parts[1].split(',').map(n => parseFloat(n.trim()));
-        if (nums.length === 6) { panX = nums[4]; panY = nums[5]; }
-      }
-    }
-  }
+  const scrollLeft = stage ? stage.scrollLeft : 0;
+  const scrollTop = stage ? stage.scrollTop : 0;
 
   if (!state.fullScreen) {
     state.originalDimensions = state.dimensions;
     state.originalPosition = state.position;
 
-    // Counter-act the desktop pan to align with viewport
-    win.style.left = (-panX) + "px";
-    win.style.top = (-panY) + "px";
+    // Position relative to current scroll position to align with viewport
+    win.style.left = scrollLeft + "px";
+    win.style.top = scrollTop + "px";
 
     // Use viewport units to fill the screen regardless of parent size
     win.style.width = "100vw";
@@ -886,6 +938,16 @@ export function toggleFullScreen(winId) {
 
     state.dimensions = { type: 'viewport' };
     state.fullScreen = true;
+    
+    // Hide scrollbars when maximizing
+    if (typeof hideCustomScrollbars === 'function') {
+      hideCustomScrollbars();
+    }
+    
+    // Disable scrolling on stage while maximized
+    if (stage) {
+      stage.style.overflow = 'hidden';
+    }
   } else {
     if (state.originalDimensions && state.originalPosition) {
       win.style.left = state.originalPosition.left;
@@ -905,23 +967,42 @@ export function toggleFullScreen(winId) {
     makeResizable(win);
     // Re-clamp after restoring
     setTimeout(() => clampWindowToViewport(win), 0);
+    
+    // Check if any other windows are still maximized
+    const hasMaximizedWindows = Object.values(windowStates).some(s => s.fullScreen);
+    
+    if (!hasMaximizedWindows) {
+      // Show scrollbars when no windows are maximized
+      if (typeof showCustomScrollbars === 'function') {
+        showCustomScrollbars();
+      }
+      
+      // Re-enable scrolling on stage
+      if (stage) {
+        stage.style.overflow = 'scroll';
+      }
+    }
   }
   saveState();
 }
 
-// Listen for desktop pan changes to keep fullscreen windows aligned
-window.addEventListener('desktop-pan-changed', (e) => {
-  const { x, y } = e.detail;
-  Object.values(windowStates).forEach(state => {
-    if (state.fullScreen) {
-      const win = document.getElementById(state.id);
-      if (win) {
-        win.style.left = (-x) + 'px';
-        win.style.top = (-y) + 'px';
-      }
-    }
-  });
-});
+// Listen for scroll changes to keep fullscreen windows aligned
+if (typeof window !== 'undefined') {
+  const stage = document.getElementById('desktop-stage');
+  if (stage) {
+    stage.addEventListener('scroll', () => {
+      Object.values(windowStates).forEach(state => {
+        if (state.fullScreen) {
+          const win = document.getElementById(state.id);
+          if (win) {
+            win.style.left = stage.scrollLeft + 'px';
+            win.style.top = stage.scrollTop + 'px';
+          }
+        }
+      });
+    }, { passive: true });
+  }
+}
 
 function openWindow(id, content = '', dimensions = { type: 'default' }, windowType = 'default', parentWin = null) {
   return createWindow(id, content === '' ? 'Content for ' + id : content, false, null, false, false, dimensions, windowType, parentWin);

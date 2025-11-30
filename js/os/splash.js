@@ -66,7 +66,7 @@ export async function showOSLoading() {
 
   setTimeout(function () {
     splashDiv.remove();
-    
+
     // Show custom scrollbars after loading is complete
     if (typeof window.showCustomScrollbars === 'function') {
       window.showCustomScrollbars();

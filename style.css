@@ -379,3 +379,37 @@ img {
   pointer-events: auto; /* Keep click events */
 }
 
+/* Mobile Desktop Scrollbars */
+@media (max-width: 768px) {
+  #desktop-stage {
+    scrollbar-width: auto !important; /* Firefox */
+    -ms-overflow-style: auto !important; /* IE */
+  }
+
+  /* Webkit scrollbar styling for old-school look */
+  #desktop-stage::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  #desktop-stage::-webkit-scrollbar-track {
+    background: #c0c0c0;
+    border-left: 1px solid #ffffff;
+    border-top: 1px solid #ffffff;
+  }
+
+  #desktop-stage::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-top: 1px solid #ffffff;
+    border-left: 1px solid #ffffff;
+    border-right: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+    box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  }
+
+  #desktop-stage::-webkit-scrollbar-corner {
+    background: #c0c0c0;
+  }
+}
+

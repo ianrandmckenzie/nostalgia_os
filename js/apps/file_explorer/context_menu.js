@@ -151,6 +151,11 @@ export function showContextMenu(e, target, fromFullPath) {
 
     // Touch support for mobile
     parentItem.addEventListener('touchstart', (ev) => {
+      // If touching the submenu itself, allow default behavior (clicking items)
+      if (submenu.contains(ev.target)) {
+        return;
+      }
+
       ev.preventDefault();
       if (submenu.classList.contains('hidden')) {
         positionSubmenu();

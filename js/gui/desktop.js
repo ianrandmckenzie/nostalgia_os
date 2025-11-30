@@ -686,6 +686,25 @@ export async function renderDesktopIcons() {
     iconIndex++;
   });
 
+  // Calculate required size for desktop-icons container to enable scrolling
+  let maxX = 0;
+  let maxY = 0;
+
+  const icons = desktopIconsContainer.querySelectorAll('.draggable-icon');
+  icons.forEach(icon => {
+    const left = parseInt(icon.style.left) || 0;
+    const top = parseInt(icon.style.top) || 0;
+    // Icon size is roughly 96x128 (w-24 h-32 in tailwind: 6rem x 8rem = 96px x 128px)
+    maxX = Math.max(maxX, left + 100);
+    maxY = Math.max(maxY, top + 140);
+  });
+
+  // Set size of desktop-icons container to ensure scrolling works
+  desktopIconsContainer.style.minWidth = '100%';
+  desktopIconsContainer.style.minHeight = '100%';
+  desktopIconsContainer.style.width = Math.max(window.innerWidth - 32, maxX) + 'px';
+  desktopIconsContainer.style.height = Math.max(window.innerHeight - 80, maxY) + 'px';
+
   // Setup drag and drop functionality for desktop folder icons
   if (typeof setupFolderDrop === 'function') {
     setupFolderDrop();

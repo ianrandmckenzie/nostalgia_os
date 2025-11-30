@@ -134,6 +134,7 @@ import {
   openSecurityPolicy
 } from './os/router.js';
 import { initializeDesktopPan } from './os/desktop_pan.js';
+import { initializeCustomScrollbars } from './os/custom_scrollbars.js';
 import './utils/dev_tools.js';
 
 export const version = '1.0';
@@ -415,8 +416,10 @@ window.addEventListener('load', async function () {
   await restoreWindows();
   await renderDesktopIcons(); // Render icons first
   await restoreDesktopIcons(); // Then restore their positions
-  // Initialize two-finger desktop panning (must be after windows/icons exist)
+  // Initialize desktop panning (must be after windows/icons exist)
   initializeDesktopPan();
+  // Initialize custom scrollbars for mobile
+  initializeCustomScrollbars();
 
   // Initialize start menu system (this will also restore order)
   if (typeof initializeStartMenu === 'function') {

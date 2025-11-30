@@ -148,10 +148,15 @@
     border: 2px solid #ffff00 !important;
   }
 }
-#desktop * {
+#desktop *:not(#desktop-stage) {
   image-rendering: pixelated;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none;  /* IE 10+ */
+}
+
+/* Ensure desktop-stage can have scrollbars */
+#desktop-stage {
+  image-rendering: pixelated;
 }
 
 /* Drag and drop visual feedback */
@@ -379,43 +384,138 @@ img {
   pointer-events: auto; /* Keep click events */
 }
 
-/* Mobile Desktop Scrollbars */
+/* Mobile Desktop - Hide native scrollbars since we're using custom ones */
 @media (max-width: 768px) {
-  #desktop-stage {
-    scrollbar-width: auto !important; /* Firefox */
-    -ms-overflow-style: auto !important; /* IE */
-    overflow: scroll !important; /* Force scrollbars */
+  div#desktop-stage {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE */
+    overflow: scroll !important; /* Enable scrolling */
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Webkit scrollbar styling for old-school look */
+  /* Hide native webkit scrollbars */
+  div#desktop-stage::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* Hide scrollbars on desktop */
+@media (min-width: 769px) {
+  #desktop-stage {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
   #desktop-stage::-webkit-scrollbar {
-    width: 16px;
-    height: 16px;
-    display: block;
-    -webkit-appearance: none;
+    display: none !important;
+  }
+}
+
+/* Custom Scrollbar Styling for Mobile */
+@media (max-width: 768px) {
+  .custom-scrollbar-track {
+    position: fixed;
+    z-index: 9999;
+    background-color: #c0c0c0;
+    display: flex;
+    pointer-events: auto;
   }
 
-  #desktop-stage::-webkit-scrollbar-track {
-    background: #c0c0c0;
-    border-left: 1px solid #ffffff;
-    border-top: 1px solid #ffffff;
-    -webkit-appearance: none;
+  .custom-scrollbar-vertical {
+    top: 0;
+    right: 0;
+    width: 22px;
+    height: calc(100vh - 48px); /* Subtract taskbar height */
+    flex-direction: column;
   }
 
-  #desktop-stage::-webkit-scrollbar-thumb {
-    background: #c0c0c0;
-    border-top: 1px solid #ffffff;
-    border-left: 1px solid #ffffff;
-    border-right: 1px solid #000000;
-    border-bottom: 1px solid #000000;
-    box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
-    -webkit-appearance: none;
+  .custom-scrollbar-horizontal {
+    bottom: 48px; /* Above taskbar */
+    left: 0;
+    width: calc(100vw - 22px); /* Leave space for vertical scrollbar */
+    height: 22px;
+    flex-direction: row;
   }
 
-  #desktop-stage::-webkit-scrollbar-corner {
-    background: #c0c0c0;
-    -webkit-appearance: none;
+  .custom-scrollbar-button {
+    flex-shrink: 0;
+    background-color: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    border-left: 2px solid #ffffff;
+    border-right: 2px solid #404040;
+    border-bottom: 2px solid #404040;
+    box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .custom-scrollbar-button:active {
+    border-top: 2px solid #404040;
+    border-left: 2px solid #404040;
+    border-right: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
+    box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  }
+
+  .custom-scrollbar-up,
+  .custom-scrollbar-down {
+    width: 22px;
+    height: 22px;
+  }
+
+  .custom-scrollbar-left,
+  .custom-scrollbar-right {
+    width: 22px;
+    height: 22px;
+  }
+
+  .custom-scrollbar-track-area {
+    flex: 1;
+    position: relative;
+    background-color: #e0e0e0;
+    background-image: linear-gradient(45deg, #ffffff 25%, transparent 25%, transparent 75%, #ffffff 75%, #ffffff),
+                      linear-gradient(45deg, #ffffff 25%, transparent 25%, transparent 75%, #ffffff 75%, #ffffff);
+    background-size: 4px 4px;
+    background-position: 0 0, 2px 2px;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+  }
+
+  .custom-scrollbar-thumb {
+    position: absolute;
+    background-color: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    border-left: 2px solid #ffffff;
+    border-right: 2px solid #404040;
+    border-bottom: 2px solid #404040;
+    box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .custom-scrollbar-thumb:active {
+    cursor: grabbing;
+  }
+
+  .custom-scrollbar-vertical .custom-scrollbar-thumb {
+    width: 100%;
+    min-height: 40px;
+    left: 0;
+    top: 0;
+  }
+
+  .custom-scrollbar-horizontal .custom-scrollbar-thumb {
+    height: 100%;
+    min-width: 40px;
+    left: 0;
+    top: 0;
   }
 }
 

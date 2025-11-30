@@ -112,9 +112,35 @@ export function showContextMenu(e, target, fromFullPath) {
     // Show/hide submenu on hover/touch
     let hideTimeout;
 
+    const positionSubmenu = () => {
+      submenu.classList.remove('hidden');
+
+      // Reset positioning to default to measure correctly
+      submenu.style.left = '100%';
+      submenu.style.right = 'auto';
+      submenu.style.top = '0';
+      submenu.style.bottom = 'auto';
+
+      const rect = submenu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // Horizontal check
+      if (rect.right > viewportWidth) {
+        submenu.style.left = 'auto';
+        submenu.style.right = '100%';
+      }
+
+      // Vertical check
+      if (rect.bottom > viewportHeight) {
+        submenu.style.top = 'auto';
+        submenu.style.bottom = '0';
+      }
+    };
+
     parentItem.addEventListener('mouseenter', () => {
       clearTimeout(hideTimeout);
-      submenu.classList.remove('hidden');
+      positionSubmenu();
     });
 
     parentItem.addEventListener('mouseleave', () => {
@@ -127,7 +153,7 @@ export function showContextMenu(e, target, fromFullPath) {
     parentItem.addEventListener('touchstart', (ev) => {
       ev.preventDefault();
       if (submenu.classList.contains('hidden')) {
-        submenu.classList.remove('hidden');
+        positionSubmenu();
       } else {
         submenu.classList.add('hidden');
       }

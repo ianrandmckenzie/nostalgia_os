@@ -789,8 +789,18 @@ function makeDraggable(el) {
     }
     function mouseMoveHandler(e) {
       // Adjust for pan (stage translated by panX/panY)
-      el.style.left = (e.clientX - offsetX - panX) + 'px';
-      el.style.top = (e.clientY - offsetY - panY) + 'px';
+      let newLeft = (e.clientX - offsetX - panX);
+      let newTop = (e.clientY - offsetY - panY);
+
+      // Vertical clamping (Handlebar visibility)
+      const vpHeight = window.innerHeight - 48;
+      const maxTop = -panY + vpHeight - 30;
+
+      if (newTop < -panY) newTop = -panY;
+      if (newTop > maxTop) newTop = maxTop;
+
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
     }
     function mouseUpHandler() {
       document.removeEventListener('mousemove', mouseMoveHandler);
@@ -845,15 +855,36 @@ export function toggleFullScreen(winId) {
   const win = document.getElementById(winId);
   if (!win) return;
   let state = windowStates[winId];
+
+  // Get current pan
+  let panX = 0, panY = 0;
+  const stage = document.getElementById('desktop-stage');
+  if (stage) {
+    const transform = getComputedStyle(stage).transform;
+    if (transform && transform !== 'none') {
+      const parts = transform.match(/matrix\(([^)]+)\)/);
+      if (parts && parts[1]) {
+        const nums = parts[1].split(',').map(n => parseFloat(n.trim()));
+        if (nums.length === 6) { panX = nums[4]; panY = nums[5]; }
+      }
+    }
+  }
+
   if (!state.fullScreen) {
     state.originalDimensions = state.dimensions;
     state.originalPosition = state.position;
-    win.style.left = "0px";
-    win.style.top = "0px";
-    // Use 100% to be more responsive to resize/mobile bars
-    win.style.width = "100%";
-    win.style.height = "calc(100% - 40px)"; // Subtract taskbar height
-    state.dimensions = { type: 'default' };
+
+    // Counter-act the desktop pan to align with viewport
+    win.style.left = (-panX) + "px";
+    win.style.top = (-panY) + "px";
+
+    // Use viewport units to fill the screen regardless of parent size
+    win.style.width = "100vw";
+    win.style.height = "calc(100vh - 48px)"; // Subtract taskbar height (h-12 = 48px)
+    win.style.maxWidth = "none";
+    win.style.maxHeight = "none";
+
+    state.dimensions = { type: 'viewport' };
     state.fullScreen = true;
   } else {
     if (state.originalDimensions && state.originalPosition) {
@@ -877,6 +908,20 @@ export function toggleFullScreen(winId) {
   }
   saveState();
 }
+
+// Listen for desktop pan changes to keep fullscreen windows aligned
+window.addEventListener('desktop-pan-changed', (e) => {
+  const { x, y } = e.detail;
+  Object.values(windowStates).forEach(state => {
+    if (state.fullScreen) {
+      const win = document.getElementById(state.id);
+      if (win) {
+        win.style.left = (-x) + 'px';
+        win.style.top = (-y) + 'px';
+      }
+    }
+  });
+});
 
 function openWindow(id, content = '', dimensions = { type: 'default' }, windowType = 'default', parentWin = null) {
   return createWindow(id, content === '' ? 'Content for ' + id : content, false, null, false, false, dimensions, windowType, parentWin);
@@ -943,8 +988,9 @@ export function showDialogBox(message, dialogType, onConfirm = null, onCancel = 
     announceToScreenReader(message, 'polite');
   } else if (dialogType === 'error') {
     title = '⚠️ Error';
-    const errorAudio = document.getElementById('error-popup-audio');
-    if (errorAudio) errorAudio.play();
+    // Create audio dynamically
+    const errorAudio = new Audio('./audio/error-pop-up.mp3');
+    errorAudio.play().catch(e => console.log("Audio play failed", e));
     announceToScreenReader(message, 'assertive');
   }
 
@@ -1141,7 +1187,7 @@ function clampWindowToViewport(win) {
   const state = windowStates[win.id];
   if (state && state.fullScreen) return; // skip fullscreen
   const vpWidth = window.innerWidth;
-  const vpHeight = window.innerHeight - 40; // minus taskbar
+  const vpHeight = window.innerHeight - 48; // minus taskbar
   // Current size
   const rect = win.getBoundingClientRect();
   let changed = false;
@@ -1170,13 +1216,18 @@ function clampWindowToViewport(win) {
   let newLeft = left;
   let newTop = top;
 
-  // Strict top clamping to prevent handlebar from going off-screen
+  // Horizontal clamping
+  if (left + rect.width < -panX + 50) { newLeft = -panX + 20; changed = true; }
+  if (left > -panX + vpWidth - 50) { newLeft = -panX + vpWidth - rect.width - 20; changed = true; }
+
+  // Vertical clamping (Handlebar visibility)
+  // 1. Prevent handlebar from going above the top edge
   if (top < -panY) { newTop = -panY; changed = true; }
 
-  if (left + rect.width < -panX + 50) { newLeft = -panX + 20; changed = true; }
-  // if (top + rect.height < -panY + 50) { newTop = -panY + 20; changed = true; } // Removed loose top check
-  if (left > -panX + vpWidth - 50) { newLeft = -panX + vpWidth - rect.width - 20; changed = true; }
-  if (top > -panY + vpHeight - 50) { newTop = -panY + vpHeight - rect.height - 20; changed = true; }
+  // 2. Prevent handlebar from going below the bottom edge
+  // Ensure at least 30px of the header is visible above the taskbar
+  const maxTop = -panY + vpHeight - 30;
+  if (newTop > maxTop) { newTop = maxTop; changed = true; }
 
   win.style.left = newLeft + 'px';
   win.style.top = newTop + 'px';
@@ -1356,46 +1407,50 @@ window.addEventListener('resize', () => {
     document.body.classList.add('no-context-menu');
 
     document.addEventListener('touchstart', (e) => {
+      // Don't block multi-touch gestures
       if (!e.touches || e.touches.length !== 1) { clearTimer(); return; }
+
       // Ignore editable fields
       const t = e.target.closest('input, textarea, [contenteditable="true"]');
       if (t) { clearTimer(); return; }
+
       const touch = e.touches[0];
       startX = touch.clientX; startY = touch.clientY;
       moved = false;
       startTarget = e.target;
       clearTimer();
+
       pressTimer = setTimeout(() => {
         // Determine target at press point (in case DOM changed)
         const targetAtPoint = document.elementFromPoint(startX, startY) || startTarget || document.body;
-        const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: startX, clientY: startY });
+
+        // Dispatch custom contextmenu event
+        const evt = new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: startX,
+          clientY: startY
+        });
         targetAtPoint.dispatchEvent(evt);
+
+        // Vibrate if supported
+        if (navigator.vibrate) navigator.vibrate(50);
+
         clearTimer();
       }, LONG_PRESS_MS);
     }, { passive: true });
 
     // Prevent default context menu on long press for non-editable elements
     document.addEventListener('contextmenu', (e) => {
-      // If it's a synthesized event (isTrusted is false usually, or we can check other props), let it pass?
-      // Actually, we want to BLOCK the browser context menu.
-      // But we want to ALLOW our custom context menu which listens to 'contextmenu'.
-
-      // If the event was triggered by our long press logic, we want it to bubble to our handlers.
-      // But we want to prevent the browser from showing its menu.
-      // e.preventDefault() does exactly that.
-
-      // However, we need to make sure we don't block our own custom menus if they rely on default behavior (they don't).
-      // Our custom menus are shown by event listeners on 'contextmenu' that call e.preventDefault().
-
-      // So, adding a global preventDefault might be redundant if our handlers catch it,
-      // BUT for elements that don't have handlers, we might want to prevent the browser menu if it was a long press?
-      // The user said "make long press always apply to an element that doesn’t stimulate this".
-
-      // Let's just ensure that for touch devices, we try to suppress the native menu.
+      // Always prevent default browser menu on touch devices
+      // This is critical for the "Long Press" gesture to work without browser interference
       if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
-         // We can't easily distinguish between a "real" right click (mouse) and a long press (touch) in all browsers
-         // except via PointerEvents or checking input source.
-         // But here we are in a touch context.
+         // Allow inputs to have native menu if needed, but usually we want our own
+         const isInput = e.target.closest('input, textarea, [contenteditable="true"]');
+         if (!isInput) {
+           e.preventDefault();
+         }
       }
     });
 

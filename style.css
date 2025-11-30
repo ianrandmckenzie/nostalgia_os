@@ -359,6 +359,7 @@
   user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
+/* Allow text selection in inputs */
 .no-context-menu input,
 .no-context-menu textarea,
 .no-context-menu [contenteditable="true"] {
@@ -367,3 +368,14 @@
   -ms-user-select: text;
   user-select: text;
 }
+
+/* Prevent image interactions (like drag/save) that might trigger browser menus */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto; /* Keep click events */
+}
+

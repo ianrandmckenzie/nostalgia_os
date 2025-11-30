@@ -26,9 +26,12 @@ export function showSplash() {
 `;
   document.body.appendChild(splashDiv);
 
-  const splashAudio = document.getElementById("splash-audio");
+  // Create audio dynamically to avoid Brave Playlist detection
+  const splashAudio = new Audio('./audio/startup.mp3');
+  splashAudio.id = "splash-audio";
+
   document.getElementById("splash-login").addEventListener("click", function (e) {
-    splashAudio.play();
+    splashAudio.play().catch(e => console.log("Audio play failed", e));
     e.preventDefault();
     document.getElementById('splash-image').src = './image/icon.gif';
     splashAudio.currentTime = 0;

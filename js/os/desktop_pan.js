@@ -16,6 +16,7 @@ let windowsContainer;
 function applyPan() {
   if (!stageEl) return;
   stageEl.style.transform = `translate(${pan.x}px, ${pan.y}px)`;
+  window.dispatchEvent(new CustomEvent('desktop-pan-changed', { detail: { x: pan.x, y: pan.y } }));
 }
 
 function clampPan() {

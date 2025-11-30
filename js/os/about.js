@@ -20,7 +20,7 @@ export async function openAboutWindow() {
       <p>More shenanigans @ ${isReddit ? 'relentlesscurious.com' : '<a href="https://www.relentlesscurious.com" target="_blank">relentlesscurious.com</a>'}</p>
       <p>Version: ${version}</p>
       <p>Copyright © Ian Rand McKenzie, 2025</p>
-      <p>This project must be purchased for use, but is open source and free for those who contribute via code, security research, bug reporting, etc. — contributors may do so on <a target="_blank" href="https://github.com/ianrandmckenzie/nostalgia_os">github.com/ianrandmckenzie/nostalgia_os</a></p>
+      <p>This project must be purchased for use, but is open source and free for non-commercial use for those who contribute via code, security research, bug reporting, etc. — contributors may do so on <a target="_blank" href="https://github.com/ianrandmckenzie/nostalgia_os">github.com/ianrandmckenzie/nostalgia_os</a></p>
     </div>
   `;
   createWindow("About This Computer", content, false, null, false, false, { type: 'integer', width: 400, height: 640 }, "default", null, 'gray-200');

@@ -28,7 +28,7 @@ export async function loadCustomApps() {
     console.log(`✅ Loaded ${customApps.length} custom app(s):`, customApps.map(a => a.title));
     return customApps;
   } catch (error) {
-    console.error('❌ Failed to load custom apps:', error);
+    console.warn('❌ Failed to load custom apps:', error);
     return [];
   }
 }
@@ -67,7 +67,7 @@ export function launchCustomApp(appId) {
   const app = getCustomAppById(appId);
 
   if (!app) {
-    console.error(`❌ Custom app not found: ${appId}`);
+    console.warn(`❌ Custom app not found: ${appId}`);
     console.log('Available custom apps:', customApps.map(a => ({ id: generateCustomAppId(a), title: a.title })));
     return;
   }
@@ -115,7 +115,7 @@ export function launchCustomApp(appId) {
   console.log('📦 Window created:', win ? 'success' : 'FAILED', win?.id);
 
   // Load HTML content
-  loadCustomAppContent(win, app).catch(console.error);
+  loadCustomAppContent(win, app).catch(console.warn);
 }
 
 /**
@@ -123,13 +123,13 @@ export function launchCustomApp(appId) {
  */
 async function loadCustomAppContent(win, app) {
   if (!win) {
-    console.error('Window element not found');
+    console.warn('Window element not found');
     return;
   }
 
   const content = win.querySelector('.p-2');
   if (!content) {
-    console.error('Content container not found in window');
+    console.warn('Content container not found in window');
     return;
   }
 
@@ -158,7 +158,7 @@ async function loadCustomAppContent(win, app) {
     });
 
   } catch (error) {
-    console.error(`❌ Failed to load custom app content:`, error);
+    console.warn(`❌ Failed to load custom app content:`, error);
     content.innerHTML = `
       <div class="flex items-center justify-center h-full">
         <div class="text-center">

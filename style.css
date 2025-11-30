@@ -68,6 +68,11 @@
   white-space: normal;
 }
 
+/* Start menu z-index to appear above scrollbars */
+#start-menu {
+  z-index: 10000;
+}
+
 /* Start menu keyboard navigation focus */
 #start-menu [role="menuitem"].focus-visible,
 #start-menu [role="menuitem"].keyboard-focused {
@@ -390,7 +395,7 @@ img {
     scrollbar-width: none !important; /* Firefox */
     -ms-overflow-style: none !important; /* IE */
     overflow: scroll !important; /* Enable scrolling */
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: auto; /* Reduce momentum/drift on iOS */
   }
 
   /* Hide native webkit scrollbars */
@@ -516,6 +521,22 @@ img {
     min-width: 40px;
     left: 0;
     top: 0;
+  }
+
+  /* Watercolour Mobile Optimizations */
+  /* Hide desktop color panel on mobile */
+  .watercolour-color-panel-desktop {
+    display: none !important;
+  }
+
+  /* Show mobile color panel */
+  .watercolour-color-panel-mobile {
+    display: block !important;
+  }
+
+  /* Hide Undo/Redo text labels on mobile */
+  .undo-redo-text {
+    display: none !important;
   }
 }
 

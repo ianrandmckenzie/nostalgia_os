@@ -56,14 +56,14 @@ export function getWatercolourHTML() {
           <path style="opacity: 0.4;" d="M97.6 97.6c87.5-87.5 229.3-87.5 316.8 0C458.1 141.3 480 198.7 480 256s-21.9 114.7-65.6 158.4c-87.5 87.5-229.3 87.5-316.8 0l45.3-45.3c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L97.6 97.6z" />
           <path d="M176 224l24-24L40 40 16 64l0 160H176z" />
         </svg>
-        Undo
+        <span class="undo-redo-text">Undo</span>
       </button>
       <button id="redoBtn" style="padding: 0.5rem; border-radius: 0.25rem; border: 1px solid #d1d5db; background-color: white; cursor: pointer;" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='white'">
         <svg style="height: 1rem; width: 1rem; display: inline;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
           <path style="opacity: 0.4;" d="M32 256c0 57.3 21.9 114.7 65.6 158.4c87.5 87.5 229.3 87.5 316.8 0l-45.3-45.3c-62.5 62.5-163.8 62.5-226.3 0s-62.5-163.8 0-226.3s163.8-62.5 226.3 0c15.1-15.1 30.2-30.2 45.3-45.3c-87.5-87.5-229.3-87.5-316.8 0C53.9 141.3 32 198.7 32 256z" />
           <path d="M336 224l-24-24L472 40l24 24 0 160H336z" />
         </svg>
-        Redo
+        <span class="undo-redo-text">Redo</span>
       </button>
     </div>
     <div id="status" style="font-size: 0.75rem; color: #6b7280;">
@@ -72,7 +72,8 @@ export function getWatercolourHTML() {
   </div>
 
   <!-- Main Content Area -->
-  <div style="display: flex;">
+  <div id="watercolour-main-content" style="display: flex; flex-direction: column;">
+    <div id="watercolour-workspace" style="display: flex; flex: 1;">
     <!-- Left Toolbar -->
     <div style="width: 3rem; padding: 0.5rem; background-color: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 0.5rem;">
       <button data-tool="brush" class="tool-btn" style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background-color: #f3f4f6; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
@@ -110,11 +111,11 @@ export function getWatercolourHTML() {
       <canvas id="watercolourCanvas" width="420" height="300" style="background: white; margin: 0.5rem; margin-bottom: 2rem; position: absolute; inset: 0; border: 1px solid #d1d5db;"></canvas>
     </div>
 
-    <!-- Right Panel: Color Palette & Stroke Size -->
-    <div style="width: 8rem; padding: 0.5rem; background-color: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 1rem;">
+    <!-- Right Panel: Color Palette & Stroke Size (Desktop) -->
+    <div id="watercolour-color-panel" class="watercolour-color-panel-desktop" style="width: 8rem; padding: 0.5rem; background-color: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 1rem;">
       <!-- Color Palette -->
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem;">
+        <div id="watercolour-color-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem;">
           <!-- 16 predefined colors -->
           <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #000000;" data-color="#000000"></div>
           <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #808080;" data-color="#808080"></div>
@@ -139,6 +140,37 @@ export function getWatercolourHTML() {
       <div>
         <label for="strokeSize" style="font-size: 0.875rem;">Size</label>
         <input id="strokeSize" type="range" min="1" max="50" value="5" style="width: 100%;" aria-label="Brush stroke size" title="Adjust brush stroke size" />
+      </div>
+    </div>
+    </div>
+
+    <!-- Bottom Panel: Color Palette & Stroke Size (Mobile) -->
+    <div id="watercolour-color-panel-mobile" class="watercolour-color-panel-mobile" style="display: none; width: 100%; padding: 0.5rem; background-color: white; border-top: 1px solid #e5e7eb;">
+      <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-around;">
+        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.25rem; flex-shrink: 0;">
+          <!-- 16 predefined colors -->
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #000000;" data-color="#000000"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #808080;" data-color="#808080"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #800000;" data-color="#800000"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #FF0000;" data-color="#FF0000"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #808000;" data-color="#808000"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #FFFF00;" data-color="#FFFF00"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #008000;" data-color="#008000"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #00FF00;" data-color="#00FF00"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #008080;" data-color="#008080"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #00FFFF;" data-color="#00FFFF"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #000080;" data-color="#000080"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #0000FF;" data-color="#0000FF"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #800080;" data-color="#800080"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #FF00FF;" data-color="#FF00FF"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+          <div style="width: 1.5rem; height: 1.5rem; border-radius: 0.125rem; cursor: pointer; border: 1px solid #d1d5db; background-color: #C0C0C0;" data-color="#C0C0C0"></div>
+        </div>
+        <input id="colorPickerMobile" type="color" style="width: 3rem; height: 3rem; border: 1px solid #d1d5db; cursor: pointer;" />
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+          <label for="strokeSizeMobile" style="font-size: 0.875rem; white-space: nowrap;">Size</label>
+          <input id="strokeSizeMobile" type="range" min="1" max="50" value="5" style="min-width: 80px;" aria-label="Brush stroke size" title="Adjust brush stroke size" />
+        </div>
       </div>
     </div>
   </div>
@@ -186,29 +218,50 @@ export async function initializeWatercolour() {
   let currentFile = null; // Track the currently opened/saved file {name, path, data}
   const textInput = document.getElementById('textInput');
   const strokeSizeInput = document.getElementById('strokeSize');
+  const strokeSizeInputMobile = document.getElementById('strokeSizeMobile');
   const colorPicker = document.getElementById('colorPicker');
+  const colorPickerMobile = document.getElementById('colorPickerMobile');
   let undoStack = [];
   let redoStack = [];
 
-  strokeSizeInput.addEventListener('input', (e) => {
-    strokeSize = e.target.value;
+  // Sync stroke size between desktop and mobile sliders
+  const updateStrokeSize = (value) => {
+    strokeSize = value;
     ctx.lineWidth = strokeSize;
+    if (strokeSizeInput) strokeSizeInput.value = value;
+    if (strokeSizeInputMobile) strokeSizeInputMobile.value = value;
     if (currentTool === 'text' && textInput.style.display === 'block') {
       textInput.style.fontSize = `${strokeSize * 4}px`;
     }
-    saveWatercolourState().catch(console.error); // Save state after stroke size change
-  });
+    saveWatercolourState().catch(console.error);
+  };
 
-  // Whenever the color changes, update the canvas styles and, if the text tool is active, update the input color.
-  colorPicker.addEventListener('change', (e) => {
-    activeColor = e.target.value;
+  if (strokeSizeInput) {
+    strokeSizeInput.addEventListener('input', (e) => updateStrokeSize(e.target.value));
+  }
+  if (strokeSizeInputMobile) {
+    strokeSizeInputMobile.addEventListener('input', (e) => updateStrokeSize(e.target.value));
+  }
+
+  // Sync color between desktop and mobile pickers
+  const updateColor = (value) => {
+    activeColor = value;
     ctx.strokeStyle = activeColor;
     ctx.fillStyle = activeColor;
+    if (colorPicker) colorPicker.value = value;
+    if (colorPickerMobile) colorPickerMobile.value = value;
     if (currentTool === 'text' && textInput.style.display === 'block') {
       textInput.style.color = activeColor;
     }
-    saveWatercolourState().catch(console.error); // Save state after color change
-  });
+    saveWatercolourState().catch(console.error);
+  };
+
+  if (colorPicker) {
+    colorPicker.addEventListener('change', (e) => updateColor(e.target.value));
+  }
+  if (colorPickerMobile) {
+    colorPickerMobile.addEventListener('change', (e) => updateColor(e.target.value));
+  }
 
   window.addEventListener('resize', resizeCanvas);
   // Don't call resizeCanvas immediately - let restoreWatercolourState handle initial setup
@@ -236,27 +289,10 @@ export async function initializeWatercolour() {
     });
   });
 
-  // Stroke size update
-  document.getElementById('strokeSize').addEventListener('input', (e) => {
-    strokeSize = e.target.value;
-    ctx.lineWidth = strokeSize;
-  });
-
-  // Color picker update
-  document.getElementById('colorPicker').addEventListener('change', (e) => {
-    activeColor = e.target.value;
-    ctx.strokeStyle = activeColor;
-    ctx.fillStyle = activeColor;
-  });
-
-  // Color palette selection
+  // Color palette selection (works for both desktop and mobile)
   document.querySelectorAll('[data-color]').forEach(el => {
     el.addEventListener('click', () => {
-      activeColor = el.getAttribute('data-color');
-      ctx.strokeStyle = activeColor;
-      ctx.fillStyle = activeColor;
-      document.getElementById('colorPicker').value = activeColor;
-      saveWatercolourState().catch(console.error); // Save state after color selection
+      updateColor(el.getAttribute('data-color'));
     });
   });
 

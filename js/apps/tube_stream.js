@@ -4,13 +4,13 @@ import { API_BASE_URL } from '../config.js';
 
 async function launchTubeStream() {
   const win = createWindow('TubeStream', '<div class="p-2 h-full flex items-center justify-center">Loading...</div>', false, 'tubestream', false, false, { type: 'integer', width: 580, height: 380 }, 'default', null, 'white');
-  
+
   await initializeTubeStreamUI(win);
 }
 
 async function initializeTubeStreamUI(win) {
   if (!win) return;
-  
+
   const contentDiv = win.querySelector('.p-2');
   if (!contentDiv) return;
 
@@ -28,7 +28,7 @@ async function initializeTubeStreamUI(win) {
       <p>You might be offline or there is a network error.</p>
     </div>`;
   }
-  
+
   // Update content
   contentDiv.innerHTML = content;
   contentDiv.style.padding = '0'; // Remove padding for iframe

@@ -7,9 +7,37 @@
       "name": "welcome.md",
       "version": "1.0.0",
       "path": "default_files/welcome.md",
-      "targetFolder": "C://Desktop",
+      "targetFolder": "C://Documents",
       "contentType": "md",
       "icon": "image/file.webp"
+    },
+    {
+      "id": "default-file-todo",
+      "name": "todo.md",
+      "version": "1.0.0",
+      "path": "default_files/todo.md",
+      "targetFolder": "C://Documents",
+      "contentType": "md",
+      "icon": "image/file.webp"
+    },
+    {
+      "id": "default-file-sample-desktop",
+      "name": "sample_desktop.webp",
+      "version": "1.0.0",
+      "path": "default_files/sample_desktop.webp",
+      "targetFolder": "C://Media",
+      "contentType": "webp",
+      "icon": "image/image.webp"
+    },
+    {
+      "id": "default-file-watercolour-icon",
+      "name": "watercolour_icon.webp",
+      "version": "1.0.0",
+      "path": "default_files/watercolour_icon.webp",
+      "targetFolder": "C://Media",
+      "contentType": "webp",
+      "icon": "image/image.webp",
+      "description": "Watercolour app icon"
     },
     {
       "id": "default-file-startup-sound",
@@ -22,13 +50,14 @@
       "description": "System startup sound"
     },
     {
-      "id": "default-file-sample-desktop",
-      "name": "sample_desktop.webp",
+      "id": "default-file-notification",
+      "name": "notification.mp3",
       "version": "1.0.0",
-      "path": "default_files/sample_desktop.webp",
+      "path": "default_files/notification.mp3",
       "targetFolder": "C://Media",
-      "contentType": "webp",
-      "icon": "image/image.webp"
+      "contentType": "mp3",
+      "icon": "image/audio.webp",
+      "description": "Notification sound effect"
     }
   ],
   "apps": [

@@ -9,6 +9,10 @@ export function launchSnake() {
     return;
   }
 
+  const isMobile = window.innerWidth < 600;
+  const width = isMobile ? Math.min(window.innerWidth - 20, 620) : 620;
+  const height = isMobile ? Math.min(window.innerHeight - 60, 520) : 520;
+
   const win = createWindow(
     'Snake',
     '',
@@ -16,7 +20,7 @@ export function launchSnake() {
     'snake',
     false,
     false,
-    { type: 'integer', width: 620, height: 520 },
+    { type: 'integer', width: width, height: height },
     'App',
     null,
     'black'
@@ -43,15 +47,18 @@ export async function initializeSnakeUI(win) {
   canvasContainer.className = 'flex-1 flex items-center justify-center w-full';
   const canvas = document.createElement('canvas');
   canvas.id = 'snake-canvas';
-  canvas.width = 560;
-  canvas.height = 420;
+  // Responsive canvas size
+  const isMobile = window.innerWidth < 600;
+  canvas.width = isMobile ? Math.min(window.innerWidth - 40, 560) : 560;
+  canvas.height = isMobile ? Math.min(window.innerHeight - 150, 420) : 420;
+
   canvas.style.background = '#000';
   canvas.style.border = '2px inset #666';
   canvasContainer.appendChild(canvas);
 
   const hint = document.createElement('div');
   hint.className = 'text-xs text-gray-300 pt-2';
-  hint.textContent = 'Controls: Arrow keys or W/A/S/D. Press R to restart.';
+  hint.textContent = isMobile ? 'Swipe to move. Tap R to restart.' : 'Controls: Arrow keys or W/A/S/D. Press R to restart.';
 
   content.appendChild(hud);
   content.appendChild(canvasContainer);
@@ -207,6 +214,44 @@ export async function initializeSnakeUI(win) {
       resetGame();
     }
   }
+
+  // Touch controls
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  canvas.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    e.preventDefault(); // Prevent scrolling
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent scrolling
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (!running) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal swipe
+      if (Math.abs(dx) > 30) { // Threshold
+        if (dx > 0 && dir.x === 0) dir = { x: 1, y: 0 };
+        else if (dx < 0 && dir.x === 0) dir = { x: -1, y: 0 };
+      }
+    } else {
+      // Vertical swipe
+      if (Math.abs(dy) > 30) { // Threshold
+        if (dy > 0 && dir.y === 0) dir = { x: 0, y: 1 };
+        else if (dy < 0 && dir.y === 0) dir = { x: 0, y: -1 };
+      }
+    }
+  }, { passive: false });
 
   canvas.addEventListener('click', () => canvas.focus());
   canvas.setAttribute('tabindex', '0');

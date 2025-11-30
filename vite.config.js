@@ -118,6 +118,6 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true, // Fail if port 5173 is not available
-    allowedHosts: ['localhost']
+    allowedHosts: ['localhost', 'irm-indev.ngrok.io']
   }
 })

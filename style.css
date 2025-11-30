@@ -348,3 +348,22 @@
   /* Custom family generates .font-blackletter automatically in v4 */
   --font-blackletter: "Jacquard 12", serif;
 }
+
+/* Disable default context menu and text selection on mobile to prevent browser interference with long press */
+.no-context-menu {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+}
+
+.no-context-menu input,
+.no-context-menu textarea,
+.no-context-menu [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}

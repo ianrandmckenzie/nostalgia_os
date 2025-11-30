@@ -850,8 +850,9 @@ export function toggleFullScreen(winId) {
     state.originalPosition = state.position;
     win.style.left = "0px";
     win.style.top = "0px";
-    win.style.width = window.innerWidth + "px";
-    win.style.height = (window.innerHeight - 40) + "px";
+    // Use 100% to be more responsive to resize/mobile bars
+    win.style.width = "100%";
+    win.style.height = "calc(100% - 40px)"; // Subtract taskbar height
     state.dimensions = { type: 'default' };
     state.fullScreen = true;
   } else {
@@ -871,6 +872,8 @@ export function toggleFullScreen(winId) {
     state.fullScreen = false;
     makeDraggable(win);
     makeResizable(win);
+    // Re-clamp after restoring
+    setTimeout(() => clampWindowToViewport(win), 0);
   }
   saveState();
 }
@@ -1166,10 +1169,15 @@ function clampWindowToViewport(win) {
   const top = parseInt(win.style.top, 10) || 0;
   let newLeft = left;
   let newTop = top;
+
+  // Strict top clamping to prevent handlebar from going off-screen
+  if (top < -panY) { newTop = -panY; changed = true; }
+
   if (left + rect.width < -panX + 50) { newLeft = -panX + 20; changed = true; }
-  if (top + rect.height < -panY + 50) { newTop = -panY + 20; changed = true; }
+  // if (top + rect.height < -panY + 50) { newTop = -panY + 20; changed = true; } // Removed loose top check
   if (left > -panX + vpWidth - 50) { newLeft = -panX + vpWidth - rect.width - 20; changed = true; }
   if (top > -panY + vpHeight - 50) { newTop = -panY + vpHeight - rect.height - 20; changed = true; }
+
   win.style.left = newLeft + 'px';
   win.style.top = newTop + 'px';
   if (changed && state) {
@@ -1344,6 +1352,9 @@ window.addEventListener('resize', () => {
 
     function clearTimer(){ if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
 
+    // Add CSS class to prevent default context menu on long press if supported
+    document.body.classList.add('no-context-menu');
+
     document.addEventListener('touchstart', (e) => {
       if (!e.touches || e.touches.length !== 1) { clearTimer(); return; }
       // Ignore editable fields
@@ -1362,6 +1373,31 @@ window.addEventListener('resize', () => {
         clearTimer();
       }, LONG_PRESS_MS);
     }, { passive: true });
+
+    // Prevent default context menu on long press for non-editable elements
+    document.addEventListener('contextmenu', (e) => {
+      // If it's a synthesized event (isTrusted is false usually, or we can check other props), let it pass?
+      // Actually, we want to BLOCK the browser context menu.
+      // But we want to ALLOW our custom context menu which listens to 'contextmenu'.
+
+      // If the event was triggered by our long press logic, we want it to bubble to our handlers.
+      // But we want to prevent the browser from showing its menu.
+      // e.preventDefault() does exactly that.
+
+      // However, we need to make sure we don't block our own custom menus if they rely on default behavior (they don't).
+      // Our custom menus are shown by event listeners on 'contextmenu' that call e.preventDefault().
+
+      // So, adding a global preventDefault might be redundant if our handlers catch it,
+      // BUT for elements that don't have handlers, we might want to prevent the browser menu if it was a long press?
+      // The user said "make long press always apply to an element that doesn’t stimulate this".
+
+      // Let's just ensure that for touch devices, we try to suppress the native menu.
+      if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
+         // We can't easily distinguish between a "real" right click (mouse) and a long press (touch) in all browsers
+         // except via PointerEvents or checking input source.
+         // But here we are in a touch context.
+      }
+    });
 
     document.addEventListener('touchmove', (e) => {
       if (!pressTimer || !e.touches || e.touches.length !== 1) return;

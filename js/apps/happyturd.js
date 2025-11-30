@@ -9,6 +9,10 @@ export function launchHappyTurd() {
     return;
   }
 
+  const isMobile = window.innerWidth < 600;
+  const width = isMobile ? Math.min(window.innerWidth - 20, 360) : 360;
+  const height = isMobile ? Math.min(window.innerHeight - 60, 640) : 640;
+
   const win = createWindow(
     'Happy Turd',
     '',
@@ -16,7 +20,7 @@ export function launchHappyTurd() {
     'happyturd',
     false,
     false,
-    { type: 'integer', width: 360, height: 640 },
+    { type: 'integer', width: width, height: height },
     'App',
     null,
     'black'
@@ -102,8 +106,11 @@ export async function initializeHappyTurdUI(win) {
   canvasContainer.className = 'flex-1 flex items-center justify-center w-full';
   const canvas = document.createElement('canvas');
   canvas.id = 'happyturd-canvas';
-  canvas.width = 320;
-  canvas.height = 480;
+
+  const isMobile = window.innerWidth < 600;
+  canvas.width = isMobile ? Math.min(window.innerWidth - 40, 320) : 320;
+  canvas.height = isMobile ? Math.min(window.innerHeight - 150, 480) : 480;
+
   canvas.style.background = '#87ceeb';
   canvas.style.border = '2px inset #666';
   canvasContainer.appendChild(canvas);
@@ -119,7 +126,7 @@ export async function initializeHappyTurdUI(win) {
   const logo = document.createElement('img');
   logo.src = '/image/happyturd.webp';
   logo.alt = 'Happy Turd Logo';
-  logo.className = 'w-32 h-32 mb-8 drop-shadow-lg';
+  logo.className = 'w-20 h-20 md:w-32 md:h-32 mb-4 md:mb-8 drop-shadow-lg';
 
   // Title
   const title = document.createElement('h1');

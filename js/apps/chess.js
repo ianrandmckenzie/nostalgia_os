@@ -14,6 +14,10 @@ export function launchChess() {
   }
 
   // Create the chess window
+  const isMobile = window.innerWidth < 600;
+  const width = isMobile ? Math.min(window.innerWidth - 20, 600) : 600;
+  const height = isMobile ? Math.min(window.innerHeight - 60, 690) : 690;
+
   const win = createWindow(
     'Guillotine Chess',
     '',
@@ -21,7 +25,7 @@ export function launchChess() {
     'chess',
     false,
     false,
-    { type: 'integer', width: 600, height: 690 },
+    { type: 'integer', width: width, height: height },
     'App',
     null,
     'white'
@@ -112,8 +116,14 @@ export async function initializeChessUI(win) {
   const board = document.createElement('div');
   board.id = 'chess-board';
   board.className = 'grid grid-cols-8 border-4 border-gray-800';
-  board.style.width = '480px';
-  board.style.height = '480px';
+
+  // Responsive board size
+  const isMobile = window.innerWidth < 600;
+  const boardSize = isMobile ? Math.min(window.innerWidth - 60, 480) : 480;
+  const squareSize = boardSize / 8;
+
+  board.style.width = `${boardSize}px`;
+  board.style.height = `${boardSize}px`;
   board.style.gap = '0';
 
   // Create board squares
@@ -123,8 +133,8 @@ export async function initializeChessUI(win) {
       square.className = `chess-square flex items-center justify-center cursor-pointer text-4xl font-bold select-none ${
         (row + col) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-600'
       }`;
-      square.style.width = '60px';
-      square.style.height = '60px';
+      square.style.width = `${squareSize}px`;
+      square.style.height = `${squareSize}px`;
       square.dataset.row = row;
       square.dataset.col = col;
 
@@ -327,6 +337,11 @@ async function handleSquareClick(row, col, gameState, win) {
 function updateBoardHighlights(gameState) {
   const squares = document.querySelectorAll('.chess-square');
 
+  // Recalculate square size in case of resize (though we don't handle dynamic resize perfectly yet)
+  const isMobile = window.innerWidth < 600;
+  const boardSize = isMobile ? Math.min(window.innerWidth - 60, 480) : 480;
+  const squareSize = boardSize / 8;
+
   squares.forEach(square => {
     const row = parseInt(square.dataset.row);
     const col = parseInt(square.dataset.col);
@@ -337,8 +352,8 @@ function updateBoardHighlights(gameState) {
     }`;
 
     // Maintain the fixed size
-    square.style.width = '60px';
-    square.style.height = '60px';
+    square.style.width = `${squareSize}px`;
+    square.style.height = `${squareSize}px`;
 
     // Highlight selected square
     if (gameState.selectedSquare && gameState.selectedSquare[0] === row && gameState.selectedSquare[1] === col) {

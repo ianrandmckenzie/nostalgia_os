@@ -10,6 +10,10 @@ export function launchPong() {
     return;
   }
 
+  const isMobile = window.innerWidth < 600;
+  const width = isMobile ? Math.min(window.innerWidth - 20, 700) : 700;
+  const height = isMobile ? Math.min(window.innerHeight - 60, 500) : 500;
+
   const win = createWindow(
     'Pong',
     '',
@@ -17,7 +21,7 @@ export function launchPong() {
     'pong',
     false,
     false,
-    { type: 'integer', width: 700, height: 500 },
+    { type: 'integer', width: width, height: height },
     'App',
     null,
     'black'
@@ -48,14 +52,17 @@ export async function initializePongUI(win) {
   canvas.id = 'pong-canvas';
   canvas.style.background = '#000';
   canvas.style.border = '2px inset #666';
-  canvas.width = 640;
-  canvas.height = 360;
+
+  const isMobile = window.innerWidth < 600;
+  canvas.width = isMobile ? Math.min(window.innerWidth - 40, 640) : 640;
+  canvas.height = isMobile ? Math.min(window.innerHeight - 150, 360) : 360;
+
   canvasContainer.appendChild(canvas);
 
   // Controls hint
   const hint = document.createElement('div');
   hint.className = 'text-xs text-gray-300 pt-2';
-  hint.textContent = 'Controls: W/S or Up/Down to move paddle. Click canvas to focus.';
+  hint.textContent = isMobile ? 'Drag on screen to move paddle.' : 'Controls: W/S or Up/Down to move paddle. Click canvas to focus.';
 
   content.appendChild(hud);
   content.appendChild(canvasContainer);
@@ -219,6 +226,27 @@ export async function initializePongUI(win) {
     if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') state.upPressed = false;
     if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') state.downPressed = false;
   }
+
+  // Touch controls
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent scrolling
+    if (e.touches.length > 0) {
+      const touchY = e.touches[0].clientY;
+      const rect = canvas.getBoundingClientRect();
+      const relativeY = touchY - rect.top;
+
+      // Map touch position to paddle position
+      // Center paddle on finger
+      state.playerY = relativeY - state.paddleHeight / 2;
+
+      // Clamp
+      state.playerY = Math.max(0, Math.min(canvas.height - state.paddleHeight, state.playerY));
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchstart', (e) => {
+     e.preventDefault();
+  }, { passive: false });
 
   // Focus canvas on click so keyboard works
   canvas.addEventListener('click', () => canvas.focus());

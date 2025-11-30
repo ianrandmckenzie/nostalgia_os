@@ -520,6 +520,17 @@ export function bringToFront(win) {
       tab.setAttribute('aria-pressed', 'true');
     }
 
+    // If window being restored is maximized, hide scrollbars
+    if (wasMaximized) {
+      if (typeof hideCustomScrollbars === 'function') {
+        hideCustomScrollbars();
+      }
+      const stage = document.getElementById('desktop-stage');
+      if (stage) {
+        stage.style.overflow = 'hidden';
+      }
+    }
+
     // If window being restored is not maximized, minimize all currently maximized windows
     if (!wasMaximized && maximizedWindows.length > 0) {
       maximizedWindows.forEach(maxWin => {
@@ -840,6 +851,8 @@ export function minimizeActiveWindow() {
 }
 
 export function closeWindow(windowId) {
+  const wasMaximized = windowStates[windowId] && windowStates[windowId].fullScreen;
+
   const win = document.getElementById(windowId);
   if (win) win.remove();
   const tab = document.getElementById('tab-' + windowId);
@@ -852,6 +865,25 @@ export function closeWindow(windowId) {
   for (const key in navWindows) {
     if (navWindows[key] === windowId) { delete navWindows[key]; break; }
   }
+
+  // If we just closed a maximized window, check if any other windows are still maximized
+  if (wasMaximized) {
+    const hasOtherMaximizedWindows = Object.values(windowStates).some(state =>
+      state.fullScreen && !state.isMinimized
+    );
+
+    // If no other maximized windows exist, show scrollbars and enable scrolling
+    if (!hasOtherMaximizedWindows) {
+      if (typeof showCustomScrollbars === 'function') {
+        showCustomScrollbars();
+      }
+      const stage = document.getElementById('desktop-stage');
+      if (stage) {
+        stage.style.overflow = 'scroll';
+      }
+    }
+  }
+
   saveState();
 }
 

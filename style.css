@@ -70,7 +70,7 @@
 
 /* Start menu z-index to appear above scrollbars */
 #start-menu {
-  z-index: 10000;
+  z-index: 10001;
 }
 
 /* Start menu keyboard navigation focus */

@@ -70,7 +70,7 @@ export function minimizeAllWindows() {
   document.querySelectorAll('#window-tabs > div').forEach(tab => {
     tab.classList.remove('bg-gray-50');
   });
-  
+
   // Show scrollbars when all windows are minimized
   if (typeof showCustomScrollbars === 'function') {
     showCustomScrollbars();

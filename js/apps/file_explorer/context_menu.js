@@ -246,9 +246,47 @@ export function showContextMenu(e, target, fromFullPath) {
     addItem('New Shortcut', false, ev => createNewShortcut(ev, fromFullPath));
   }
 
-  menu.style.top  = `${e.clientY}px`;
-  menu.style.left = `${e.clientX}px`;
+  // Position the context menu
+  let menuTop = e.clientY;
+  let menuLeft = e.clientX;
+
+  // Make menu visible temporarily to measure its size
+  menu.style.visibility = 'hidden';
   menu.classList.remove('hidden');
+
+  const menuRect = menu.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const isMobile = window.innerWidth <= 768;
+
+  // Define scrollbar dimensions for mobile
+  const scrollbarWidth = isMobile ? 22 : 0;
+  const scrollbarHeight = isMobile ? 22 : 0;
+  const taskbarHeight = 48;
+
+  // Adjust horizontal position to avoid right edge and scrollbar
+  if (menuLeft + menuRect.width > viewportWidth - scrollbarWidth) {
+    menuLeft = viewportWidth - menuRect.width - scrollbarWidth - 5; // 5px padding
+  }
+
+  // Adjust vertical position to avoid bottom edge, taskbar, and scrollbar
+  if (menuTop + menuRect.height > viewportHeight - taskbarHeight - scrollbarHeight) {
+    menuTop = viewportHeight - menuRect.height - taskbarHeight - scrollbarHeight - 5; // 5px padding
+  }
+
+  // Ensure menu doesn't go off the left edge
+  if (menuLeft < 5) {
+    menuLeft = 5;
+  }
+
+  // Ensure menu doesn't go off the top edge
+  if (menuTop < 5) {
+    menuTop = 5;
+  }
+
+  menu.style.top = `${menuTop}px`;
+  menu.style.left = `${menuLeft}px`;
+  menu.style.visibility = 'visible';
 }
 
 export function hideContextMenu() {

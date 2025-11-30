@@ -328,12 +328,12 @@ function updateScrollbars() {
 // Function to show scrollbars (called after splash screen)
 export function showCustomScrollbars() {
   if (!customScrollbars) return;
-  
+
   if (customScrollbars.vertical) {
     customScrollbars.vertical.track.style.transition = 'opacity 0.3s ease';
     customScrollbars.vertical.track.style.opacity = '1';
   }
-  
+
   if (customScrollbars.horizontal) {
     customScrollbars.horizontal.track.style.transition = 'opacity 0.3s ease';
     customScrollbars.horizontal.track.style.opacity = '1';
@@ -343,12 +343,12 @@ export function showCustomScrollbars() {
 // Function to hide scrollbars (called when window is maximized)
 export function hideCustomScrollbars() {
   if (!customScrollbars) return;
-  
+
   if (customScrollbars.vertical) {
     customScrollbars.vertical.track.style.transition = 'opacity 0.3s ease';
     customScrollbars.vertical.track.style.opacity = '0';
   }
-  
+
   if (customScrollbars.horizontal) {
     customScrollbars.horizontal.track.style.transition = 'opacity 0.3s ease';
     customScrollbars.horizontal.track.style.opacity = '0';

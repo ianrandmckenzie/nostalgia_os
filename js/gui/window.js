@@ -407,6 +407,15 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
   }
   // Clamp new window to current viewport if not fullscreen (mobile safety)
   try { clampWindowToViewport(win); } catch(_){}
+
+  // Re-apply fullscreen state if window was maximized when saved
+  if (restore && savedFullScreen) {
+    // Use a small delay to ensure DOM is ready
+    setTimeout(() => {
+      toggleFullScreen(windowId);
+    }, 10);
+  }
+
   return win;
 }
 
@@ -414,7 +423,7 @@ export function minimizeWindow(windowId) {
   const win = document.getElementById(windowId);
   if (win) {
     const wasMaximized = windowStates[windowId] && windowStates[windowId].fullScreen;
-    
+
     win.style.display = 'none';
     win.setAttribute('aria-hidden', 'true');
     if (windowStates[windowId]) {
@@ -426,13 +435,13 @@ export function minimizeWindow(windowId) {
       tab.classList.remove('bg-gray-50');
       tab.setAttribute('aria-pressed', 'false');
     }
-    
+
     // If we just minimized a maximized window, check if any other windows are still maximized
     if (wasMaximized) {
-      const hasOtherMaximizedWindows = Object.values(windowStates).some(state => 
+      const hasOtherMaximizedWindows = Object.values(windowStates).some(state =>
         state.fullScreen && !state.isMinimized
       );
-      
+
       // If no other maximized windows exist, show scrollbars and enable scrolling
       if (!hasOtherMaximizedWindows) {
         if (typeof showCustomScrollbars === 'function') {
@@ -491,7 +500,7 @@ export function bringToFront(win) {
     if (tab) {
       tab.setAttribute('aria-pressed', 'true');
     }
-    
+
     // If window being restored is not maximized, minimize all currently maximized windows
     if (!wasMaximized && maximizedWindows.length > 0) {
       maximizedWindows.forEach(maxWin => {
@@ -509,7 +518,7 @@ export function bringToFront(win) {
       }
     }
   }
-  
+
   // If bringing a maximized window to front, restore it and show scrollbars
   if (wasMaximized) {
     // Re-maximize all previously maximized windows
@@ -524,7 +533,7 @@ export function bringToFront(win) {
       }
     });
   }
-  
+
   setHighestZ(highestZ + 1);
   win.style.zIndex = highestZ;
 
@@ -938,12 +947,12 @@ export function toggleFullScreen(winId) {
 
     state.dimensions = { type: 'viewport' };
     state.fullScreen = true;
-    
+
     // Hide scrollbars when maximizing
     if (typeof hideCustomScrollbars === 'function') {
       hideCustomScrollbars();
     }
-    
+
     // Disable scrolling on stage while maximized
     if (stage) {
       stage.style.overflow = 'hidden';
@@ -967,16 +976,16 @@ export function toggleFullScreen(winId) {
     makeResizable(win);
     // Re-clamp after restoring
     setTimeout(() => clampWindowToViewport(win), 0);
-    
+
     // Check if any other windows are still maximized
     const hasMaximizedWindows = Object.values(windowStates).some(s => s.fullScreen);
-    
+
     if (!hasMaximizedWindows) {
       // Show scrollbars when no windows are maximized
       if (typeof showCustomScrollbars === 'function') {
         showCustomScrollbars();
       }
-      
+
       // Re-enable scrolling on stage
       if (stage) {
         stage.style.overflow = 'scroll';

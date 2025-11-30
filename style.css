@@ -384,6 +384,8 @@ img {
   #desktop-stage {
     scrollbar-width: auto !important; /* Firefox */
     -ms-overflow-style: auto !important; /* IE */
+    overflow: scroll !important; /* Force scrollbars */
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Webkit scrollbar styling for old-school look */
@@ -391,12 +393,14 @@ img {
     width: 16px;
     height: 16px;
     display: block;
+    -webkit-appearance: none;
   }
 
   #desktop-stage::-webkit-scrollbar-track {
     background: #c0c0c0;
     border-left: 1px solid #ffffff;
     border-top: 1px solid #ffffff;
+    -webkit-appearance: none;
   }
 
   #desktop-stage::-webkit-scrollbar-thumb {
@@ -406,10 +410,12 @@ img {
     border-right: 1px solid #000000;
     border-bottom: 1px solid #000000;
     box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+    -webkit-appearance: none;
   }
 
   #desktop-stage::-webkit-scrollbar-corner {
     background: #c0c0c0;
+    -webkit-appearance: none;
   }
 }
 

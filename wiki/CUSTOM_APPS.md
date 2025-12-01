@@ -30,7 +30,7 @@ Edit `custom_branding/custom_apps.json`:
   "apps": [
     {
       "title": "About Us",
-      "html_file": "about-us.html",
+      "html_content": "about-us.html",
       "app_icon": "about-us.png",
       "open_on_pageload": "false",
       "compostable": "false",
@@ -47,7 +47,7 @@ Edit `custom_branding/custom_apps.json`:
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `title` | string | Yes | Display name of the app |
-| `html_file` | string | Yes | HTML file name in `custom_branding/` folder |
+| `html_content` | string | Yes | HTML file name in `custom_branding/` folder |
 | `app_icon` | string | Yes | Icon file name in `custom_branding/` folder |
 | `open_on_pageload` | string/boolean | Yes | Whether to auto-open when site loads (`"true"` or `"false"`) |
 | `compostable` | string/boolean | Yes | Whether users can delete/move to compost bin (`"true"` or `"false"`) |
@@ -137,7 +137,7 @@ Add your app to `custom_branding/custom_apps.json`:
   "apps": [
     {
       "title": "My Custom App",
-      "html_file": "my-app.html",
+      "html_content": "my-app.html",
       "app_icon": "my-app.png",
       "open_on_pageload": "false",
       "compostable": "true",
@@ -179,12 +179,12 @@ Simply add multiple objects to the `apps` array:
   "apps": [
     {
       "title": "App One",
-      "html_file": "app-one.html",
+      "html_content": "app-one.html",
       ...
     },
     {
       "title": "App Two",
-      "html_file": "app-two.html",
+      "html_content": "app-two.html",
       ...
     }
   ]
@@ -296,7 +296,7 @@ Use Tailwind CSS classes for consistent styling:
 ### App Opens But Content Missing
 
 1. Check browser console for 404 errors
-2. Verify `html_file` path is correct
+2. Verify `html_content` path is correct
 3. Ensure HTML file is in `custom_branding/` folder
 4. Check that HTML is valid
 
@@ -324,7 +324,7 @@ Use Tailwind CSS classes for consistent styling:
 ```json
 {
   "title": "Company Info",
-  "html_file": "company-info.html",
+  "html_content": "company-info.html",
   "app_icon": "info.png",
   "open_on_pageload": "false",
   "compostable": "false",
@@ -339,7 +339,7 @@ Use Tailwind CSS classes for consistent styling:
 ```json
 {
   "title": "Contact Form",
-  "html_file": "contact-form.html",
+  "html_content": "contact-form.html",
   "app_icon": "mail.png",
   "open_on_pageload": "false",
   "compostable": "true",
@@ -354,7 +354,7 @@ Use Tailwind CSS classes for consistent styling:
 ```json
 {
   "title": "Welcome",
-  "html_file": "welcome.html",
+  "html_content": "welcome.html",
   "app_icon": "star.png",
   "open_on_pageload": "true",
   "compostable": "false",

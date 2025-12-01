@@ -1,31 +1,56 @@
 /**
  * Custom Apps Generator
  *
- * This module loads custom apps from custom_branding/custom_apps.json
+ * This module loads custom apps from a remote API or local JSON file
  * and dynamically integrates them into the OS.
  */
 
 import { createWindow, bringToFront } from '../gui/window.js';
+import { API_BASE_URL, CUSTOM_APPS_PATH } from '../config.js';
 
 // Store loaded custom apps
 let customApps = [];
 
 /**
- * Load custom apps from the JSON configuration file
+ * Load custom apps from remote API or local JSON file
+ * Priority: 1. Remote API, 2. Local JSON, 3. Empty array
  */
 export async function loadCustomApps() {
   try {
+    // Try loading from remote API first
+    console.log('🔍 Attempting to load custom apps from remote API...');
+    const apiUrl = `${API_BASE_URL}${CUSTOM_APPS_PATH}`;
+
+    try {
+      const apiResponse = await fetch(apiUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+
+      if (apiResponse.ok) {
+        const apiData = await apiResponse.json();
+        customApps = apiData.data || apiData.apps || [];
+        console.log(`✅ Loaded ${customApps.length} custom app(s) from remote API:`, customApps.map(a => a.title));
+        return customApps;
+      } else {
+        console.log('⚠️ Remote API returned non-OK status:', apiResponse.status);
+      }
+    } catch (apiError) {
+      console.log('⚠️ Remote API unavailable, falling back to local JSON:', apiError.message);
+    }
+
+    // Fallback to local JSON file
     console.log('🔍 Loading custom apps from /custom_branding/custom_apps.json');
-    const response = await fetch('/custom_branding/custom_apps.json');
-    if (!response.ok) {
-      console.warn('No custom apps configuration found');
+    const localResponse = await fetch('/custom_branding/custom_apps.json');
+    if (!localResponse.ok) {
+      console.warn('No custom apps configuration found locally');
       return [];
     }
 
-    const data = await response.json();
-    customApps = data.apps || [];
+    const localData = await localResponse.json();
+    customApps = localData.apps || localData.data || [];
 
-    console.log(`✅ Loaded ${customApps.length} custom app(s):`, customApps.map(a => a.title));
+    console.log(`✅ Loaded ${customApps.length} custom app(s) from local JSON:`, customApps.map(a => a.title));
     return customApps;
   } catch (error) {
     console.warn('❌ Failed to load custom apps:', error);
@@ -44,9 +69,29 @@ export function getCustomApps() {
  * Generate a unique ID for a custom app
  */
 function generateCustomAppId(app) {
-  // Remove .html extension and sanitize filename
-  const baseId = app.html_file.replace(/\.html$/, '').replace(/[^a-z0-9-]/gi, '-');
+  // Use title as base for ID since html_content is inline HTML
+  const baseId = app.title.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
   return `custom-${baseId}`;
+}
+
+/**
+ * Check if a string is a URL
+ */
+function isUrl(str) {
+  return str && (str.startsWith('http://') || str.startsWith('https://'));
+}
+
+/**
+ * Get the app icon URL (handles both local files and remote URLs)
+ */
+function getAppIconUrl(app) {
+  if (!app.app_icon) {
+    return './image/file.webp';
+  }
+  if (isUrl(app.app_icon)) {
+    return app.app_icon;
+  }
+  return `/custom_branding/${app.app_icon}`;
 }
 
 /**
@@ -87,8 +132,8 @@ export function launchCustomApp(appId) {
 
   console.log('✨ No existing window, creating new one');
 
-  // Get the icon path
-  const iconPath = app.app_icon ? `/custom_branding/${app.app_icon}` : './image/file.webp';
+  // Get the icon path (handles both local and remote URLs)
+  const iconPath = getAppIconUrl(app);
 
   console.log('📦 Creating window with params:', {
     title: app.title,
@@ -134,17 +179,13 @@ async function loadCustomAppContent(win, app) {
   }
 
   try {
-    // Load HTML file from custom_branding folder
-    const response = await fetch(`/custom_branding/${app.html_file}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to load ${app.html_file}: ${response.statusText}`);
+    // html_content contains inline HTML markup
+    if (!app.html_content) {
+      throw new Error('No HTML content provided');
     }
 
-    const html = await response.text();
-
     content.className = 'overflow-auto h-full';
-    content.innerHTML = html;
+    content.innerHTML = app.html_content;
 
     // Execute any scripts in the loaded HTML
     const scripts = content.querySelectorAll('script');
@@ -191,7 +232,7 @@ export function getCustomAppsForFileSystem() {
         fullPath: `${filepath}/${appId}`,
         content_type: 'html',
         contents: {},
-        icon: app.app_icon ? `/custom_branding/${app.app_icon}` : './image/file.webp',
+        icon: getAppIconUrl(app),
         isCustomApp: true,
         customAppData: app
       };
@@ -220,7 +261,7 @@ export function getCustomAppsForStartMenu() {
     acc[location].push({
       id: appId,
       text: app.title,
-      icon: app.app_icon ? `/custom_branding/${app.app_icon}` : './image/file.webp',
+      icon: getAppIconUrl(app),
       type: 'item',
       isCustomApp: true,
       customAppData: app

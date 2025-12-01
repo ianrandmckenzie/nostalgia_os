@@ -2,7 +2,7 @@
   "apps": [
     {
       "title": "About Us",
-      "html_file": "about-us.html",
+      "html_content": "about-us.html",
       "app_icon": "about-us.png",
       "open_on_pageload": "false",
       "compostable": "false",
@@ -12,7 +12,7 @@
     },
     {
       "title": "Spore Rot",
-      "html_file": "spore-rot.html",
+      "html_content": "spore-rot.html",
       "app_icon": "spore-rot.png",
       "open_on_pageload": "false",
       "compostable": "false",
@@ -22,7 +22,7 @@
     },
     {
       "title": "BSOD",
-      "html_file": "bsod.html",
+      "html_content": "bsod.html",
       "app_icon": "bsod.png",
       "open_on_pageload": "false",
       "compostable": "false",

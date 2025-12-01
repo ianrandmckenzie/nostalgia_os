@@ -3,7 +3,7 @@ import { setFileSystemState } from '../../os/manage_data.js';
 import { saveState, desktopIconsState } from '../../os/manage_data.js';
 import { refreshExplorerViews } from './gui.js';
 import { renderDesktopIcons } from '../../gui/desktop.js';
-import { moveItemToCompostBin } from '../compost_bin.js';
+import { moveItemToCompostBin, loadCompostBinContents, updateCompostBinHeader } from '../compost_bin.js';
 
 function setupFolderDrop() {
   // Use requestAnimationFrame to ensure DOM is ready

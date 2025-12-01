@@ -383,4 +383,4 @@ function getDefaultIcon(type) {
 }
 
 // Export functions needed by other modules
-export { moveItemToCompostBin };
+export { moveItemToCompostBin, updateCompostBinHeader };

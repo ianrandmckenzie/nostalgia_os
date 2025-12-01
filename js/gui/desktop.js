@@ -710,8 +710,8 @@ export async function renderDesktopIcons() {
     });
 
     iconElem.innerHTML = `
-      <img src="${iconSrc}" alt="${item.name} icon" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
-      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
+      <img src="${iconSrc}" alt="${item.name} icon" class="mb-1 p-1 h-16 w-16 desktop-folder-icon drop-shadow-md" />
+      <span class="text-xs text-white max-w-20 text-center desktop-folder-icon truncate block" style="text-shadow: 1px 1px 2px black, 0 0 1em black, 0 0 0.2em black;">${item.name}</span>
     `;
 
     // Position icon in grid or restore saved position

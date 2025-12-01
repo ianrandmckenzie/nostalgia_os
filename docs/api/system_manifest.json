@@ -76,7 +76,7 @@
     },
     {
       "id": "sysset",
-      "name": "System Settings",
+      "name": "Desktop Settings",
       "version": "1.0.0",
       "icon": "image/gears.webp",
       "type": "system"

@@ -1,5 +1,5 @@
 // Compost Bin - A parody successor to the Recycle Bin
-import { getFileSystemStateSync } from './file_explorer/storage.js';
+import { getFileSystemStateSync, getFileSystemState } from './file_explorer/storage.js';
 import { setFileSystemState } from '../os/manage_data.js';
 import { saveState, desktopIconsState } from '../os/manage_data.js';
 import { createWindow, showDialogBox, bringToFront, closeWindow } from '../gui/window.js';
@@ -71,6 +71,11 @@ export function launchCompostBin() {
   contentArea.className = 'flex-1 bg-white border border-gray-400 p-2 overflow-auto';
   contentArea.id = 'compost-bin-content';
 
+  // Add drag and drop listeners
+  contentArea.addEventListener('dragover', handleCompostDragOver);
+  contentArea.addEventListener('dragleave', handleCompostDragLeave);
+  contentArea.addEventListener('drop', handleCompostDrop);
+
   // Load compost bin contents
   loadCompostBinContents(contentArea);
 
@@ -140,7 +145,9 @@ function createCompostBinItem(item) {
 }
 
 async function moveItemToCompostBin(itemId, fromPath) {
-  const fs = getFileSystemStateSync();
+  console.log('moveItemToCompostBin called', { itemId, fromPath });
+  let fs = await getFileSystemState();
+  if (!fs) fs = getFileSystemStateSync();
 
   // Don't allow moving the compost bin itself
   if (itemId === 'compostbin') {
@@ -152,16 +159,49 @@ async function moveItemToCompostBin(itemId, fromPath) {
   let sourceItem = null;
   let sourceContainer = null;
 
-  if (fromPath === 'C://Desktop') {
-    // Use unified structure for desktop
-    sourceContainer = fs.folders['C://Desktop'] || {};
-  } else {
-    // Use unified structure: all folders are stored directly in fs.folders[fullPath]
-    sourceContainer = fs.folders[fromPath] || {};
+  // Try to find the item using the provided path
+  if (fromPath) {
+      if (fromPath === 'C://Desktop') {
+        sourceContainer = fs.folders['C://Desktop'];
+      } else {
+        sourceContainer = fs.folders[fromPath];
+      }
+  }
+
+  // If not found or path not provided, search for it
+  if (!sourceContainer || !sourceContainer[itemId]) {
+      console.log('Item not found in provided path, searching FS...');
+      for (const path in fs.folders) {
+          if (fs.folders[path][itemId]) {
+              sourceContainer = fs.folders[path];
+              fromPath = path;
+              break;
+          }
+          if (fs.folders[path].contents && fs.folders[path].contents[itemId]) {
+              sourceContainer = fs.folders[path].contents;
+              fromPath = path;
+              break;
+          }
+      }
   }
 
   if (sourceContainer && sourceContainer[itemId]) {
     sourceItem = sourceContainer[itemId];
+
+    // Check if item is allowed to be composted
+    if (sourceItem.type === 'app') {
+      // Standard apps are never compostable
+      // Custom apps are compostable only if explicitly set to true
+      let isCompostable = false;
+      if (sourceItem.isCustomApp && sourceItem.customAppData) {
+        isCompostable = String(sourceItem.customAppData.compostable) === 'true';
+      }
+
+      if (!isCompostable) {
+        showDialogBox('This application cannot be moved to the Compost Bin.', 'error');
+        return;
+      }
+    }
 
     // Move item to compost bin
     const desktopItems = fs.folders['C://Desktop'] || {};
@@ -205,6 +245,9 @@ async function moveItemToCompostBin(itemId, fromPath) {
         updateCompostBinHeader(compostBinWindow);
       }
     }
+  } else {
+      console.error('Item not found in file system:', itemId);
+      showDialogBox('Could not find item to move to Compost Bin.', 'error');
   }
 }
 
@@ -269,7 +312,21 @@ export function emptyCompostBin() {
 
   emptyBtn.addEventListener('click', async () => {
     // Get list of items before clearing for cleanup
-    const itemIds = Object.keys(compostBin.contents || {});
+    const items = compostBin.contents || {};
+    const itemIds = Object.keys(items);
+
+    // Track deleted custom apps
+    if (!fs.deletedCustomApps) {
+      fs.deletedCustomApps = [];
+    }
+
+    Object.values(items).forEach(item => {
+      if (item.isCustomApp) {
+        if (!fs.deletedCustomApps.includes(item.id)) {
+          fs.deletedCustomApps.push(item.id);
+        }
+      }
+    });
 
     // Empty the compost bin
     compostBin.contents = {};
@@ -330,5 +387,38 @@ function getDefaultIcon(type) {
   }
 }
 
+function handleCompostDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  if (isNonCompostable) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+  }
+  e.dataTransfer.dropEffect = 'move';
+  this.classList.add('bg-blue-50');
+}
+
+function handleCompostDragLeave(e) {
+  this.classList.remove('bg-blue-50');
+}
+
+async function handleCompostDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  this.classList.remove('bg-blue-50');
+
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  if (isNonCompostable) return;
+
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
+  if (isCompostItem) return; // Already in bin
+
+  const itemId = e.dataTransfer.getData('text/plain');
+  if (itemId) {
+     await moveItemToCompostBin(itemId, null);
+  }
+}
+
 // Export functions needed by other modules
-export { moveItemToCompostBin };
+export { moveItemToCompostBin, updateCompostBinHeader };

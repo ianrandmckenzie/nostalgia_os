@@ -3,6 +3,7 @@ import { setFileSystemState } from '../../os/manage_data.js';
 import { saveState, desktopIconsState } from '../../os/manage_data.js';
 import { refreshExplorerViews } from './gui.js';
 import { renderDesktopIcons } from '../../gui/desktop.js';
+import { moveItemToCompostBin, loadCompostBinContents, updateCompostBinHeader } from '../compost_bin.js';
 
 function setupFolderDrop() {
   // Use requestAnimationFrame to ensure DOM is ready
@@ -64,8 +65,24 @@ function setupFolderDrop() {
 function handleDragStart(e) {
   e.dataTransfer.effectAllowed = "move";
   // Store the dragged item's id.
-  e.dataTransfer.setData("text/plain", this.getAttribute('data-item-id'));
+  const itemId = this.getAttribute('data-item-id');
+  e.dataTransfer.setData("text/plain", itemId);
   this.classList.add('dragging');
+
+  // Check compostability
+  const item = getItemFromFileSystem(itemId);
+  let isCompostable = true;
+  if (item && item.type === 'app') {
+       if (item.isCustomApp && item.customAppData) {
+           isCompostable = String(item.customAppData.compostable) === 'true';
+       } else {
+           isCompostable = false;
+       }
+  }
+
+  if (!isCompostable) {
+      e.dataTransfer.setData("application/x-non-compostable", "true");
+  }
 }
 
 function handleDragOver(e) {
@@ -163,6 +180,28 @@ async function moveItemToFolder(itemId, folderId) {
   }
   const { item, parent } = result;
 
+  // Find the target folder object.
+  let targetFolder = null;
+  let targetFullPath = findFolderFullPathById(folderId);
+
+  if (targetFullPath) {
+    targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
+  }
+
+  // If not found via path, try finding it as an item in the FS
+  if (!targetFolder) {
+    const targetResult = findItemAndParentById(folderId, fs);
+    if (targetResult && targetResult.item && targetResult.item.type === 'folder') {
+      targetFolder = targetResult.item;
+      targetFullPath = targetFolder.fullPath;
+    }
+  }
+
+  if (!targetFolder) {
+    console.error("Target folder not found:", folderId);
+    return;
+  }
+
   // Check if item is moving from desktop for cleanup
   const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
 
@@ -177,36 +216,40 @@ async function moveItemToFolder(itemId, folderId) {
     }
   }
 
-  // Find the target folder object.
-  let targetFullPath = findFolderFullPathById(folderId);
-  let targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
-  if (!targetFolder) {
-    console.error("Target folder not found:", folderId);
-    return;
-  }
   // Ensure target folder has a 'contents' object.
   if (!targetFolder.contents) targetFolder.contents = {};
   targetFolder.contents[itemId] = item;
 
   // Also ensure the item is accessible in the unified structure
   // For folders that are not drive roots, also update fs.folders[targetFullPath]
-  if (!/^[A-Z]:\/\/$/.test(targetFullPath)) {
+  if (targetFullPath && !/^[A-Z]:\/\/$/.test(targetFullPath)) {
     if (!fs.folders[targetFullPath]) {
       fs.folders[targetFullPath] = {};
+    }
+    // We should probably copy the folder properties if creating a new entry
+    if (Object.keys(fs.folders[targetFullPath]).length === 0) {
+        Object.assign(fs.folders[targetFullPath], targetFolder);
     }
     fs.folders[targetFullPath][itemId] = item;
   }
 
 
   // Update the moved item's fullPath using the item's name, not its ID.
-  item.fullPath = targetFullPath + "/" + item.name;
+  // Ensure targetFullPath is valid
+  if (!targetFullPath && targetFolder.fullPath) targetFullPath = targetFolder.fullPath;
+
+  if (targetFullPath) {
+      item.fullPath = targetFullPath + "/" + item.name;
+  } else {
+      console.warn("Could not determine full path for target folder", targetFolder);
+  }
 
   await setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
 
   // If moving from or to desktop, refresh desktop icons
-  if (targetFullPath.includes('Desktop') || findItemCurrentPath(itemId).includes('Desktop')) {
+  if ((targetFullPath && targetFullPath.includes('Desktop')) || (item.fullPath && item.fullPath.includes('Desktop'))) {
     renderDesktopIcons();
   }
 }
@@ -358,6 +401,13 @@ function findItemCurrentPath(itemId) {
 // Handle drag over desktop folder icons
 function handleDesktopFolderDragOver(e) {
   const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  const targetId = this.getAttribute('data-item-id');
+
+  if (targetId === 'compostbin' && isNonCompostable) {
+      return;
+  }
+
   if (isCompostItem || e.dataTransfer.types.includes('text/plain')) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -424,8 +474,15 @@ async function handleExplorerDrop(e) {
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const explorerPath = this.getAttribute('data-current-path');
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
 
   if (sourceId && explorerPath) {
+    if (isCompostItem) {
+      // Restore from compost bin to this explorer path
+      await restoreItemFromCompostBin(sourceId, explorerPath);
+      return;
+    }
+
     // Check if item is from desktop or another explorer
     const sourceItem = getItemFromFileSystem(sourceId);
     if (sourceItem) {
@@ -481,8 +538,8 @@ async function restoreItemFromCompostBin(itemId, targetPath) {
       console.error('Target folder not found:', targetPath);
       return;
     }
-    if (!targetFolder.contents) targetFolder.contents = {};
-    targetContainer = targetFolder.contents;
+    // In unified structure, items are stored directly in the folder object
+    targetContainer = targetFolder;
   }
 
   // Update item's fullPath
@@ -592,3 +649,34 @@ async function moveItemToDesktop(itemId) {
 
 // Export functions for use by other modules
 export { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorerPath };
+
+// Helper function to find a folder's full path by its ID
+function findFolderFullPathById(folderId) {
+  const fs = getFileSystemStateSync();
+
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    if (folder.id === folderId) {
+      return folderPath;
+    }
+    // Also check contents if it's not a top-level match
+    if (folder.contents && folder.contents[folderId] && folder.contents[folderId].type === 'folder') {
+        return folder.contents[folderId].fullPath || (folderPath + '/' + folder.contents[folderId].name);
+    }
+  }
+
+  return '';
+}
+
+// Helper function to find a folder object by its full path
+function findFolderObjectByFullPath(fullPath, fs) {
+  if (!fs) fs = getFileSystemStateSync();
+
+  // Direct lookup in unified structure
+  if (fs.folders[fullPath]) {
+    return fs.folders[fullPath];
+  }
+
+  return null;
+}

@@ -5,7 +5,7 @@ import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
 import { refreshUpdateCheck } from '../apps/os_update.js';
 import { initializeTubeStreamUI } from '../apps/tube_stream.js';
 import { initializeMailboxUI } from '../apps/mailbox.js';
-import { loadCustomApps, getCustomAppsForFileSystem } from '../apps/custom_apps.js';
+import { loadCustomApps, getCustomAppsForFileSystem, isCustomApp, launchCustomApp, restoreCustomApp } from '../apps/custom_apps.js';
 
 export let fileSystemState = {
   folders: {
@@ -581,10 +581,14 @@ export async function initializeAppState() {
     try {
         // Check for custom config
         const customConfigResponse = await fetch('custom-config.js', { method: 'HEAD' });
-        if (customConfigResponse.ok) {
+        const configContentType = customConfigResponse.headers.get('content-type');
+
+        if (customConfigResponse.ok && (!configContentType || !configContentType.includes('text/html'))) {
             try {
                 const customDataResponse = await fetch('custom_data/data.json');
-                if (customDataResponse.ok) {
+                const dataContentType = customDataResponse.headers.get('content-type');
+
+                if (customDataResponse.ok && (!dataContentType || !dataContentType.includes('text/html'))) {
                     initialData = await customDataResponse.json();
                     console.log('Loaded initial state from custom_data');
                 }
@@ -597,12 +601,17 @@ export async function initializeAppState() {
         if (!initialData) {
             try {
                 const defaultDataResponse = await fetch('default_data/data.json');
-                if (defaultDataResponse.ok) {
+                const defaultContentType = defaultDataResponse.headers.get('content-type');
+
+                if (defaultDataResponse.ok && (!defaultContentType || !defaultContentType.includes('text/html'))) {
                     initialData = await defaultDataResponse.json();
                     console.log('Loaded initial state from default_data');
                 }
             } catch (e) {
-                console.warn('Failed to load default_data/data.json', e);
+                // Only warn if it's not a syntax error (which implies HTML response)
+                if (!(e instanceof SyntaxError)) {
+                    console.warn('Failed to load default_data/data.json', e);
+                }
             }
         }
     } catch (e) {
@@ -751,6 +760,9 @@ export async function initializeAppState() {
     if (typeof window !== 'undefined' && typeof window.applyDesktopSettings === 'function') {
       window.applyDesktopSettings();
     }
+
+    // Ensure custom apps are loaded and integrated (needed for restoration)
+    await integrateCustomApps();
 
     // Check if default song exists in Media folder, add if not (for migration)
     setTimeout(async () => {
@@ -1105,6 +1117,13 @@ async function initializeRestoredApp(windowId) {
     } catch (error) {
       console.warn(`Failed to initialize restored app ${windowId}:`, error);
     }
+  } else if (isCustomApp(windowId)) {
+    // Handle custom apps restoration
+    try {
+      await restoreCustomApp(windowId);
+    } catch (error) {
+      console.warn(`Failed to restore custom app ${windowId}:`, error);
+    }
   } else {
     // Check if this is a file window that might contain a LetterPad editor
     const windowElement = document.getElementById(windowId);
@@ -1302,6 +1321,7 @@ if (typeof window !== 'undefined') {
   window.getFileSystemState = getFileSystemState;
   window.setFileSystemState = setFileSystemState;
   window.updateContent = updateContent;
+  window.integrateCustomApps = integrateCustomApps;
 }
 
 // Add beforeunload handler to ensure data is saved before page closes
@@ -1476,6 +1496,7 @@ export async function processSystemManifest() {
 
 /**
  * Integrate custom apps into the file system
+ * Merges custom apps from configuration with saved state, adding new apps and updating existing ones
  */
 export async function integrateCustomApps() {
   try {
@@ -1485,19 +1506,84 @@ export async function integrateCustomApps() {
 
     // Get custom apps formatted for file system
     const customAppsForFS = getCustomAppsForFileSystem();
+    const validAppIds = new Set(customAppsForFS.map(app => app.id));
 
-    if (customAppsForFS.length === 0) {
-      console.log('⚠️ No custom apps to integrate');
-      return;
-    }
-
-    console.log(`✅ Integrating ${customAppsForFS.length} custom app(s) into file system`);
+    // Note: We do NOT return early if customAppsForFS is empty,
+    // because we need to clean up any existing custom apps that should no longer be there.
 
     const fs = await getFileSystemState();
 
     if (!fs || !fs.folders || !fs.folders['C://Desktop']) {
       console.error('❌ File system not properly initialized for custom apps');
       return;
+    }
+
+    // Get Compost Bin contents
+    const compostBin = fs.folders['C://Desktop']['compostbin'];
+    const compostedItems = compostBin && compostBin.contents ? compostBin.contents : {};
+
+    // Get list of permanently deleted custom apps
+    const deletedApps = fs.deletedCustomApps || [];
+
+    // Track which apps were added or updated
+    let addedCount = 0;
+    let updatedCount = 0;
+    let restoredCount = 0;
+    let removedCount = 0;
+
+    // 1. CLEANUP PHASE: Remove custom apps that are no longer in the loaded list
+    // We need to scan all folders because custom apps might have been moved
+    for (const folderPath in fs.folders) {
+        const folder = fs.folders[folderPath];
+        // Check items in the folder
+        for (const itemId in folder) {
+            const item = folder[itemId];
+            // Check if it's a custom app and if it's invalid
+            if (item && typeof item === 'object' && item.isCustomApp) {
+                if (!validAppIds.has(item.id)) {
+                    console.log(`🗑️ Removing obsolete custom app: ${item.name} (id: ${item.id})`);
+                    delete folder[itemId];
+                    removedCount++;
+
+                    // Close window if open
+                    const win = document.getElementById(item.id);
+                    if (win) {
+                        win.remove();
+                        const tab = document.getElementById('tab-' + item.id);
+                        if (tab) tab.remove();
+                    }
+
+                    // Always remove from windowStates if it exists, regardless of whether the DOM element exists yet
+                    // This ensures that restoreWindows() won't try to restore a window for a removed app
+                    if (windowStates[item.id]) {
+                        console.log(`🪟 Removing obsolete custom app from windowStates: ${item.id}`);
+                        delete windowStates[item.id];
+                    }
+                }
+            }
+        }
+    }
+
+    // Cleanup Compost Bin
+    for (const itemId in compostedItems) {
+        const item = compostedItems[itemId];
+        if (item && item.isCustomApp && !validAppIds.has(item.id)) {
+             console.log(`🗑️ Removing obsolete custom app from Compost Bin: ${item.name} (id: ${item.id})`);
+             delete compostedItems[itemId];
+             removedCount++;
+        }
+    }
+
+    // Cleanup deleted apps list
+    if (fs.deletedCustomApps) {
+        const newDeletedApps = fs.deletedCustomApps.filter(id => validAppIds.has(id));
+        if (newDeletedApps.length !== fs.deletedCustomApps.length) {
+            fs.deletedCustomApps = newDeletedApps;
+        }
+    }
+
+    if (customAppsForFS.length > 0) {
+        console.log(`✅ Integrating ${customAppsForFS.length} custom app(s) into file system`);
     }
 
     // Add custom apps to their designated locations
@@ -1507,17 +1593,86 @@ export async function integrateCustomApps() {
       const targetFolder = fs.folders[folderPath];
 
       if (targetFolder) {
-        // Check if app already exists
+        // Check if app already exists in target folder
         const existingApp = targetFolder[app.id];
 
-        if (!existingApp) {
-          // Add new app
+        // Check if app exists in Compost Bin
+        const compostedApp = compostedItems[app.id];
+
+        // Check if app was permanently deleted
+        const isDeleted = deletedApps.includes(app.id);
+
+        if (existingApp) {
+          // Update existing app (in case config changed)
+          // Compare remote version (app) with local version (existingApp)
+          // We check customAppData specifically as it holds the source of truth
+          const remoteData = app.customAppData;
+          const localData = existingApp.customAppData;
+
+          // Deep comparison of configuration
+          const hasChanges = JSON.stringify(remoteData) !== JSON.stringify(localData);
+
+          if (hasChanges) {
+            // Preserve any user-specific data if it exists, but update app configuration
+            targetFolder[app.id] = { ...existingApp, ...app };
+            console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id}) - Remote config changed`);
+            updatedCount++;
+          }
+        } else if (compostedApp) {
+          // App is in Compost Bin
+          // Check if it is still compostable
+          const isCompostable = String(app.customAppData.compostable) === 'true' || app.customAppData.compostable === true;
+
+          if (!isCompostable) {
+            // App is no longer compostable, restore it!
+            console.log(`♻️ Restoring custom app from Compost Bin: ${app.name} (id: ${app.id}) - No longer compostable`);
+
+            // Remove from Compost Bin
+            delete compostedItems[app.id];
+
+            // Add to target folder
+            targetFolder[app.id] = app;
+            restoredCount++;
+          } else {
+            // App is still compostable, leave it in the bin
+            // But we should update its definition in the bin in case other properties changed
+             const remoteData = app.customAppData;
+             const localData = compostedApp.customAppData;
+             const hasChanges = JSON.stringify(remoteData) !== JSON.stringify(localData);
+
+             if (hasChanges) {
+                 compostedItems[app.id] = { ...compostedApp, ...app };
+                 console.log(`🔄 Updated composted custom app: ${app.name} (id: ${app.id})`);
+                 updatedCount++;
+             } else {
+                 console.log(`🗑️ Custom app is in Compost Bin and still compostable: ${app.name} (id: ${app.id}) - Skipping restore`);
+             }
+          }
+        } else if (isDeleted) {
+             // App was permanently deleted. Check if it should be restored (no longer compostable)
+             const isCompostable = String(app.customAppData.compostable) === 'true' || app.customAppData.compostable === true;
+
+             if (!isCompostable) {
+                 // Restore it!
+                 console.log(`♻️ Restoring permanently deleted custom app: ${app.name} (id: ${app.id}) - No longer compostable`);
+
+                 // Remove from deleted list
+                 const idx = fs.deletedCustomApps.indexOf(app.id);
+                 if (idx > -1) {
+                     fs.deletedCustomApps.splice(idx, 1);
+                 }
+
+                 // Add to target folder
+                 targetFolder[app.id] = app;
+                 restoredCount++;
+             } else {
+                 console.log(`🗑️ Custom app was permanently deleted and is still compostable: ${app.name} (id: ${app.id}) - Skipping restore`);
+             }
+        } else {
+          // Add new app (not in target, not in bin, not deleted)
           targetFolder[app.id] = app;
           console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
-        } else {
-          // Update existing app (in case config changed)
-          targetFolder[app.id] = { ...existingApp, ...app };
-          console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id})`);
+          addedCount++;
         }
       } else {
         console.error(`❌ Target folder not found in file system: ${folderPath}`);
@@ -1525,8 +1680,21 @@ export async function integrateCustomApps() {
       }
     });
 
-    setFileSystemState(fs);
-    await saveState();
+    if (addedCount > 0 || updatedCount > 0 || restoredCount > 0 || removedCount > 0) {
+      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated, ${restoredCount} restored, ${removedCount} removed`);
+      setFileSystemState(fs);
+      await saveState();
+
+      // Refresh UI to show changes
+      if (typeof window.renderDesktopIcons === 'function') {
+        window.renderDesktopIcons();
+      }
+      if (typeof window.restoreStartMenuOrder === 'function') {
+        window.restoreStartMenuOrder();
+      }
+    } else {
+      console.log('✓ No changes needed - all custom apps already up to date');
+    }
 
   } catch (error) {
     console.error('❌ Failed to integrate custom apps:', error);

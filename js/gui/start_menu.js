@@ -49,7 +49,7 @@ const DEFAULT_START_MENU_ITEMS = [
       { id: 'letterpad', text: 'LetterPad', icon: 'image/file.webp' },
       { id: 'calcapp', text: 'Calculator', icon: 'image/calculator.webp' },
       { id: 'keyboard', text: 'Keyboard', icon: 'image/keyboard.webp' },
-      { id: 'sysset', text: 'System Settings', icon: 'image/gears.webp' },
+      { id: 'sysset', text: 'Desktop Settings', icon: 'image/gears.webp' },
       { id: 'storageapp', text: 'Storage Manager', icon: 'image/drive_c.webp' },
       { id: 'osupdateapp', text: 'OS Update', icon: 'image/power.webp' },
       { id: 'abtcomp', text: 'About This Computer', icon: 'image/info.webp' }
@@ -477,7 +477,7 @@ function handleStartMenuItemClick(itemId) {
       if (typeof openAboutWindow === 'function') openAboutWindow();
       break;
     case 'sysset':
-      if (typeof openNav === 'function') openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
+      if (typeof openNav === 'function') openNav('Desktop Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
       break;
     case 'storageapp':
       if (typeof openApp === 'function') openApp('storage');
@@ -1635,6 +1635,139 @@ async function saveStartMenuOrder() {
 
 }
 
+/**
+ * Merge new custom apps into the saved start menu order
+ * This ensures that new custom apps appear in the menu even for returning users
+ */
+function mergeNewCustomAppsIntoOrder(savedOrder) {
+  // Get current custom apps
+  const customAppsByLocation = getCustomAppsForStartMenu();
+
+  // If no saved order, return empty to use default + custom apps logic
+  if (!savedOrder || savedOrder.length === 0) {
+    console.log('[START MENU MERGE] No saved order, using defaults');
+    return savedOrder;
+  }
+
+  // Create a set of all existing item IDs in the saved order
+  const existingIds = new Set();
+  savedOrder.forEach(item => {
+    if (typeof item === 'string') {
+      existingIds.add(item);
+    } else if (item && item.type === 'group' && item.items) {
+      item.items.forEach(subItem => {
+        if (typeof subItem === 'string') {
+          existingIds.add(subItem);
+        } else if (subItem && subItem.id) {
+          existingIds.add(subItem.id);
+        }
+      });
+    }
+  });
+
+  console.log('[START MENU MERGE] Existing IDs in saved order:', Array.from(existingIds));
+
+  // Collect all new custom apps that aren't in the saved order
+  const newCustomApps = [];
+
+  // Check default location custom apps
+  if (customAppsByLocation.default && customAppsByLocation.default.length > 0) {
+    customAppsByLocation.default.forEach(app => {
+      if (!existingIds.has(app.id)) {
+        newCustomApps.push(app);
+        console.log('[START MENU MERGE] New custom app found:', app.id, app.text);
+      }
+    });
+  }
+
+  // Check custom apps in groups
+  Object.keys(customAppsByLocation).forEach(location => {
+    if (location === 'default') return;
+
+    const apps = customAppsByLocation[location];
+    apps.forEach(app => {
+      if (!existingIds.has(app.id)) {
+        // Track which group this app belongs to
+        app._targetLocation = location;
+        newCustomApps.push(app);
+        console.log('[START MENU MERGE] New custom app found in', location, ':', app.id, app.text);
+      }
+    });
+  });
+
+  // If no new apps, return original order
+  if (newCustomApps.length === 0) {
+    console.log('[START MENU MERGE] No new custom apps to add');
+    return savedOrder;
+  }
+
+  console.log('[START MENU MERGE] Adding', newCustomApps.length, 'new custom app(s)');
+
+  // Create a new order array with the new apps merged in
+  const newOrder = [...savedOrder];
+
+  // Map location names to group IDs
+  const locationToGroupId = {
+    'games': 'games-group',
+    'utilities': 'utilities-group'
+  };
+
+  // Process each new custom app
+  newCustomApps.forEach(app => {
+    let inserted = false;
+
+    // If the app has a target location/group
+    if (app._targetLocation) {
+      const groupId = locationToGroupId[app._targetLocation.toLowerCase()];
+
+      if (groupId) {
+        // Try to add to existing group in the saved order
+        for (let i = 0; i < newOrder.length; i++) {
+          const item = newOrder[i];
+          if (item && item.type === 'group' && item.id === groupId) {
+            // Add to this group's items
+            if (!item.items) item.items = [];
+            item.items.push(app.id);
+            inserted = true;
+            console.log('[START MENU MERGE] Added', app.id, 'to existing group', groupId);
+            break;
+          }
+        }
+      }
+    }
+
+    // If not inserted into a group, add as a standalone item before utilities group
+    if (!inserted) {
+      const utilitiesIndex = newOrder.findIndex(item =>
+        (typeof item === 'string' && item === 'utilities-group') ||
+        (item && item.type === 'group' && item.id === 'utilities-group')
+      );
+
+      if (utilitiesIndex >= 0) {
+        newOrder.splice(utilitiesIndex, 0, app.id);
+        console.log('[START MENU MERGE] Inserted', app.id, 'before utilities group');
+      } else {
+        // Fallback: add before restart
+        const restartIndex = newOrder.findIndex(item =>
+          item === 'rstrtcomp' || (item && item.id === 'rstrtcomp')
+        );
+
+        if (restartIndex >= 0) {
+          newOrder.splice(restartIndex, 0, app.id);
+          console.log('[START MENU MERGE] Inserted', app.id, 'before restart');
+        } else {
+          // Final fallback: add to end
+          newOrder.push(app.id);
+          console.log('[START MENU MERGE] Added', app.id, 'to end');
+        }
+      }
+    }
+  });
+
+  console.log('[START MENU MERGE] Merge complete, new order has', newOrder.length, 'items');
+  return newOrder;
+}
+
 async function restoreStartMenuOrder() {
   // First, try to load directly from storage
   let currentStartMenuOrder = [];
@@ -1652,6 +1785,8 @@ async function restoreStartMenuOrder() {
     currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
   }
 
+  // Merge new custom apps into the saved order
+  currentStartMenuOrder = mergeNewCustomAppsIntoOrder(currentStartMenuOrder);
 
   // Update global variables with the loaded order
   if (typeof window !== 'undefined') {

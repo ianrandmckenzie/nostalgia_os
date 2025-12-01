@@ -4,6 +4,7 @@ import { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorer
 import { moveItemToCompostBin } from '../apps/compost_bin.js';
 import { openFile, openShortcut, openExplorerInNewWindow } from '../apps/file_explorer/gui.js';
 import { openApp } from '../apps/main.js';
+import { openFileExplorerForImageSelection } from './main.js';
 
 // Global state for keyboard drag operations
 let keyboardDragState = {
@@ -21,7 +22,7 @@ function startKeyboardDrag(iconElement) {
 
   // Visual feedback for drag mode
   iconElement.classList.add('dragging', 'keyboard-dragging');
-  iconElement.style.zIndex = '1000';
+  iconElement.style.zIndex = '99999';
 
   // Add visual feedback for potential drop targets
   highlightDropTargets(iconElement);
@@ -289,6 +290,28 @@ export function makeIconDraggable(icon) {
         isDragging = true;
         icon.classList.add('dragging');
 
+        // Reparent to body to ensure z-index works (break out of stacking context)
+        const rect = icon.getBoundingClientRect();
+        document.body.appendChild(icon);
+        icon.style.position = 'fixed';
+        icon.style.left = rect.left + 'px';
+        icon.style.top = rect.top + 'px';
+        icon.style.zIndex = '99999';
+        console.log('Drag started. Reparented to body. zIndex:', icon.style.zIndex);
+
+        // Check compostability
+        const sourceId = icon.getAttribute('data-item-id');
+        const sourceItem = getItemFromFileSystem(sourceId);
+        let isCompostable = true;
+        if (sourceItem && sourceItem.type === 'app') {
+             if (sourceItem.isCustomApp && sourceItem.customAppData) {
+                 isCompostable = String(sourceItem.customAppData.compostable) === 'true';
+             } else {
+                 isCompostable = false;
+             }
+        }
+        icon.dataset.isCompostable = String(isCompostable);
+
         // Add touch-specific styling
         if (isTouch) {
           icon.classList.add('touch-dragging');
@@ -298,12 +321,14 @@ export function makeIconDraggable(icon) {
           }
         }
 
-        icon.style.zIndex = '1000'; // Bring to front while dragging
-
         // Add visual feedback for potential drop targets
         document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
           const targetItem = getItemFromFileSystem(target.getAttribute('data-item-id'));
           const targetId = target.getAttribute('data-item-id');
+
+          // Check if target is compost bin and item is not compostable
+          if (targetId === 'compostbin' && !isCompostable) return;
+
           if (((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') && target !== icon) {
             target.classList.add('drag-hover-target');
           }
@@ -318,12 +343,21 @@ export function makeIconDraggable(icon) {
 
       if (isDragging) {
         // Update icon position to follow cursor
-        icon.style.left = (e.clientX - offsetX) + 'px';
-        icon.style.top = (e.clientY - offsetY) + 'px';
-        icon.style.position = 'absolute';
+        // Use fixed positioning since we are on body
+        let newLeft = e.clientX - offsetX;
+        let newTop = e.clientY - offsetY;
 
-        // Constrain icon position within desktop bounds
-        constrainIconPosition(icon);
+        // Constrain to viewport/desktop
+        const desktop = document.getElementById('desktop');
+        const desktopRect = desktop.getBoundingClientRect();
+        const iconRect = icon.getBoundingClientRect();
+
+        // Simple constraint
+        newLeft = Math.max(desktopRect.left, Math.min(newLeft, desktopRect.right - iconRect.width));
+        newTop = Math.max(desktopRect.top, Math.min(newTop, desktopRect.bottom - iconRect.height - 40));
+
+        icon.style.left = newLeft + 'px';
+        icon.style.top = newTop + 'px';
 
         // Update visual feedback for drop targets
         updateDropTargetFeedback(e.clientX, e.clientY, icon);
@@ -338,21 +372,36 @@ export function makeIconDraggable(icon) {
       document.removeEventListener('pointercancel', pointerUpHandler);
 
       if (isDragging) {
+        // Reparent back to desktop-icons
+        const desktopIcons = document.getElementById('desktop-icons');
+        desktopIcons.appendChild(icon);
+
+        // Convert fixed coordinates back to relative
+        const containerRect = desktopIcons.getBoundingClientRect();
+        const currentLeft = parseFloat(icon.style.left);
+        const currentTop = parseFloat(icon.style.top);
+
+        icon.style.position = 'absolute';
+        icon.style.left = (currentLeft - containerRect.left) + 'px';
+        icon.style.top = (currentTop - containerRect.top) + 'px';
+
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
+        console.log('Drag ended. Reparented to desktop-icons.');
 
         // Check if dropped on a folder or file explorer window
-        // Temporarily disable pointer events on the dragged element to get accurate elementFromPoint
-        const originalPointerEvents = icon.style.pointerEvents;
-        icon.style.pointerEvents = 'none';
+        // Temporarily hide the dragged element to get accurate elementFromPoint
+        const originalVisibility = icon.style.visibility;
+        icon.style.visibility = 'hidden';
 
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
 
-        // Restore the icon pointer events
-        icon.style.pointerEvents = originalPointerEvents;
+        // Restore the icon visibility
+        icon.style.visibility = originalVisibility;
 
         const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
         const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
+        const targetCompostBinWindow = elementBelow ? elementBelow.closest('#compost-bin-content') : null;
 
         if (targetFolder && targetFolder !== icon) {
           const targetId = targetFolder.getAttribute('data-item-id');
@@ -378,6 +427,13 @@ export function makeIconDraggable(icon) {
             await moveItemToExplorerPath(sourceId, explorerPath);
             return; // Don't save position if moved to explorer
           }
+        } else if (targetCompostBinWindow) {
+             const sourceId = icon.getAttribute('data-item-id');
+             const isCompostable = icon.dataset.isCompostable === 'true';
+             if (isCompostable) {
+                 await moveItemToCompostBin(sourceId, 'C://Desktop');
+                 return;
+             }
         }
 
         // Save new position if just repositioned
@@ -394,6 +450,8 @@ export function makeIconDraggable(icon) {
       document.querySelectorAll('.file-explorer-window').forEach(target => {
         target.classList.remove('dragover');
       });
+      const compostContent = document.getElementById('compost-bin-content');
+      if (compostContent) compostContent.classList.remove('bg-blue-50');
 
       // Re-enable scrolling
       document.body.style.overflow = '';
@@ -419,7 +477,7 @@ export function makeIconDraggable(icon) {
 
 export function updateDesktopSettings() {
   const color = document.getElementById('bgColorInput').value;
-  const image = document.getElementById('bgImageInput').value.trim();
+  const image = document.getElementById('bgImageValue').value;
   const clockSec = document.getElementById('clockSecondsInput').checked;
 
 
@@ -557,6 +615,10 @@ export async function renderDesktopIcons() {
       });
     } else if (item.type === 'app') {
       iconElem.dataset.isVendorApplication = true;
+      // Check if custom app is compostable
+      if (item.isCustomApp && item.customAppData) {
+        iconElem.dataset.compostable = String(item.customAppData.compostable);
+      }
       iconSrc = item.icon;
       iconElem.addEventListener('dblclick', () => openApp(item.id));
       iconElem.addEventListener('mobiledbltap', () => openApp(item.id));
@@ -648,8 +710,8 @@ export async function renderDesktopIcons() {
     });
 
     iconElem.innerHTML = `
-      <img src="${iconSrc}" alt="${item.name} icon" class="mb-1 p-1 h-16 w-16 desktop-folder-icon" />
-      <span class="text-xs text-black max-w-20 text-center desktop-folder-icon truncate block">${item.name}</span>
+      <img src="${iconSrc}" alt="${item.name} icon" class="mb-1 p-1 h-16 w-16 desktop-folder-icon drop-shadow-md" />
+      <span class="text-xs text-white max-w-20 text-center desktop-folder-icon truncate block" style="text-shadow: 1px 1px 2px black, 0 0 1em black, 0 0 0.2em black;">${item.name}</span>
     `;
 
     // Position icon in grid or restore saved position
@@ -713,19 +775,29 @@ export async function renderDesktopIcons() {
 
 export function applyDesktopSettings() {
   const desktop = document.getElementById('desktop');
+  const windowsContainer = document.getElementById('windows-container');
+
+  // Apply to windows-container as it sits on top of desktop div
+  const target = windowsContainer || desktop;
+
   if (desktopSettings.bgColor) {
-    desktop.style.backgroundColor = desktopSettings.bgColor;
+    target.style.backgroundColor = desktopSettings.bgColor;
+    // Also apply to desktop base for good measure
+    if (desktop) desktop.style.backgroundColor = desktopSettings.bgColor;
   }
+
   if (desktopSettings.bgImage) {
-    desktop.style.backgroundImage = `url(${desktopSettings.bgImage})`;
-    desktop.style.backgroundSize = 'cover';
-    desktop.style.backgroundRepeat = 'no-repeat';
+    target.style.backgroundImage = `url(${desktopSettings.bgImage})`;
+    target.style.backgroundSize = 'cover';
+    target.style.backgroundRepeat = 'no-repeat';
+    target.style.backgroundPosition = 'center';
   } else {
-    desktop.style.backgroundImage = 'none';
+    target.style.backgroundImage = 'none';
   }
 }
 
 export function getSettingsContent() {
+  const currentImage = desktopSettings.bgImage ? 'Custom Image Selected' : 'None';
   return `
     <div class="space-y-4">
       <div>
@@ -734,9 +806,14 @@ export function getSettingsContent() {
         <p id="bgColorHelp" class="text-xs text-gray-600 mt-1">Choose a color for your desktop background</p>
       </div>
       <div>
-        <label for="bgImageInput" class="block text-sm font-medium">Background Image URL:</label>
-        <input id="bgImageInput" type="text" placeholder="Enter image URL" value="${desktopSettings.bgImage}" class="border w-full mt-1" aria-describedby="bgImageHelp" />
-        <p id="bgImageHelp" class="text-xs text-gray-600 mt-1">Enter a URL to display an image as your desktop background</p>
+        <label class="block text-sm font-medium">Background Image:</label>
+        <div class="flex items-center gap-2 mt-1">
+            <span id="bgImageName" class="text-sm text-gray-800 border px-2 py-1 bg-gray-50 flex-grow truncate">${currentImage}</span>
+            <button id="bg-image-select-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 px-2 py-1 text-sm active:border-t-black active:border-l-black active:border-b-white active:border-r-white">Select...</button>
+            <button id="bg-image-clear-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 px-2 py-1 text-sm active:border-t-black active:border-l-black active:border-b-white active:border-r-white">Clear</button>
+        </div>
+        <p class="text-xs text-gray-600 mt-1">Select an image from your computer to use as wallpaper</p>
+        <input type="hidden" id="bgImageValue" value="${desktopSettings.bgImage || ''}">
       </div>
       <div>
         <label for="clockSecondsInput" class="block text-sm font-medium">Show Seconds on Clock:</label>
@@ -937,20 +1014,29 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
     target.classList.remove('dragover');
   });
 
-  // Get element at cursor position (temporarily make dragging icon invisible to pointer events)
-  const originalPointerEvents = draggingIcon.style.pointerEvents;
-  draggingIcon.style.pointerEvents = 'none';
+  // Also remove highlight from compost bin window content
+  const compostContent = document.getElementById('compost-bin-content');
+  if (compostContent) compostContent.classList.remove('bg-blue-50');
+
+  // Get element at cursor position (temporarily hide dragging icon)
+  const originalVisibility = draggingIcon.style.visibility;
+  draggingIcon.style.visibility = 'hidden';
 
   const elementBelow = document.elementFromPoint(clientX, clientY);
   const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
   const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
+  const targetCompostBinWindow = elementBelow ? elementBelow.closest('#compost-bin-content') : null;
 
-  // Restore pointer events
-  draggingIcon.style.pointerEvents = originalPointerEvents;
+  // Restore visibility
+  draggingIcon.style.visibility = originalVisibility;
 
   if (targetFolder && targetFolder !== draggingIcon) {
     const targetId = targetFolder.getAttribute('data-item-id');
     const targetItem = getItemFromFileSystem(targetId);
+    const isCompostable = draggingIcon.dataset.isCompostable === 'true';
+
+    // Check if target is compost bin and item is not compostable
+    if (targetId === 'compostbin' && !isCompostable) return;
 
     // Add dragover visual feedback if it's a valid drop target
     if ((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') {
@@ -959,6 +1045,11 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   } else if (targetExplorer) {
     // Add visual feedback for file explorer windows
     targetExplorer.classList.add('dragover');
+  } else if (targetCompostBinWindow) {
+      const isCompostable = draggingIcon.dataset.isCompostable === 'true';
+      if (isCompostable) {
+          targetCompostBinWindow.classList.add('bg-blue-50');
+      }
   }
 }
 
@@ -971,3 +1062,21 @@ if (typeof window !== 'undefined') {
   // Initialize desktop drop functionality
   setupDesktopDrop();
 }
+
+document.addEventListener('click', e => {
+  if (e.target.closest('#bg-image-select-btn')) {
+    openFileExplorerForImageSelection((imageData, fileInfo) => {
+        const nameDisplay = document.getElementById('bgImageName');
+        const valueInput = document.getElementById('bgImageValue');
+        if (nameDisplay) nameDisplay.textContent = fileInfo.name;
+        if (valueInput) valueInput.value = imageData;
+    });
+  }
+
+  if (e.target.closest('#bg-image-clear-btn')) {
+      const nameDisplay = document.getElementById('bgImageName');
+      const valueInput = document.getElementById('bgImageValue');
+      if (nameDisplay) nameDisplay.textContent = 'None';
+      if (valueInput) valueInput.value = '';
+  }
+});

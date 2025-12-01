@@ -3,7 +3,7 @@ const CONFIG = {
         API_BASE_URL: 'http://abc.localhost:3000/',
         SUGGESTIONS_LIST_PATH: 'end_data/public/ananan',
         SUGGESTIONS_SUBMISSIONS_PATH: 'end_data/public/kfjbwef',
-        TUBE_STREAMS_PATH: 'end_data/public/tube-streams',
+        TUBE_STREAMS_PATH: 'tube-streams.json',
         CUSTOM_APPS_PATH: 'end_data/public/custom_apps'
     },
     production: {

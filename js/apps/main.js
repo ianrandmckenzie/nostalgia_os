@@ -13,8 +13,18 @@ import { launchPong } from './pong.js';
 import { launchSnake } from './snake.js';
 import { launchHappyTurd } from './happyturd.js';
 import { launchOSUpdate } from './os_update.js';
+import { isCustomApp, launchCustomApp } from './custom_apps.js';
 
 export function openApp(id) {
+  console.log(`🔍 openApp called with id: ${id}`);
+  // Check if it's a custom app first
+  if (isCustomApp(id)) {
+    console.log(`✅ Identified as custom app: ${id}`);
+    launchCustomApp(id);
+    return;
+  }
+  console.log(`⚠️ Not a custom app, checking built-in apps...`);
+
   const existingWindow = document.getElementById(id);
   if (existingWindow) {
     // Special handling for keyboard since it conflicts with another element

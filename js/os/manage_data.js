@@ -5,6 +5,7 @@ import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
 import { refreshUpdateCheck } from '../apps/os_update.js';
 import { initializeTubeStreamUI } from '../apps/tube_stream.js';
 import { initializeMailboxUI } from '../apps/mailbox.js';
+import { loadCustomApps, getCustomAppsForFileSystem } from '../apps/custom_apps.js';
 
 export let fileSystemState = {
   folders: {
@@ -481,12 +482,50 @@ function migrateFileSystemToUnifiedStructure(fs) {
   }
 
   // Ensure essential folders exist in unified structure (even if not migrated)
-  const essentialFolders = ['C://Desktop', 'C://Documents', 'C://Media'];
-  for (const folderPath of essentialFolders) {
-    if (!fs.folders[folderPath]) {
-      fs.folders[folderPath] = {};
+  const essentialFolders = [
+    { path: 'C://Desktop', name: 'Desktop' },
+    { path: 'C://Documents', name: 'Documents' },
+    { path: 'C://Media', name: 'Media' }
+  ];
+
+  // Ensure C:// exists
+  if (!fs.folders['C://']) {
+    fs.folders['C://'] = {};
+    migrationNeeded = true;
+  }
+
+  for (const folder of essentialFolders) {
+    // Create the folder in unified structure if it doesn't exist
+    if (!fs.folders[folder.path]) {
+      fs.folders[folder.path] = {};
       migrationNeeded = true;
     }
+
+    // Also ensure the folder has an entry in C:// that points to it
+    if (!fs.folders['C://'][folder.name]) {
+      fs.folders['C://'][folder.name] = {
+        id: folder.name,
+        name: folder.name,
+        type: 'folder',
+        fullPath: folder.path,
+        contents: {}
+      };
+      migrationNeeded = true;
+    }
+  }
+
+  // Add compost bin to Desktop if it doesn't exist
+  if (fs.folders['C://Desktop'] && !fs.folders['C://Desktop']['compostbin']) {
+    fs.folders['C://Desktop']['compostbin'] = {
+      id: 'compostbin',
+      name: 'Compost Bin',
+      type: 'app',
+      fullPath: 'C://Desktop/compostbin',
+      content_type: 'html',
+      contents: {},
+      icon: './image/compost-bin.webp'
+    };
+    migrationNeeded = true;
   }
 
   // Helper function to migrate nested contents recursively
@@ -651,6 +690,9 @@ export async function initializeAppState() {
 
     // Initialize Documents folder with default files
     await processSystemManifest();
+
+    // Load and add custom apps to the file system
+    await integrateCustomApps();
   } else {
     // Load state from IndexedDB with validation
     const storedState = appStateData;
@@ -1430,4 +1472,63 @@ export async function processSystemManifest() {
   })();
 
   return systemUpdatePromise;
+}
+
+/**
+ * Integrate custom apps into the file system
+ */
+export async function integrateCustomApps() {
+  try {
+    console.log('🔧 Starting custom apps integration...');
+    // Load custom apps configuration
+    await loadCustomApps();
+
+    // Get custom apps formatted for file system
+    const customAppsForFS = getCustomAppsForFileSystem();
+
+    if (customAppsForFS.length === 0) {
+      console.log('⚠️ No custom apps to integrate');
+      return;
+    }
+
+    console.log(`✅ Integrating ${customAppsForFS.length} custom app(s) into file system`);
+
+    const fs = await getFileSystemState();
+
+    if (!fs || !fs.folders || !fs.folders['C://Desktop']) {
+      console.error('❌ File system not properly initialized for custom apps');
+      return;
+    }
+
+    // Add custom apps to their designated locations
+    customAppsForFS.forEach(app => {
+      // Extract the folder path from the app's fullPath
+      const folderPath = app.fullPath.substring(0, app.fullPath.lastIndexOf('/'));
+      const targetFolder = fs.folders[folderPath];
+
+      if (targetFolder) {
+        // Check if app already exists
+        const existingApp = targetFolder[app.id];
+
+        if (!existingApp) {
+          // Add new app
+          targetFolder[app.id] = app;
+          console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
+        } else {
+          // Update existing app (in case config changed)
+          targetFolder[app.id] = { ...existingApp, ...app };
+          console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id})`);
+        }
+      } else {
+        console.error(`❌ Target folder not found in file system: ${folderPath}`);
+        console.log('Available folders:', Object.keys(fs.folders));
+      }
+    });
+
+    setFileSystemState(fs);
+    await saveState();
+
+  } catch (error) {
+    console.error('❌ Failed to integrate custom apps:', error);
+  }
 }

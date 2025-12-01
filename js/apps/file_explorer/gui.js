@@ -329,6 +329,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('dblclick', e => {
   const li = e.target.closest('[data-open-folder],[data-open-file],[data-open-shortcut]');
+  console.log('[FILE EXPLORER] Double-click detected, target li:', li);
   if (!li) return;
 
   // Check if this is in image selection mode - if so, completely disable double-clicks
@@ -338,6 +339,8 @@ document.addEventListener('dblclick', e => {
     e.stopPropagation();
     return false;
   }
+
+  console.log('[FILE EXPLORER] Dataset:', li.dataset);
 
   if (li.dataset.openFolder) {
     // Check if we're within a file explorer window
@@ -466,13 +469,19 @@ const openingFiles = new Set();
 
 // Looks up a file by its ID (from desktop or current folder) and opens it.
 export async function openFile(incoming_file, e) {
+  console.log('[FILE EXPLORER] openFile called with:', incoming_file);
+
   // Check if file is already being opened
   if (openingFiles.has(incoming_file)) {
+    console.log('[FILE EXPLORER] File already being opened, skipping');
     return;
   }
 
-  const existingWindow = document.getElementById(incoming_file);
+  // Check for existing window - must be in windows-container, not just any element with this ID
+  const windowsContainer = document.getElementById('windows-container');
+  const existingWindow = windowsContainer?.querySelector(`#${incoming_file}`);
   if (existingWindow) {
+    console.log('[FILE EXPLORER] Window already exists, bringing to front');
     bringToFront(existingWindow);
     return;
   }
@@ -496,11 +505,15 @@ export async function openFile(incoming_file, e) {
       currentPath = 'C://Desktop';
     }
 
+    console.log('[FILE EXPLORER] Current path:', currentPath);
     const itemsObj = getItemsForPath(currentPath);
+    console.log('[FILE EXPLORER] Items in path:', Object.keys(itemsObj));
     file = Object.values(itemsObj).find(it => it.id === incoming_file);
+    console.log('[FILE EXPLORER] Found file:', file);
 
     // If not found in current path, try to find it globally (fallback)
     if (!file) {
+       console.log('[FILE EXPLORER] File not found in current path');
        // This might happen if opened from a shortcut or other means
        // For now, we'll stick to the existing logic but be aware
     }
@@ -508,6 +521,19 @@ export async function openFile(incoming_file, e) {
     if (!file || typeof file === 'string') {
       const file_name = `File ${typeof file === 'string' ? `"${file}"` : ''}`;
       showDialogBox(`${file_name}not found.`, 'error');
+      return;
+    }
+
+    // Check if this is an app (custom or built-in) - launch it instead of opening as file
+    console.log('[FILE EXPLORER] File type:', file.type, 'isCustomApp:', file.isCustomApp);
+    if (file.type === 'app' || file.isCustomApp) {
+      console.log('[FILE EXPLORER] Detected as app, launching via openApp:', file.id);
+      // Launch the app using openApp
+      if (typeof openApp === 'function') {
+        openApp(file.id);
+      } else if (typeof window.openApp === 'function') {
+        window.openApp(file.id);
+      }
       return;
     }
 

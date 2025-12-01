@@ -163,6 +163,21 @@ async function moveItemToCompostBin(itemId, fromPath) {
   if (sourceContainer && sourceContainer[itemId]) {
     sourceItem = sourceContainer[itemId];
 
+    // Check if item is allowed to be composted
+    if (sourceItem.type === 'app') {
+      // Standard apps are never compostable
+      // Custom apps are compostable only if explicitly set to true
+      let isCompostable = false;
+      if (sourceItem.isCustomApp && sourceItem.customAppData) {
+        isCompostable = String(sourceItem.customAppData.compostable) === 'true';
+      }
+
+      if (!isCompostable) {
+        showDialogBox('This application cannot be moved to the Compost Bin.', 'error');
+        return;
+      }
+    }
+
     // Move item to compost bin
     const desktopItems = fs.folders['C://Desktop'] || {};
     const compostBin = desktopItems['compostbin'];

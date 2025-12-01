@@ -557,6 +557,10 @@ export async function renderDesktopIcons() {
       });
     } else if (item.type === 'app') {
       iconElem.dataset.isVendorApplication = true;
+      // Check if custom app is compostable
+      if (item.isCustomApp && item.customAppData) {
+        iconElem.dataset.compostable = String(item.customAppData.compostable);
+      }
       iconSrc = item.icon;
       iconElem.addEventListener('dblclick', () => openApp(item.id));
       iconElem.addEventListener('mobiledbltap', () => openApp(item.id));

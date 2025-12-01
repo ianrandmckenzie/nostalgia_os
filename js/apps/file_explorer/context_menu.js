@@ -227,7 +227,13 @@ export function showContextMenu(e, target, fromFullPath) {
       }
 
       addItem('Edit Name',  isVendor, ev => editItemName(ev));
-      addItem('Send to Compost Bin', isVendor, ev => sendToCompostBin(ev));
+      
+      // Check if item is compostable (custom apps can opt-in)
+      const isCompostable = target.getAttribute('data-compostable') === 'true';
+      // Disable if it's a vendor app AND NOT explicitly compostable
+      const disableCompost = isVendor && !isCompostable;
+      
+      addItem('Send to Compost Bin', disableCompost, ev => sendToCompostBin(ev));
       addItem('New Folder', true);
       addItem('New File',   true);
       addItem('New Shortcut', true);

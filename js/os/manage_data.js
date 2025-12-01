@@ -5,7 +5,7 @@ import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
 import { refreshUpdateCheck } from '../apps/os_update.js';
 import { initializeTubeStreamUI } from '../apps/tube_stream.js';
 import { initializeMailboxUI } from '../apps/mailbox.js';
-import { loadCustomApps, getCustomAppsForFileSystem } from '../apps/custom_apps.js';
+import { loadCustomApps, getCustomAppsForFileSystem, isCustomApp, launchCustomApp, restoreCustomApp } from '../apps/custom_apps.js';
 
 export let fileSystemState = {
   folders: {
@@ -761,6 +761,9 @@ export async function initializeAppState() {
       window.applyDesktopSettings();
     }
 
+    // Ensure custom apps are loaded and integrated (needed for restoration)
+    await integrateCustomApps();
+
     // Check if default song exists in Media folder, add if not (for migration)
     setTimeout(async () => {
       const fs = await getFileSystemState();
@@ -1113,6 +1116,13 @@ async function initializeRestoredApp(windowId) {
       appInitializers[windowId]();
     } catch (error) {
       console.warn(`Failed to initialize restored app ${windowId}:`, error);
+    }
+  } else if (isCustomApp(windowId)) {
+    // Handle custom apps restoration
+    try {
+      await restoreCustomApp(windowId);
+    } catch (error) {
+      console.warn(`Failed to restore custom app ${windowId}:`, error);
     }
   } else {
     // Check if this is a file window that might contain a LetterPad editor

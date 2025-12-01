@@ -184,7 +184,7 @@ async function loadCustomAppContent(win, app) {
       throw new Error('No HTML content provided');
     }
 
-    content.className = 'overflow-auto h-full';
+    content.className = 'overflow-auto h-full bg-white';
     content.innerHTML = app.html_content;
 
     // Execute any scripts in the loaded HTML
@@ -289,10 +289,24 @@ export function isCustomApp(appId) {
   return appId.startsWith('custom-') && getCustomAppById(appId) !== undefined;
 }
 
+/**
+ * Restore a custom app's content into an existing window
+ */
+export async function restoreCustomApp(appId) {
+  const app = getCustomAppById(appId);
+  if (!app) return;
+
+  const win = document.getElementById(appId);
+  if (!win) return;
+
+  await loadCustomAppContent(win, app);
+}
+
 // Make functions available globally
 if (typeof window !== 'undefined') {
   window.loadCustomApps = loadCustomApps;
   window.getCustomApps = getCustomApps;
   window.launchCustomApp = launchCustomApp;
   window.isCustomApp = isCustomApp;
+  window.restoreCustomApp = restoreCustomApp;
 }

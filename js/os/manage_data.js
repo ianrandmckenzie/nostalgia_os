@@ -1521,9 +1521,17 @@ export async function integrateCustomApps() {
       return;
     }
 
+    // Get Compost Bin contents
+    const compostBin = fs.folders['C://Desktop']['compostbin'];
+    const compostedItems = compostBin && compostBin.contents ? compostBin.contents : {};
+
+    // Get list of permanently deleted custom apps
+    const deletedApps = fs.deletedCustomApps || [];
+
     // Track which apps were added or updated
     let addedCount = 0;
     let updatedCount = 0;
+    let restoredCount = 0;
 
     // Add custom apps to their designated locations
     customAppsForFS.forEach(app => {
@@ -1532,15 +1540,16 @@ export async function integrateCustomApps() {
       const targetFolder = fs.folders[folderPath];
 
       if (targetFolder) {
-        // Check if app already exists
+        // Check if app already exists in target folder
         const existingApp = targetFolder[app.id];
 
-        if (!existingApp) {
-          // Add new app
-          targetFolder[app.id] = app;
-          console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
-          addedCount++;
-        } else {
+        // Check if app exists in Compost Bin
+        const compostedApp = compostedItems[app.id];
+
+        // Check if app was permanently deleted
+        const isDeleted = deletedApps.includes(app.id);
+
+        if (existingApp) {
           // Update existing app (in case config changed)
           // Compare remote version (app) with local version (existingApp)
           // We check customAppData specifically as it holds the source of truth
@@ -1556,6 +1565,61 @@ export async function integrateCustomApps() {
             console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id}) - Remote config changed`);
             updatedCount++;
           }
+        } else if (compostedApp) {
+          // App is in Compost Bin
+          // Check if it is still compostable
+          const isCompostable = String(app.customAppData.compostable) === 'true' || app.customAppData.compostable === true;
+
+          if (!isCompostable) {
+            // App is no longer compostable, restore it!
+            console.log(`♻️ Restoring custom app from Compost Bin: ${app.name} (id: ${app.id}) - No longer compostable`);
+
+            // Remove from Compost Bin
+            delete compostedItems[app.id];
+
+            // Add to target folder
+            targetFolder[app.id] = app;
+            restoredCount++;
+          } else {
+            // App is still compostable, leave it in the bin
+            // But we should update its definition in the bin in case other properties changed
+             const remoteData = app.customAppData;
+             const localData = compostedApp.customAppData;
+             const hasChanges = JSON.stringify(remoteData) !== JSON.stringify(localData);
+
+             if (hasChanges) {
+                 compostedItems[app.id] = { ...compostedApp, ...app };
+                 console.log(`🔄 Updated composted custom app: ${app.name} (id: ${app.id})`);
+                 updatedCount++;
+             } else {
+                 console.log(`🗑️ Custom app is in Compost Bin and still compostable: ${app.name} (id: ${app.id}) - Skipping restore`);
+             }
+          }
+        } else if (isDeleted) {
+             // App was permanently deleted. Check if it should be restored (no longer compostable)
+             const isCompostable = String(app.customAppData.compostable) === 'true' || app.customAppData.compostable === true;
+
+             if (!isCompostable) {
+                 // Restore it!
+                 console.log(`♻️ Restoring permanently deleted custom app: ${app.name} (id: ${app.id}) - No longer compostable`);
+
+                 // Remove from deleted list
+                 const idx = fs.deletedCustomApps.indexOf(app.id);
+                 if (idx > -1) {
+                     fs.deletedCustomApps.splice(idx, 1);
+                 }
+
+                 // Add to target folder
+                 targetFolder[app.id] = app;
+                 restoredCount++;
+             } else {
+                 console.log(`🗑️ Custom app was permanently deleted and is still compostable: ${app.name} (id: ${app.id}) - Skipping restore`);
+             }
+        } else {
+          // Add new app (not in target, not in bin, not deleted)
+          targetFolder[app.id] = app;
+          console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
+          addedCount++;
         }
       } else {
         console.error(`❌ Target folder not found in file system: ${folderPath}`);
@@ -1563,8 +1627,8 @@ export async function integrateCustomApps() {
       }
     });
 
-    if (addedCount > 0 || updatedCount > 0) {
-      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated`);
+    if (addedCount > 0 || updatedCount > 0 || restoredCount > 0) {
+      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated, ${restoredCount} restored`);
       setFileSystemState(fs);
       await saveState();
 

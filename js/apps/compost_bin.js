@@ -307,7 +307,21 @@ export function emptyCompostBin() {
 
   emptyBtn.addEventListener('click', async () => {
     // Get list of items before clearing for cleanup
-    const itemIds = Object.keys(compostBin.contents || {});
+    const items = compostBin.contents || {};
+    const itemIds = Object.keys(items);
+
+    // Track deleted custom apps
+    if (!fs.deletedCustomApps) {
+      fs.deletedCustomApps = [];
+    }
+
+    Object.values(items).forEach(item => {
+      if (item.isCustomApp) {
+        if (!fs.deletedCustomApps.includes(item.id)) {
+          fs.deletedCustomApps.push(item.id);
+        }
+      }
+    });
 
     // Empty the compost bin
     compostBin.contents = {};

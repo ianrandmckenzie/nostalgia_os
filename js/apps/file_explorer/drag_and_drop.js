@@ -164,6 +164,28 @@ async function moveItemToFolder(itemId, folderId) {
   }
   const { item, parent } = result;
 
+  // Find the target folder object.
+  let targetFolder = null;
+  let targetFullPath = findFolderFullPathById(folderId);
+
+  if (targetFullPath) {
+    targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
+  }
+
+  // If not found via path, try finding it as an item in the FS
+  if (!targetFolder) {
+    const targetResult = findItemAndParentById(folderId, fs);
+    if (targetResult && targetResult.item && targetResult.item.type === 'folder') {
+      targetFolder = targetResult.item;
+      targetFullPath = targetFolder.fullPath;
+    }
+  }
+
+  if (!targetFolder) {
+    console.error("Target folder not found:", folderId);
+    return;
+  }
+
   // Check if item is moving from desktop for cleanup
   const isMovingFromDesktop = item.fullPath && item.fullPath.includes('C://Desktop');
 
@@ -178,36 +200,40 @@ async function moveItemToFolder(itemId, folderId) {
     }
   }
 
-  // Find the target folder object.
-  let targetFullPath = findFolderFullPathById(folderId);
-  let targetFolder = findFolderObjectByFullPath(targetFullPath, fs);
-  if (!targetFolder) {
-    console.error("Target folder not found:", folderId);
-    return;
-  }
   // Ensure target folder has a 'contents' object.
   if (!targetFolder.contents) targetFolder.contents = {};
   targetFolder.contents[itemId] = item;
 
   // Also ensure the item is accessible in the unified structure
   // For folders that are not drive roots, also update fs.folders[targetFullPath]
-  if (!/^[A-Z]:\/\/$/.test(targetFullPath)) {
+  if (targetFullPath && !/^[A-Z]:\/\/$/.test(targetFullPath)) {
     if (!fs.folders[targetFullPath]) {
       fs.folders[targetFullPath] = {};
+    }
+    // We should probably copy the folder properties if creating a new entry
+    if (Object.keys(fs.folders[targetFullPath]).length === 0) {
+        Object.assign(fs.folders[targetFullPath], targetFolder);
     }
     fs.folders[targetFullPath][itemId] = item;
   }
 
 
   // Update the moved item's fullPath using the item's name, not its ID.
-  item.fullPath = targetFullPath + "/" + item.name;
+  // Ensure targetFullPath is valid
+  if (!targetFullPath && targetFolder.fullPath) targetFullPath = targetFolder.fullPath;
+
+  if (targetFullPath) {
+      item.fullPath = targetFullPath + "/" + item.name;
+  } else {
+      console.warn("Could not determine full path for target folder", targetFolder);
+  }
 
   await setFileSystemState(fs);
   saveState();
   refreshExplorerViews();
 
   // If moving from or to desktop, refresh desktop icons
-  if (targetFullPath.includes('Desktop') || findItemCurrentPath(itemId).includes('Desktop')) {
+  if ((targetFullPath && targetFullPath.includes('Desktop')) || (item.fullPath && item.fullPath.includes('Desktop'))) {
     renderDesktopIcons();
   }
 }
@@ -610,6 +636,10 @@ function findFolderFullPathById(folderId) {
     const folder = fs.folders[folderPath];
     if (folder.id === folderId) {
       return folderPath;
+    }
+    // Also check contents if it's not a top-level match
+    if (folder.contents && folder.contents[folderId] && folder.contents[folderId].type === 'folder') {
+        return folder.contents[folderId].fullPath || (folderPath + '/' + folder.contents[folderId].name);
     }
   }
 

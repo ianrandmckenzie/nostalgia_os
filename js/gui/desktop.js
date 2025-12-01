@@ -289,6 +289,19 @@ export function makeIconDraggable(icon) {
         isDragging = true;
         icon.classList.add('dragging');
 
+        // Check compostability
+        const sourceId = icon.getAttribute('data-item-id');
+        const sourceItem = getItemFromFileSystem(sourceId);
+        let isCompostable = true;
+        if (sourceItem && sourceItem.type === 'app') {
+             if (sourceItem.isCustomApp && sourceItem.customAppData) {
+                 isCompostable = String(sourceItem.customAppData.compostable) === 'true';
+             } else {
+                 isCompostable = false;
+             }
+        }
+        icon.dataset.isCompostable = String(isCompostable);
+
         // Add touch-specific styling
         if (isTouch) {
           icon.classList.add('touch-dragging');
@@ -304,6 +317,10 @@ export function makeIconDraggable(icon) {
         document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
           const targetItem = getItemFromFileSystem(target.getAttribute('data-item-id'));
           const targetId = target.getAttribute('data-item-id');
+
+          // Check if target is compost bin and item is not compostable
+          if (targetId === 'compostbin' && !isCompostable) return;
+
           if (((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') && target !== icon) {
             target.classList.add('drag-hover-target');
           }
@@ -955,6 +972,10 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   if (targetFolder && targetFolder !== draggingIcon) {
     const targetId = targetFolder.getAttribute('data-item-id');
     const targetItem = getItemFromFileSystem(targetId);
+    const isCompostable = draggingIcon.dataset.isCompostable === 'true';
+
+    // Check if target is compost bin and item is not compostable
+    if (targetId === 'compostbin' && !isCompostable) return;
 
     // Add dragover visual feedback if it's a valid drop target
     if ((targetItem && targetItem.type === 'folder') || targetId === 'compostbin') {

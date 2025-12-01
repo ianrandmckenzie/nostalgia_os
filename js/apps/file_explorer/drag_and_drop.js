@@ -65,8 +65,24 @@ function setupFolderDrop() {
 function handleDragStart(e) {
   e.dataTransfer.effectAllowed = "move";
   // Store the dragged item's id.
-  e.dataTransfer.setData("text/plain", this.getAttribute('data-item-id'));
+  const itemId = this.getAttribute('data-item-id');
+  e.dataTransfer.setData("text/plain", itemId);
   this.classList.add('dragging');
+
+  // Check compostability
+  const item = getItemFromFileSystem(itemId);
+  let isCompostable = true;
+  if (item && item.type === 'app') {
+       if (item.isCustomApp && item.customAppData) {
+           isCompostable = String(item.customAppData.compostable) === 'true';
+       } else {
+           isCompostable = false;
+       }
+  }
+
+  if (!isCompostable) {
+      e.dataTransfer.setData("application/x-non-compostable", "true");
+  }
 }
 
 function handleDragOver(e) {
@@ -385,6 +401,13 @@ function findItemCurrentPath(itemId) {
 // Handle drag over desktop folder icons
 function handleDesktopFolderDragOver(e) {
   const isCompostItem = e.dataTransfer.types.includes('application/x-compost-item');
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  const targetId = this.getAttribute('data-item-id');
+
+  if (targetId === 'compostbin' && isNonCompostable) {
+      return;
+  }
+
   if (isCompostItem || e.dataTransfer.types.includes('text/plain')) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";

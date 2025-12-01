@@ -538,8 +538,8 @@ async function restoreItemFromCompostBin(itemId, targetPath) {
       console.error('Target folder not found:', targetPath);
       return;
     }
-    if (!targetFolder.contents) targetFolder.contents = {};
-    targetContainer = targetFolder.contents;
+    // In unified structure, items are stored directly in the folder object
+    targetContainer = targetFolder;
   }
 
   // Update item's fullPath

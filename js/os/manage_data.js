@@ -1321,6 +1321,7 @@ if (typeof window !== 'undefined') {
   window.getFileSystemState = getFileSystemState;
   window.setFileSystemState = setFileSystemState;
   window.updateContent = updateContent;
+  window.integrateCustomApps = integrateCustomApps;
 }
 
 // Add beforeunload handler to ensure data is saved before page closes
@@ -1541,10 +1542,20 @@ export async function integrateCustomApps() {
           addedCount++;
         } else {
           // Update existing app (in case config changed)
-          // Preserve any user-specific data if it exists, but update app configuration
-          targetFolder[app.id] = { ...existingApp, ...app };
-          console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id})`);
-          updatedCount++;
+          // Compare remote version (app) with local version (existingApp)
+          // We check customAppData specifically as it holds the source of truth
+          const remoteData = app.customAppData;
+          const localData = existingApp.customAppData;
+          
+          // Deep comparison of configuration
+          const hasChanges = JSON.stringify(remoteData) !== JSON.stringify(localData);
+
+          if (hasChanges) {
+            // Preserve any user-specific data if it exists, but update app configuration
+            targetFolder[app.id] = { ...existingApp, ...app };
+            console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id}) - Remote config changed`);
+            updatedCount++;
+          }
         }
       } else {
         console.error(`❌ Target folder not found in file system: ${folderPath}`);
@@ -1556,6 +1567,14 @@ export async function integrateCustomApps() {
       console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated`);
       setFileSystemState(fs);
       await saveState();
+
+      // Refresh UI to show changes
+      if (typeof window.renderDesktopIcons === 'function') {
+        window.renderDesktopIcons();
+      }
+      if (typeof window.restoreStartMenuOrder === 'function') {
+        window.restoreStartMenuOrder();
+      }
     } else {
       console.log('✓ No changes needed - all custom apps already up to date');
     }

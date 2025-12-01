@@ -31,12 +31,13 @@ const cspInjectionPlugin = () => {
           const cspMap = {
             'default-src': ["'self'"],
             'script-src': ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
+            'script-src-elem': ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
             'style-src': ["'self'", "'unsafe-inline'"],
-            'img-src': ["'self'", "data:", "blob:", "https://www.google.com", "https://*.gstatic.com"],
+            'img-src': ["'self'", "data:", "blob:", "https://www.google.com", "https://*.gstatic.com", "https://i.ytimg.com"],
             'media-src': ["'self'", "data:", "blob:"],
             'font-src': ["'self'"],
-            'connect-src': ["'self'"],
-            'frame-src': [],
+            'connect-src': ["'self'", "https://www.relentlesscurious.com"],
+            'frame-src': ["https://www.youtube.com"],
             'object-src': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"]
@@ -81,6 +82,13 @@ const cspInjectionPlugin = () => {
                   // Avoid duplicates
                   if (!cspMap[directive].includes(cspDomain)) {
                     cspMap[directive].push(cspDomain);
+                  }
+
+                  // Sync script-src with script-src-elem
+                  if (directive === 'script-src' && cspMap['script-src-elem']) {
+                     if (!cspMap['script-src-elem'].includes(cspDomain)) {
+                        cspMap['script-src-elem'].push(cspDomain);
+                     }
                   }
 
                   // Also add non-protocol version if it was added with protocol, just in case?

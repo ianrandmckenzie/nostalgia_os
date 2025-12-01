@@ -604,7 +604,7 @@ export { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorer
 // Helper function to find a folder's full path by its ID
 function findFolderFullPathById(folderId) {
   const fs = getFileSystemStateSync();
-  
+
   // Search through all folders in the unified structure
   for (const folderPath in fs.folders) {
     const folder = fs.folders[folderPath];
@@ -612,18 +612,18 @@ function findFolderFullPathById(folderId) {
       return folderPath;
     }
   }
-  
+
   return '';
 }
 
 // Helper function to find a folder object by its full path
 function findFolderObjectByFullPath(fullPath, fs) {
   if (!fs) fs = getFileSystemStateSync();
-  
+
   // Direct lookup in unified structure
   if (fs.folders[fullPath]) {
     return fs.folders[fullPath];
   }
-  
+
   return null;
 }

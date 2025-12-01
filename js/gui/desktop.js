@@ -342,14 +342,14 @@ export function makeIconDraggable(icon) {
         icon.classList.remove('dragging');
 
         // Check if dropped on a folder or file explorer window
-        // Temporarily disable pointer events on the dragged element to get accurate elementFromPoint
-        const originalPointerEvents = icon.style.pointerEvents;
-        icon.style.pointerEvents = 'none';
+        // Temporarily hide the dragged element to get accurate elementFromPoint
+        const originalVisibility = icon.style.visibility;
+        icon.style.visibility = 'hidden';
 
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
 
-        // Restore the icon pointer events
-        icon.style.pointerEvents = originalPointerEvents;
+        // Restore the icon visibility
+        icon.style.visibility = originalVisibility;
 
         const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
         const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
@@ -941,16 +941,16 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
     target.classList.remove('dragover');
   });
 
-  // Get element at cursor position (temporarily make dragging icon invisible to pointer events)
-  const originalPointerEvents = draggingIcon.style.pointerEvents;
-  draggingIcon.style.pointerEvents = 'none';
+  // Get element at cursor position (temporarily hide dragging icon)
+  const originalVisibility = draggingIcon.style.visibility;
+  draggingIcon.style.visibility = 'hidden';
 
   const elementBelow = document.elementFromPoint(clientX, clientY);
   const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
   const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
 
-  // Restore pointer events
-  draggingIcon.style.pointerEvents = originalPointerEvents;
+  // Restore visibility
+  draggingIcon.style.visibility = originalVisibility;
 
   if (targetFolder && targetFolder !== draggingIcon) {
     const targetId = targetFolder.getAttribute('data-item-id');

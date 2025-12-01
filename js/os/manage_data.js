@@ -1546,7 +1546,7 @@ export async function integrateCustomApps() {
           // We check customAppData specifically as it holds the source of truth
           const remoteData = app.customAppData;
           const localData = existingApp.customAppData;
-          
+
           // Deep comparison of configuration
           const hasChanges = JSON.stringify(remoteData) !== JSON.stringify(localData);
 

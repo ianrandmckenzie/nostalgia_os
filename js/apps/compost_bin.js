@@ -1,5 +1,5 @@
 // Compost Bin - A parody successor to the Recycle Bin
-import { getFileSystemStateSync } from './file_explorer/storage.js';
+import { getFileSystemStateSync, getFileSystemState } from './file_explorer/storage.js';
 import { setFileSystemState } from '../os/manage_data.js';
 import { saveState, desktopIconsState } from '../os/manage_data.js';
 import { createWindow, showDialogBox, bringToFront, closeWindow } from '../gui/window.js';
@@ -140,7 +140,9 @@ function createCompostBinItem(item) {
 }
 
 async function moveItemToCompostBin(itemId, fromPath) {
-  const fs = getFileSystemStateSync();
+  console.log('moveItemToCompostBin called', { itemId, fromPath });
+  let fs = await getFileSystemState();
+  if (!fs) fs = getFileSystemStateSync();
 
   // Don't allow moving the compost bin itself
   if (itemId === 'compostbin') {
@@ -152,12 +154,30 @@ async function moveItemToCompostBin(itemId, fromPath) {
   let sourceItem = null;
   let sourceContainer = null;
 
-  if (fromPath === 'C://Desktop') {
-    // Use unified structure for desktop
-    sourceContainer = fs.folders['C://Desktop'] || {};
-  } else {
-    // Use unified structure: all folders are stored directly in fs.folders[fullPath]
-    sourceContainer = fs.folders[fromPath] || {};
+  // Try to find the item using the provided path
+  if (fromPath) {
+      if (fromPath === 'C://Desktop') {
+        sourceContainer = fs.folders['C://Desktop'];
+      } else {
+        sourceContainer = fs.folders[fromPath];
+      }
+  }
+
+  // If not found or path not provided, search for it
+  if (!sourceContainer || !sourceContainer[itemId]) {
+      console.log('Item not found in provided path, searching FS...');
+      for (const path in fs.folders) {
+          if (fs.folders[path][itemId]) {
+              sourceContainer = fs.folders[path];
+              fromPath = path;
+              break;
+          }
+          if (fs.folders[path].contents && fs.folders[path].contents[itemId]) {
+              sourceContainer = fs.folders[path].contents;
+              fromPath = path;
+              break;
+          }
+      }
   }
 
   if (sourceContainer && sourceContainer[itemId]) {
@@ -220,6 +240,9 @@ async function moveItemToCompostBin(itemId, fromPath) {
         updateCompostBinHeader(compostBinWindow);
       }
     }
+  } else {
+      console.error('Item not found in file system:', itemId);
+      showDialogBox('Could not find item to move to Compost Bin.', 'error');
   }
 }
 

@@ -3,6 +3,7 @@ import { setFileSystemState } from '../../os/manage_data.js';
 import { saveState, desktopIconsState } from '../../os/manage_data.js';
 import { refreshExplorerViews } from './gui.js';
 import { renderDesktopIcons } from '../../gui/desktop.js';
+import { moveItemToCompostBin } from '../compost_bin.js';
 
 function setupFolderDrop() {
   // Use requestAnimationFrame to ensure DOM is ready
@@ -424,8 +425,15 @@ async function handleExplorerDrop(e) {
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const explorerPath = this.getAttribute('data-current-path');
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
 
   if (sourceId && explorerPath) {
+    if (isCompostItem) {
+      // Restore from compost bin to this explorer path
+      await restoreItemFromCompostBin(sourceId, explorerPath);
+      return;
+    }
+
     // Check if item is from desktop or another explorer
     const sourceItem = getItemFromFileSystem(sourceId);
     if (sourceItem) {
@@ -592,3 +600,30 @@ async function moveItemToDesktop(itemId) {
 
 // Export functions for use by other modules
 export { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorerPath };
+
+// Helper function to find a folder's full path by its ID
+function findFolderFullPathById(folderId) {
+  const fs = getFileSystemStateSync();
+  
+  // Search through all folders in the unified structure
+  for (const folderPath in fs.folders) {
+    const folder = fs.folders[folderPath];
+    if (folder.id === folderId) {
+      return folderPath;
+    }
+  }
+  
+  return '';
+}
+
+// Helper function to find a folder object by its full path
+function findFolderObjectByFullPath(fullPath, fs) {
+  if (!fs) fs = getFileSystemStateSync();
+  
+  // Direct lookup in unified structure
+  if (fs.folders[fullPath]) {
+    return fs.folders[fullPath];
+  }
+  
+  return null;
+}

@@ -4,6 +4,7 @@ import { setupFolderDrop, setupDesktopDrop, moveItemToFolder, moveItemToExplorer
 import { moveItemToCompostBin } from '../apps/compost_bin.js';
 import { openFile, openShortcut, openExplorerInNewWindow } from '../apps/file_explorer/gui.js';
 import { openApp } from '../apps/main.js';
+import { openFileExplorerForImageSelection } from './main.js';
 
 // Global state for keyboard drag operations
 let keyboardDragState = {
@@ -476,7 +477,7 @@ export function makeIconDraggable(icon) {
 
 export function updateDesktopSettings() {
   const color = document.getElementById('bgColorInput').value;
-  const image = document.getElementById('bgImageInput').value.trim();
+  const image = document.getElementById('bgImageValue').value;
   const clockSec = document.getElementById('clockSecondsInput').checked;
 
 
@@ -787,6 +788,7 @@ export function applyDesktopSettings() {
 }
 
 export function getSettingsContent() {
+  const currentImage = desktopSettings.bgImage ? 'Custom Image Selected' : 'None';
   return `
     <div class="space-y-4">
       <div>
@@ -795,9 +797,14 @@ export function getSettingsContent() {
         <p id="bgColorHelp" class="text-xs text-gray-600 mt-1">Choose a color for your desktop background</p>
       </div>
       <div>
-        <label for="bgImageInput" class="block text-sm font-medium">Background Image URL:</label>
-        <input id="bgImageInput" type="text" placeholder="Enter image URL" value="${desktopSettings.bgImage}" class="border w-full mt-1" aria-describedby="bgImageHelp" />
-        <p id="bgImageHelp" class="text-xs text-gray-600 mt-1">Enter a URL to display an image as your desktop background</p>
+        <label class="block text-sm font-medium">Background Image:</label>
+        <div class="flex items-center gap-2 mt-1">
+            <span id="bgImageName" class="text-sm text-gray-800 border px-2 py-1 bg-gray-50 flex-grow truncate">${currentImage}</span>
+            <button id="bg-image-select-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 px-2 py-1 text-sm active:border-t-black active:border-l-black active:border-b-white active:border-r-white">Select...</button>
+            <button id="bg-image-clear-btn" class="bg-gray-200 border-t-2 border-l-2 border-gray-300 px-2 py-1 text-sm active:border-t-black active:border-l-black active:border-b-white active:border-r-white">Clear</button>
+        </div>
+        <p class="text-xs text-gray-600 mt-1">Select an image from your computer to use as wallpaper</p>
+        <input type="hidden" id="bgImageValue" value="${desktopSettings.bgImage || ''}">
       </div>
       <div>
         <label for="clockSecondsInput" class="block text-sm font-medium">Show Seconds on Clock:</label>
@@ -1046,3 +1053,21 @@ if (typeof window !== 'undefined') {
   // Initialize desktop drop functionality
   setupDesktopDrop();
 }
+
+document.addEventListener('click', e => {
+  if (e.target.closest('#bg-image-select-btn')) {
+    openFileExplorerForImageSelection((imageData, fileInfo) => {
+        const nameDisplay = document.getElementById('bgImageName');
+        const valueInput = document.getElementById('bgImageValue');
+        if (nameDisplay) nameDisplay.textContent = fileInfo.name;
+        if (valueInput) valueInput.value = imageData;
+    });
+  }
+  
+  if (e.target.closest('#bg-image-clear-btn')) {
+      const nameDisplay = document.getElementById('bgImageName');
+      const valueInput = document.getElementById('bgImageValue');
+      if (nameDisplay) nameDisplay.textContent = 'None';
+      if (valueInput) valueInput.value = '';
+  }
+});

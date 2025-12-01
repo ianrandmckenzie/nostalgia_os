@@ -33,6 +33,7 @@ export function getAppIcon(windowId, title) {
   // Map of window titles to their icons (for navigation windows and other special cases)
   const titleIconMap = {
     'Settings': 'image/gears.webp',
+    'Desktop Settings': 'image/gears.webp',
     'About This Computer': 'image/info.webp',
     'My Computer': 'image/computer.webp',
     'File Explorer': 'image/computer.webp',

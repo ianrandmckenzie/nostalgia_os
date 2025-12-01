@@ -30,7 +30,7 @@ const cspInjectionPlugin = () => {
           // Map of CSP directives to allowed domains
           const cspMap = {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'"],
+            'script-src': ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
             'style-src': ["'self'", "'unsafe-inline'"],
             'img-src': ["'self'", "data:", "blob:", "https://www.google.com", "https://*.gstatic.com"],
             'media-src': ["'self'", "data:", "blob:"],

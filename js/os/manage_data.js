@@ -1506,13 +1506,10 @@ export async function integrateCustomApps() {
 
     // Get custom apps formatted for file system
     const customAppsForFS = getCustomAppsForFileSystem();
+    const validAppIds = new Set(customAppsForFS.map(app => app.id));
 
-    if (customAppsForFS.length === 0) {
-      console.log('⚠️ No custom apps to integrate');
-      return;
-    }
-
-    console.log(`✅ Integrating ${customAppsForFS.length} custom app(s) into file system`);
+    // Note: We do NOT return early if customAppsForFS is empty,
+    // because we need to clean up any existing custom apps that should no longer be there.
 
     const fs = await getFileSystemState();
 
@@ -1532,6 +1529,62 @@ export async function integrateCustomApps() {
     let addedCount = 0;
     let updatedCount = 0;
     let restoredCount = 0;
+    let removedCount = 0;
+
+    // 1. CLEANUP PHASE: Remove custom apps that are no longer in the loaded list
+    // We need to scan all folders because custom apps might have been moved
+    for (const folderPath in fs.folders) {
+        const folder = fs.folders[folderPath];
+        // Check items in the folder
+        for (const itemId in folder) {
+            const item = folder[itemId];
+            // Check if it's a custom app and if it's invalid
+            if (item && typeof item === 'object' && item.isCustomApp) {
+                if (!validAppIds.has(item.id)) {
+                    console.log(`🗑️ Removing obsolete custom app: ${item.name} (id: ${item.id})`);
+                    delete folder[itemId];
+                    removedCount++;
+
+                    // Close window if open
+                    const win = document.getElementById(item.id);
+                    if (win) {
+                        win.remove();
+                        const tab = document.getElementById('tab-' + item.id);
+                        if (tab) tab.remove();
+                    }
+
+                    // Always remove from windowStates if it exists, regardless of whether the DOM element exists yet
+                    // This ensures that restoreWindows() won't try to restore a window for a removed app
+                    if (windowStates[item.id]) {
+                        console.log(`🪟 Removing obsolete custom app from windowStates: ${item.id}`);
+                        delete windowStates[item.id];
+                    }
+                }
+            }
+        }
+    }
+
+    // Cleanup Compost Bin
+    for (const itemId in compostedItems) {
+        const item = compostedItems[itemId];
+        if (item && item.isCustomApp && !validAppIds.has(item.id)) {
+             console.log(`🗑️ Removing obsolete custom app from Compost Bin: ${item.name} (id: ${item.id})`);
+             delete compostedItems[itemId];
+             removedCount++;
+        }
+    }
+
+    // Cleanup deleted apps list
+    if (fs.deletedCustomApps) {
+        const newDeletedApps = fs.deletedCustomApps.filter(id => validAppIds.has(id));
+        if (newDeletedApps.length !== fs.deletedCustomApps.length) {
+            fs.deletedCustomApps = newDeletedApps;
+        }
+    }
+
+    if (customAppsForFS.length > 0) {
+        console.log(`✅ Integrating ${customAppsForFS.length} custom app(s) into file system`);
+    }
 
     // Add custom apps to their designated locations
     customAppsForFS.forEach(app => {
@@ -1627,8 +1680,8 @@ export async function integrateCustomApps() {
       }
     });
 
-    if (addedCount > 0 || updatedCount > 0 || restoredCount > 0) {
-      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated, ${restoredCount} restored`);
+    if (addedCount > 0 || updatedCount > 0 || restoredCount > 0 || removedCount > 0) {
+      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated, ${restoredCount} restored, ${removedCount} removed`);
       setFileSystemState(fs);
       await saveState();
 

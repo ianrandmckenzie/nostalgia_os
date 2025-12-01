@@ -345,12 +345,12 @@ export function makeIconDraggable(icon) {
         // Use fixed positioning since we are on body
         let newLeft = e.clientX - offsetX;
         let newTop = e.clientY - offsetY;
-        
+
         // Constrain to viewport/desktop
         const desktop = document.getElementById('desktop');
         const desktopRect = desktop.getBoundingClientRect();
         const iconRect = icon.getBoundingClientRect();
-        
+
         // Simple constraint
         newLeft = Math.max(desktopRect.left, Math.min(newLeft, desktopRect.right - iconRect.width));
         newTop = Math.max(desktopRect.top, Math.min(newTop, desktopRect.bottom - iconRect.height - 40));
@@ -374,16 +374,16 @@ export function makeIconDraggable(icon) {
         // Reparent back to desktop-icons
         const desktopIcons = document.getElementById('desktop-icons');
         desktopIcons.appendChild(icon);
-        
+
         // Convert fixed coordinates back to relative
         const containerRect = desktopIcons.getBoundingClientRect();
         const currentLeft = parseFloat(icon.style.left);
         const currentTop = parseFloat(icon.style.top);
-        
+
         icon.style.position = 'absolute';
         icon.style.left = (currentLeft - containerRect.left) + 'px';
         icon.style.top = (currentTop - containerRect.top) + 'px';
-        
+
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
         console.log('Drag ended. Reparented to desktop-icons.');

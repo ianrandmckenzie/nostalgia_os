@@ -71,6 +71,11 @@ export function launchCompostBin() {
   contentArea.className = 'flex-1 bg-white border border-gray-400 p-2 overflow-auto';
   contentArea.id = 'compost-bin-content';
 
+  // Add drag and drop listeners
+  contentArea.addEventListener('dragover', handleCompostDragOver);
+  contentArea.addEventListener('dragleave', handleCompostDragLeave);
+  contentArea.addEventListener('drop', handleCompostDrop);
+
   // Load compost bin contents
   loadCompostBinContents(contentArea);
 
@@ -379,6 +384,37 @@ function getDefaultIcon(type) {
     case 'ugc-file': return './image/doc.webp';
     case 'app': return './image/computer.webp';
     default: return './image/file.webp';
+  }
+}
+
+function handleCompostDragOver(e) {
+  e.preventDefault();
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  if (isNonCompostable) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+  }
+  e.dataTransfer.dropEffect = 'move';
+  this.classList.add('bg-blue-50');
+}
+
+function handleCompostDragLeave(e) {
+  this.classList.remove('bg-blue-50');
+}
+
+async function handleCompostDrop(e) {
+  e.preventDefault();
+  this.classList.remove('bg-blue-50');
+
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  if (isNonCompostable) return;
+
+  const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
+  if (isCompostItem) return; // Already in bin
+
+  const itemId = e.dataTransfer.getData('text/plain');
+  if (itemId) {
+     await moveItemToCompostBin(itemId, null);
   }
 }
 

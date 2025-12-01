@@ -370,6 +370,7 @@ export function makeIconDraggable(icon) {
 
         const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
         const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
+        const targetCompostBinWindow = elementBelow ? elementBelow.closest('#compost-bin-content') : null;
 
         if (targetFolder && targetFolder !== icon) {
           const targetId = targetFolder.getAttribute('data-item-id');
@@ -395,6 +396,13 @@ export function makeIconDraggable(icon) {
             await moveItemToExplorerPath(sourceId, explorerPath);
             return; // Don't save position if moved to explorer
           }
+        } else if (targetCompostBinWindow) {
+             const sourceId = icon.getAttribute('data-item-id');
+             const isCompostable = icon.dataset.isCompostable === 'true';
+             if (isCompostable) {
+                 await moveItemToCompostBin(sourceId, 'C://Desktop');
+                 return;
+             }
         }
 
         // Save new position if just repositioned
@@ -411,6 +419,8 @@ export function makeIconDraggable(icon) {
       document.querySelectorAll('.file-explorer-window').forEach(target => {
         target.classList.remove('dragover');
       });
+      const compostContent = document.getElementById('compost-bin-content');
+      if (compostContent) compostContent.classList.remove('bg-blue-50');
 
       // Re-enable scrolling
       document.body.style.overflow = '';
@@ -958,6 +968,10 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
     target.classList.remove('dragover');
   });
 
+  // Also remove highlight from compost bin window content
+  const compostContent = document.getElementById('compost-bin-content');
+  if (compostContent) compostContent.classList.remove('bg-blue-50');
+
   // Get element at cursor position (temporarily hide dragging icon)
   const originalVisibility = draggingIcon.style.visibility;
   draggingIcon.style.visibility = 'hidden';
@@ -965,6 +979,7 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   const elementBelow = document.elementFromPoint(clientX, clientY);
   const targetFolder = elementBelow ? elementBelow.closest('.desktop-folder-icon[data-item-id]') : null;
   const targetExplorer = elementBelow ? elementBelow.closest('.file-explorer-window') : null;
+  const targetCompostBinWindow = elementBelow ? elementBelow.closest('#compost-bin-content') : null;
 
   // Restore visibility
   draggingIcon.style.visibility = originalVisibility;
@@ -984,6 +999,11 @@ function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   } else if (targetExplorer) {
     // Add visual feedback for file explorer windows
     targetExplorer.classList.add('dragover');
+  } else if (targetCompostBinWindow) {
+      const isCompostable = draggingIcon.dataset.isCompostable === 'true';
+      if (isCompostable) {
+          targetCompostBinWindow.classList.add('bg-blue-50');
+      }
   }
 }
 

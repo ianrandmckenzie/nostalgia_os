@@ -32,7 +32,7 @@ const cspInjectionPlugin = () => {
             'default-src': ["'self'"],
             'script-src': ["'self'", "'unsafe-inline'"],
             'style-src': ["'self'", "'unsafe-inline'"],
-            'img-src': ["'self'", "data:", "blob:"],
+            'img-src': ["'self'", "data:", "blob:", "https://www.google.com", "https://*.gstatic.com"],
             'media-src': ["'self'", "data:", "blob:"],
             'font-src': ["'self'"],
             'connect-src': ["'self'"],

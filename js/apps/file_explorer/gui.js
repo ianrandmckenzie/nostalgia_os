@@ -980,6 +980,25 @@ export function handleWatercolourImageSelection(file) {
     };
     reader.readAsDataURL(file.file);
     return true;
+  } else {
+    // Handle system/default files that are just paths
+    let imagePath = file.path;
+    if (!imagePath) {
+      // Default location for system media
+      imagePath = `./media/${file.name}`;
+    }
+
+    const fileInfo = {
+      name: file.name,
+      path: getCurrentPath(),
+      data: imagePath,
+      storageKey: null
+    };
+    window.watercolourImageSelectionCallback(imagePath, fileInfo);
+    closeWindow('explorer-image-select');
+    window.watercolourImageSelectionCallback = null;
+    window.watercolourSelectedFile = null;
+    return true;
   }
 
   alert('Could not load the selected image.');

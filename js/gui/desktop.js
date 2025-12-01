@@ -775,15 +775,24 @@ export async function renderDesktopIcons() {
 
 export function applyDesktopSettings() {
   const desktop = document.getElementById('desktop');
+  const windowsContainer = document.getElementById('windows-container');
+
+  // Apply to windows-container as it sits on top of desktop div
+  const target = windowsContainer || desktop;
+
   if (desktopSettings.bgColor) {
-    desktop.style.backgroundColor = desktopSettings.bgColor;
+    target.style.backgroundColor = desktopSettings.bgColor;
+    // Also apply to desktop base for good measure
+    if (desktop) desktop.style.backgroundColor = desktopSettings.bgColor;
   }
+
   if (desktopSettings.bgImage) {
-    desktop.style.backgroundImage = `url(${desktopSettings.bgImage})`;
-    desktop.style.backgroundSize = 'cover';
-    desktop.style.backgroundRepeat = 'no-repeat';
+    target.style.backgroundImage = `url(${desktopSettings.bgImage})`;
+    target.style.backgroundSize = 'cover';
+    target.style.backgroundRepeat = 'no-repeat';
+    target.style.backgroundPosition = 'center';
   } else {
-    desktop.style.backgroundImage = 'none';
+    target.style.backgroundImage = 'none';
   }
 }
 
@@ -1063,7 +1072,7 @@ document.addEventListener('click', e => {
         if (valueInput) valueInput.value = imageData;
     });
   }
-  
+
   if (e.target.closest('#bg-image-clear-btn')) {
       const nameDisplay = document.getElementById('bgImageName');
       const valueInput = document.getElementById('bgImageValue');

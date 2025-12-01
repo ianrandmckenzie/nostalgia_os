@@ -389,6 +389,7 @@ function getDefaultIcon(type) {
 
 function handleCompostDragOver(e) {
   e.preventDefault();
+  e.stopPropagation();
   const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
   if (isNonCompostable) {
       e.dataTransfer.dropEffect = 'none';
@@ -404,6 +405,7 @@ function handleCompostDragLeave(e) {
 
 async function handleCompostDrop(e) {
   e.preventDefault();
+  e.stopPropagation();
   this.classList.remove('bg-blue-50');
 
   const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');

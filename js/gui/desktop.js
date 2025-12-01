@@ -21,7 +21,7 @@ function startKeyboardDrag(iconElement) {
 
   // Visual feedback for drag mode
   iconElement.classList.add('dragging', 'keyboard-dragging');
-  iconElement.style.zIndex = '1000';
+  iconElement.style.zIndex = '99999';
 
   // Add visual feedback for potential drop targets
   highlightDropTargets(iconElement);
@@ -289,6 +289,15 @@ export function makeIconDraggable(icon) {
         isDragging = true;
         icon.classList.add('dragging');
 
+        // Reparent to body to ensure z-index works (break out of stacking context)
+        const rect = icon.getBoundingClientRect();
+        document.body.appendChild(icon);
+        icon.style.position = 'fixed';
+        icon.style.left = rect.left + 'px';
+        icon.style.top = rect.top + 'px';
+        icon.style.zIndex = '99999';
+        console.log('Drag started. Reparented to body. zIndex:', icon.style.zIndex);
+
         // Check compostability
         const sourceId = icon.getAttribute('data-item-id');
         const sourceItem = getItemFromFileSystem(sourceId);
@@ -310,8 +319,6 @@ export function makeIconDraggable(icon) {
             navigator.vibrate(50);
           }
         }
-
-        icon.style.zIndex = '1000'; // Bring to front while dragging
 
         // Add visual feedback for potential drop targets
         document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
@@ -335,12 +342,21 @@ export function makeIconDraggable(icon) {
 
       if (isDragging) {
         // Update icon position to follow cursor
-        icon.style.left = (e.clientX - offsetX) + 'px';
-        icon.style.top = (e.clientY - offsetY) + 'px';
-        icon.style.position = 'absolute';
+        // Use fixed positioning since we are on body
+        let newLeft = e.clientX - offsetX;
+        let newTop = e.clientY - offsetY;
+        
+        // Constrain to viewport/desktop
+        const desktop = document.getElementById('desktop');
+        const desktopRect = desktop.getBoundingClientRect();
+        const iconRect = icon.getBoundingClientRect();
+        
+        // Simple constraint
+        newLeft = Math.max(desktopRect.left, Math.min(newLeft, desktopRect.right - iconRect.width));
+        newTop = Math.max(desktopRect.top, Math.min(newTop, desktopRect.bottom - iconRect.height - 40));
 
-        // Constrain icon position within desktop bounds
-        constrainIconPosition(icon);
+        icon.style.left = newLeft + 'px';
+        icon.style.top = newTop + 'px';
 
         // Update visual feedback for drop targets
         updateDropTargetFeedback(e.clientX, e.clientY, icon);
@@ -355,8 +371,22 @@ export function makeIconDraggable(icon) {
       document.removeEventListener('pointercancel', pointerUpHandler);
 
       if (isDragging) {
+        // Reparent back to desktop-icons
+        const desktopIcons = document.getElementById('desktop-icons');
+        desktopIcons.appendChild(icon);
+        
+        // Convert fixed coordinates back to relative
+        const containerRect = desktopIcons.getBoundingClientRect();
+        const currentLeft = parseFloat(icon.style.left);
+        const currentTop = parseFloat(icon.style.top);
+        
+        icon.style.position = 'absolute';
+        icon.style.left = (currentLeft - containerRect.left) + 'px';
+        icon.style.top = (currentTop - containerRect.top) + 'px';
+        
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
+        console.log('Drag ended. Reparented to desktop-icons.');
 
         // Check if dropped on a folder or file explorer window
         // Temporarily hide the dragged element to get accurate elementFromPoint

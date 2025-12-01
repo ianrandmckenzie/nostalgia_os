@@ -55,15 +55,6 @@ export async function showOSLoading() {
 `;
   document.body.appendChild(splashDiv);
 
-  // Run system update check while loading screen is shown
-  try {
-    if (typeof processSystemManifest === 'function') {
-      await processSystemManifest();
-    }
-  } catch (error) {
-    console.warn('System update check failed:', error);
-  }
-
   setTimeout(function () {
     splashDiv.remove();
 

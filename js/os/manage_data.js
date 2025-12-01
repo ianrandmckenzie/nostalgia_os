@@ -581,10 +581,14 @@ export async function initializeAppState() {
     try {
         // Check for custom config
         const customConfigResponse = await fetch('custom-config.js', { method: 'HEAD' });
-        if (customConfigResponse.ok) {
+        const configContentType = customConfigResponse.headers.get('content-type');
+
+        if (customConfigResponse.ok && (!configContentType || !configContentType.includes('text/html'))) {
             try {
                 const customDataResponse = await fetch('custom_data/data.json');
-                if (customDataResponse.ok) {
+                const dataContentType = customDataResponse.headers.get('content-type');
+
+                if (customDataResponse.ok && (!dataContentType || !dataContentType.includes('text/html'))) {
                     initialData = await customDataResponse.json();
                     console.log('Loaded initial state from custom_data');
                 }
@@ -597,12 +601,17 @@ export async function initializeAppState() {
         if (!initialData) {
             try {
                 const defaultDataResponse = await fetch('default_data/data.json');
-                if (defaultDataResponse.ok) {
+                const defaultContentType = defaultDataResponse.headers.get('content-type');
+
+                if (defaultDataResponse.ok && (!defaultContentType || !defaultContentType.includes('text/html'))) {
                     initialData = await defaultDataResponse.json();
                     console.log('Loaded initial state from default_data');
                 }
             } catch (e) {
-                console.warn('Failed to load default_data/data.json', e);
+                // Only warn if it's not a syntax error (which implies HTML response)
+                if (!(e instanceof SyntaxError)) {
+                    console.warn('Failed to load default_data/data.json', e);
+                }
             }
         }
     } catch (e) {
@@ -1476,6 +1485,7 @@ export async function processSystemManifest() {
 
 /**
  * Integrate custom apps into the file system
+ * Merges custom apps from configuration with saved state, adding new apps and updating existing ones
  */
 export async function integrateCustomApps() {
   try {
@@ -1500,6 +1510,10 @@ export async function integrateCustomApps() {
       return;
     }
 
+    // Track which apps were added or updated
+    let addedCount = 0;
+    let updatedCount = 0;
+
     // Add custom apps to their designated locations
     customAppsForFS.forEach(app => {
       // Extract the folder path from the app's fullPath
@@ -1514,10 +1528,13 @@ export async function integrateCustomApps() {
           // Add new app
           targetFolder[app.id] = app;
           console.log(`✅ Added custom app to ${folderPath}: ${app.name} (id: ${app.id})`);
+          addedCount++;
         } else {
           // Update existing app (in case config changed)
+          // Preserve any user-specific data if it exists, but update app configuration
           targetFolder[app.id] = { ...existingApp, ...app };
           console.log(`🔄 Updated custom app at ${folderPath}: ${app.name} (id: ${app.id})`);
+          updatedCount++;
         }
       } else {
         console.error(`❌ Target folder not found in file system: ${folderPath}`);
@@ -1525,8 +1542,13 @@ export async function integrateCustomApps() {
       }
     });
 
-    setFileSystemState(fs);
-    await saveState();
+    if (addedCount > 0 || updatedCount > 0) {
+      console.log(`📊 Custom apps integration complete: ${addedCount} added, ${updatedCount} updated`);
+      setFileSystemState(fs);
+      await saveState();
+    } else {
+      console.log('✓ No changes needed - all custom apps already up to date');
+    }
 
   } catch (error) {
     console.error('❌ Failed to integrate custom apps:', error);

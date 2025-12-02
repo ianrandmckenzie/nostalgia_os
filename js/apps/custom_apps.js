@@ -170,13 +170,13 @@ export function launchCustomApp(appId) {
 function scopeCss(css, prefix) {
   // Remove comments to simplify parsing
   const cleanCss = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
   let result = '';
   let buffer = '';
   let depth = 0;
   // Stack to track if we are inside keyframes at various depths
   // keyframesStack[d] = true means at depth d we are inside a keyframes block
-  const keyframesStack = []; 
+  const keyframesStack = [];
 
   for (let i = 0; i < cleanCss.length; i++) {
     const char = cleanCss[i];
@@ -199,13 +199,13 @@ function scopeCss(css, prefix) {
 
     if (char === '{') {
       const selector = buffer.trim();
-      
+
       // Check if it's an @rule
       if (selector.startsWith('@')) {
         // Check for keyframes specifically to avoid scoping inside
         const isCurrentKeyframes = selector.toLowerCase().includes('keyframes');
         keyframesStack[depth] = isCurrentKeyframes;
-        
+
         // Just print the @rule header
         result += buffer + '{';
       } else {
@@ -213,7 +213,7 @@ function scopeCss(css, prefix) {
         // We only scope if we are NOT inside a keyframes block
         // Check if any parent block is keyframes
         const insideKeyframes = keyframesStack.some(k => k);
-        
+
         if (!insideKeyframes) {
           // Scope it!
           const scopedSelector = selector.split(',').map(s => {
@@ -221,24 +221,24 @@ function scopeCss(css, prefix) {
             if (!s) return '';
             // Check for @ rules that might have slipped through (unlikely here but safe)
             if (s.startsWith('@')) return s;
-            
+
             if (s.includes('html') || s.includes('body')) {
               return s.replace(/html|body/g, prefix);
             }
             return `${prefix} ${s}`;
           }).join(', ');
-          
+
           // Reconstruct the buffer with scoped selector
           result += scopedSelector + ' {';
         } else {
           // Inside keyframes (e.g. "0%", "from"), don't scope
           result += buffer + '{';
         }
-        
+
         // Not an @rule, so it doesn't set keyframes state for this new block
         keyframesStack[depth] = false;
       }
-      
+
       buffer = '';
       depth++;
     } else if (char === '}') {
@@ -253,7 +253,7 @@ function scopeCss(css, prefix) {
       buffer += char;
     }
   }
-  
+
   return result + buffer;
 }
 
@@ -283,16 +283,16 @@ async function loadCustomAppContent(win, app) {
     // Assign a unique ID to the content container for scoping
     const contentId = `${win.id}-content`;
     content.id = contentId;
-    
+
     // Parse HTML to find and scope styles BEFORE setting innerHTML
     // This prevents a flash of unstyled content or global contamination
     let processedHtml = app.html_content;
-    
+
     // Check for external stylesheets which we can't scope easily
     if (processedHtml.includes('<link rel="stylesheet"')) {
         console.warn(`⚠️ Custom App "${app.title}" contains external stylesheets (<link>). These cannot be scoped and may affect the global OS styles.`);
     }
-    
+
     // Simple regex to find style tags
     // Note: This is a basic implementation. For complex HTML, a DOM parser would be better
     // but we want to avoid executing scripts during parsing.

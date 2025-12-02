@@ -1,36 +1,7 @@
 {
   "version": "1.0.0",
   "lastUpdated": "2025-11-27",
-  "defaultFiles": [
-    {
-      "id": "default-file-welcome",
-      "name": "welcome.md",
-      "version": "1.0.0",
-      "path": "default_files/welcome.md",
-      "targetFolder": "C://Desktop",
-      "contentType": "md",
-      "icon": "image/file.webp"
-    },
-    {
-      "id": "default-file-startup-sound",
-      "name": "startup_sound.mp3",
-      "version": "1.0.0",
-      "path": "default_files/startup_sound.mp3",
-      "targetFolder": "C://Media",
-      "contentType": "mp3",
-      "icon": "image/audio.webp",
-      "description": "System startup sound"
-    },
-    {
-      "id": "default-file-sample-desktop",
-      "name": "sample_desktop.webp",
-      "version": "1.0.0",
-      "path": "default_files/sample_desktop.webp",
-      "targetFolder": "C://Documents",
-      "contentType": "webp",
-      "icon": "image/image.webp"
-    }
-  ],
+  "defaultFiles": [],
   "apps": [
     {
       "id": "mycomp",

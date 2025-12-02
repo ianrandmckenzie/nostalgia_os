@@ -165,49 +165,96 @@ export function launchCustomApp(appId) {
 
 /**
  * Scope CSS to a specific selector to prevent global contamination
+ * Uses a simple parser to handle nested blocks (media queries) and strings correctly.
  */
 function scopeCss(css, prefix) {
-  // Remove comments
+  // Remove comments to simplify parsing
   const cleanCss = css.replace(/\/\*[\s\S]*?\*\//g, '');
   
-  // Placeholder for media queries to avoid messing them up
-  const mediaBlocks = [];
-  const cssWithPlaceholders = cleanCss.replace(/@media[^{]+\{([\s\S]+?})\s*}/g, (match) => {
-    mediaBlocks.push(match);
-    return `__MEDIA_BLOCK_${mediaBlocks.length - 1}__`;
-  });
+  let result = '';
+  let buffer = '';
+  let depth = 0;
+  // Stack to track if we are inside keyframes at various depths
+  // keyframesStack[d] = true means at depth d we are inside a keyframes block
+  const keyframesStack = []; 
 
-  // Process regular rules
-  let scopedCss = cssWithPlaceholders.replace(/([^\r\n,{}]+)(?={)/g, (match) => {
-    // match is the selector list (e.g. "h1, .class")
-    const selectors = match.split(',');
-    const scopedSelectors = selectors.map(s => {
-      s = s.trim();
-      // Check for @ rules that shouldn't be prefixed (like @font-face, @keyframes)
-      if (s.startsWith('@')) return s; 
-      // Check for html/body and replace with prefix
-      if (s.includes('html') || s.includes('body')) {
-          return s.replace(/html|body/g, prefix);
+  for (let i = 0; i < cleanCss.length; i++) {
+    const char = cleanCss[i];
+
+    // Handle strings to avoid parsing braces inside them
+    if (char === '"' || char === "'") {
+      const quote = char;
+      buffer += char;
+      i++;
+      while (i < cleanCss.length) {
+        const c = cleanCss[i];
+        buffer += c;
+        if (c === quote && cleanCss[i-1] !== '\\') {
+          break;
+        }
+        i++;
       }
-      return `${prefix} ${s}`;
-    });
-    return scopedSelectors.join(', ');
-  });
+      continue;
+    }
 
-  // Restore and process media blocks
-  scopedCss = scopedCss.replace(/__MEDIA_BLOCK_(\d+)__/g, (match, index) => {
-    const mediaBlock = mediaBlocks[index];
-    // Extract the content inside the media query
-    const openBraceIndex = mediaBlock.indexOf('{');
-    const mediaHeader = mediaBlock.substring(0, openBraceIndex + 1);
-    const mediaContent = mediaBlock.substring(openBraceIndex + 1, mediaBlock.lastIndexOf('}'));
-    const mediaFooter = '}';
-    
-    // Recursively scope the content
-    return mediaHeader + scopeCss(mediaContent, prefix) + mediaFooter;
-  });
-
-  return scopedCss;
+    if (char === '{') {
+      const selector = buffer.trim();
+      
+      // Check if it's an @rule
+      if (selector.startsWith('@')) {
+        // Check for keyframes specifically to avoid scoping inside
+        const isCurrentKeyframes = selector.toLowerCase().includes('keyframes');
+        keyframesStack[depth] = isCurrentKeyframes;
+        
+        // Just print the @rule header
+        result += buffer + '{';
+      } else {
+        // Regular selector
+        // We only scope if we are NOT inside a keyframes block
+        // Check if any parent block is keyframes
+        const insideKeyframes = keyframesStack.some(k => k);
+        
+        if (!insideKeyframes) {
+          // Scope it!
+          const scopedSelector = selector.split(',').map(s => {
+            s = s.trim();
+            if (!s) return '';
+            // Check for @ rules that might have slipped through (unlikely here but safe)
+            if (s.startsWith('@')) return s;
+            
+            if (s.includes('html') || s.includes('body')) {
+              return s.replace(/html|body/g, prefix);
+            }
+            return `${prefix} ${s}`;
+          }).join(', ');
+          
+          // Reconstruct the buffer with scoped selector
+          result += scopedSelector + ' {';
+        } else {
+          // Inside keyframes (e.g. "0%", "from"), don't scope
+          result += buffer + '{';
+        }
+        
+        // Not an @rule, so it doesn't set keyframes state for this new block
+        keyframesStack[depth] = false;
+      }
+      
+      buffer = '';
+      depth++;
+    } else if (char === '}') {
+      result += buffer + '}';
+      buffer = '';
+      depth--;
+      // Clean up stack
+      if (depth >= 0) {
+          keyframesStack[depth] = false;
+      }
+    } else {
+      buffer += char;
+    }
+  }
+  
+  return result + buffer;
 }
 
 /**
@@ -232,7 +279,7 @@ async function loadCustomAppContent(win, app) {
     }
 
     content.className = 'overflow-auto h-full bg-white';
-    
+
     // Assign a unique ID to the content container for scoping
     const contentId = `${win.id}-content`;
     content.id = contentId;
@@ -241,17 +288,23 @@ async function loadCustomAppContent(win, app) {
     // This prevents a flash of unstyled content or global contamination
     let processedHtml = app.html_content;
     
+    // Check for external stylesheets which we can't scope easily
+    if (processedHtml.includes('<link rel="stylesheet"')) {
+        console.warn(`⚠️ Custom App "${app.title}" contains external stylesheets (<link>). These cannot be scoped and may affect the global OS styles.`);
+    }
+    
     // Simple regex to find style tags
     // Note: This is a basic implementation. For complex HTML, a DOM parser would be better
     // but we want to avoid executing scripts during parsing.
     processedHtml = processedHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+      console.log(`🎨 Scoping CSS for app: ${app.title}`);
       const scoped = scopeCss(css, `#${contentId}`);
+      // console.log('Original:', css);
+      // console.log('Scoped:', scoped);
       return `<style>${scoped}</style>`;
     });
 
-    content.innerHTML = processedHtml;
-
-    // Execute any scripts in the loaded HTML
+    content.innerHTML = processedHtml;    // Execute any scripts in the loaded HTML
     const scripts = content.querySelectorAll('script');
     scripts.forEach(oldScript => {
       const newScript = document.createElement('script');

@@ -839,7 +839,8 @@ export async function restoreWindows() {
         state.windowType,
         null,  // parentWin
         state.color || 'white',  // Use saved color or default to white
-        state.zIndex // Pass the saved z-index
+        state.zIndex, // Pass the saved z-index
+        state.customAppIcon // Pass the saved custom app icon
       );
 
       // Initialize app-specific functionality for restored windows

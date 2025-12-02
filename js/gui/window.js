@@ -366,7 +366,8 @@ export function createWindow(title, content, isNav = false, windowId = null, ini
     position: savedPosition,
     fullScreen: savedFullScreen,
     color: color,  // Store the background color
-    zIndex: parseInt(win.style.zIndex) || highestZ  // Store the z-index
+    zIndex: parseInt(win.style.zIndex) || highestZ,  // Store the z-index
+    customAppIcon: icon || (existingState ? existingState.customAppIcon : null) // Store the custom app icon
   };
   if (isNav) {
     navWindows[title] = windowId;

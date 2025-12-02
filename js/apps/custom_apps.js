@@ -299,6 +299,28 @@ export async function restoreCustomApp(appId) {
   const win = document.getElementById(appId);
   if (!win) return;
 
+  // Ensure icon is set on the window (fixes missing icon on reload)
+  const iconPath = getAppIconUrl(app);
+  if (iconPath && !win.dataset.customAppIcon) {
+    win.dataset.customAppIcon = iconPath;
+
+    // Also update the taskbar tab icon
+    const tab = document.getElementById('tab-' + appId);
+    if (tab) {
+      const iconImg = tab.querySelector('img');
+      if (iconImg) {
+        iconImg.src = iconPath;
+      } else {
+        // If tab has no icon (was text only), insert one
+        const newIcon = document.createElement('img');
+        newIcon.src = iconPath;
+        newIcon.className = 'h-4 w-4 mr-2';
+        newIcon.alt = '';
+        tab.insertBefore(newIcon, tab.firstChild);
+      }
+    }
+  }
+
   await loadCustomAppContent(win, app);
 }
 

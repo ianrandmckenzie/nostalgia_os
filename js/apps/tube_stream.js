@@ -51,7 +51,7 @@ async function initializeTubeStreamUI(win) {
     const response = await fetch(`${API_BASE_URL}${TUBE_STREAMS_PATH}`);
     if (!response.ok) throw new Error('Network response was not ok');
     const json = await response.json();
-    playlistData = json.data;
+    playlistData = json.playlists || json.data;
   } catch (error) {
     console.warn('Error fetching playlist, using fallback:', error);
     playlistData = myPlaylist.data;

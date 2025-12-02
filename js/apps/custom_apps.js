@@ -164,6 +164,53 @@ export function launchCustomApp(appId) {
 }
 
 /**
+ * Scope CSS to a specific selector to prevent global contamination
+ */
+function scopeCss(css, prefix) {
+  // Remove comments
+  const cleanCss = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  
+  // Placeholder for media queries to avoid messing them up
+  const mediaBlocks = [];
+  const cssWithPlaceholders = cleanCss.replace(/@media[^{]+\{([\s\S]+?})\s*}/g, (match) => {
+    mediaBlocks.push(match);
+    return `__MEDIA_BLOCK_${mediaBlocks.length - 1}__`;
+  });
+
+  // Process regular rules
+  let scopedCss = cssWithPlaceholders.replace(/([^\r\n,{}]+)(?={)/g, (match) => {
+    // match is the selector list (e.g. "h1, .class")
+    const selectors = match.split(',');
+    const scopedSelectors = selectors.map(s => {
+      s = s.trim();
+      // Check for @ rules that shouldn't be prefixed (like @font-face, @keyframes)
+      if (s.startsWith('@')) return s; 
+      // Check for html/body and replace with prefix
+      if (s.includes('html') || s.includes('body')) {
+          return s.replace(/html|body/g, prefix);
+      }
+      return `${prefix} ${s}`;
+    });
+    return scopedSelectors.join(', ');
+  });
+
+  // Restore and process media blocks
+  scopedCss = scopedCss.replace(/__MEDIA_BLOCK_(\d+)__/g, (match, index) => {
+    const mediaBlock = mediaBlocks[index];
+    // Extract the content inside the media query
+    const openBraceIndex = mediaBlock.indexOf('{');
+    const mediaHeader = mediaBlock.substring(0, openBraceIndex + 1);
+    const mediaContent = mediaBlock.substring(openBraceIndex + 1, mediaBlock.lastIndexOf('}'));
+    const mediaFooter = '}';
+    
+    // Recursively scope the content
+    return mediaHeader + scopeCss(mediaContent, prefix) + mediaFooter;
+  });
+
+  return scopedCss;
+}
+
+/**
  * Load the HTML content for a custom app
  */
 async function loadCustomAppContent(win, app) {
@@ -185,7 +232,24 @@ async function loadCustomAppContent(win, app) {
     }
 
     content.className = 'overflow-auto h-full bg-white';
-    content.innerHTML = app.html_content;
+    
+    // Assign a unique ID to the content container for scoping
+    const contentId = `${win.id}-content`;
+    content.id = contentId;
+    
+    // Parse HTML to find and scope styles BEFORE setting innerHTML
+    // This prevents a flash of unstyled content or global contamination
+    let processedHtml = app.html_content;
+    
+    // Simple regex to find style tags
+    // Note: This is a basic implementation. For complex HTML, a DOM parser would be better
+    // but we want to avoid executing scripts during parsing.
+    processedHtml = processedHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+      const scoped = scopeCss(css, `#${contentId}`);
+      return `<style>${scoped}</style>`;
+    });
+
+    content.innerHTML = processedHtml;
 
     // Execute any scripts in the loaded HTML
     const scripts = content.querySelectorAll('script');

@@ -38,18 +38,6 @@
               "contents": {},
               "icon": "./image/compost-bin.webp"
             },
-            "file-1764634685587-pe48c17w9": {
-              "id": "file-1764634685587-pe48c17w9",
-              "name": "welcome.md",
-              "type": "ugc-file",
-              "fullPath": "C://Desktop/welcome.md",
-              "content_type": "md",
-              "icon": "image/doc.webp",
-              "contents": "# Welcome to NostalgiaOS!\n\nThank you for exploring this retro operating system experience.\n\n## What is NostalgiaOS?\n\nNostalgiaOS is a browser-based operating system that brings back the nostalgic feel of classic computing interfaces. It features:\n\n- **File Management**: Create, edit, and organize files and folders\n- **Applications**: Calculator, Media Player, Watercolour drawing app, and more\n- **Games**: Solitaire, Chess, Bombbroomer, Pong, Snake, and Happy Turd\n- **Customization**: Personalize your desktop background and settings\n\n## Getting Started\n\n1. Explore the **Start Menu** to launch applications\n2. Use **My Computer** to browse your file system\n3. Create new files and folders using the context menu\n4. Try the **Watercolour** app to create digital art\n5. Check out the **Media Player** to enjoy music\n\n## Tips\n\n- Right-click on the desktop or in file explorer windows to access context menus\n- Drag windows around to organize your workspace\n- Your data is saved locally in your browser\n- Check the **Storage Manager** to see how much space you're using\n\nEnjoy your retro computing experience!\n",
-              "file": null,
-              "isSystemFile": true,
-              "version": "1.0.0"
-            },
             "custom-about-us": {
               "id": "custom-about-us",
               "name": "About Us",
@@ -162,18 +150,6 @@
           "content_type": "html",
           "contents": {},
           "icon": "./image/compost-bin.webp"
-        },
-        "file-1764634685587-pe48c17w9": {
-          "id": "file-1764634685587-pe48c17w9",
-          "name": "welcome.md",
-          "type": "ugc-file",
-          "fullPath": "C://Desktop/welcome.md",
-          "content_type": "md",
-          "icon": "image/doc.webp",
-          "contents": "# Welcome to NostalgiaOS!\n\nThank you for exploring this retro operating system experience.\n\n## What is NostalgiaOS?\n\nNostalgiaOS is a browser-based operating system that brings back the nostalgic feel of classic computing interfaces. It features:\n\n- **File Management**: Create, edit, and organize files and folders\n- **Applications**: Calculator, Media Player, Watercolour drawing app, and more\n- **Games**: Solitaire, Chess, Bombbroomer, Pong, Snake, and Happy Turd\n- **Customization**: Personalize your desktop background and settings\n\n## Getting Started\n\n1. Explore the **Start Menu** to launch applications\n2. Use **My Computer** to browse your file system\n3. Create new files and folders using the context menu\n4. Try the **Watercolour** app to create digital art\n5. Check out the **Media Player** to enjoy music\n\n## Tips\n\n- Right-click on the desktop or in file explorer windows to access context menus\n- Drag windows around to organize your workspace\n- Your data is saved locally in your browser\n- Check the **Storage Manager** to see how much space you're using\n\nEnjoy your retro computing experience!\n",
-          "file": null,
-          "isSystemFile": true,
-          "version": "1.0.0"
         },
         "custom-about-us": {
           "id": "custom-about-us",

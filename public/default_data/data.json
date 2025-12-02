@@ -1,0 +1,27 @@
+{
+  "fileSystemState": {
+    "folders": {
+      "C://": {
+        "Documents": { "id": "Documents", "name": "Documents", "type": "folder", "fullPath": "C://Documents", "contents": {}},
+        "Desktop": { "id": "Desktop", "name": "Desktop", "type": "folder", "fullPath": "C://Desktop", "contents": {
+            "compostbin": { "id": "compostbin", "name": "Compost Bin", "type": "app", "fullPath": "C://Desktop/compostbin", "content_type": "html", "contents": {}, "icon": "./image/compost-bin.webp" }
+          }
+        },
+        "Media": { "id": "Media", "name": "Media", "type": "folder", "fullPath": "C://Media", "contents": {} }
+      },
+      "A://": {
+        "folder-34862398": { "id": "folder-34862398", "name": "example folder", "type": "folder", "fullPath": "A://folder-34862398", "contents": {}}
+      },
+      "D://": {}
+    }
+  },
+  "windowStates": {},
+  "desktopIconsState": {},
+  "desktopSettings": {
+    "clockSeconds": false,
+    "bgColor": "#20b1b1",
+    "bgImage": ""
+  },
+  "navWindows": {},
+  "startMenuOrder": []
+}

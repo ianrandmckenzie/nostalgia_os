@@ -1,5 +1,6 @@
 import { storage } from './indexeddb_storage.js';
 import { loadStorageData } from '../apps/storage_manager.js'
+import { API_BASE_URL, DEFAULT_FILES_PATH } from '../config.js';
 // Needed for compost bin restoration (was causing ReferenceError)
 import { getFileSystemStateSync } from '../apps/file_explorer/storage.js';
 import { refreshUpdateCheck } from '../apps/os_update.js';
@@ -44,6 +45,12 @@ export let fileFolderMapping = {};
 // Window management state
 export let highestZ = 100;
 export let activeMediaWindow = null; // ID of the active window with media
+
+// API Overrides state to track user changes to API-sourced files
+export let apiOverrides = {
+  deletedSlugs: [],
+  movedSlugs: {} // slug -> newFullPath
+};
 
 // Setter functions for mutable module variables
 export function setStartMenuOrder(newOrder) {
@@ -141,8 +148,11 @@ export async function saveState() {
     desktopIconsState: desktopIconsState,
     desktopSettings: desktopSettings,
     navWindows: navWindows,
-    startMenuOrder: currentStartMenuOrder
+    startMenuOrder: currentStartMenuOrder,
+    apiOverrides: apiOverrides
   };
+
+  console.log('💾 Saving state. apiOverrides:', JSON.stringify(apiOverrides));
 
   const startTime = Date.now();
 
@@ -554,6 +564,194 @@ function migrateFileSystemToUnifiedStructure(fs) {
   return fs;
 }
 
+function populateFileSystemFromFlatArray(flatArray, fs) {
+  if (!fs.folders) {
+    fs.folders = {};
+  }
+  // Ensure root exists
+  if (!fs.folders['C://']) {
+    fs.folders['C://'] = {};
+  }
+
+  // Pre-process and normalize all items
+  const normalizedItems = flatArray.map(item => {
+    const normalizedItem = {};
+    Object.keys(item).forEach(key => {
+      // Map lowercase keys to camelCase expected by the system
+      if (key.toLowerCase() === 'fullpath') normalizedItem.fullPath = item[key];
+      else if (key.toLowerCase() === 'parentpath') normalizedItem.parentPath = item[key];
+      else if (key.toLowerCase() === 'islargefile') normalizedItem.isLargeFile = item[key];
+      else if (key.toLowerCase() === 'content_type') normalizedItem.content_type = item[key];
+      else if (key.toLowerCase() === 'url') normalizedItem.url = item[key];
+      else normalizedItem[key] = item[key];
+    });
+
+    // Derive name from fullPath if missing
+    if (!normalizedItem.name && normalizedItem.fullPath) {
+        const parts = normalizedItem.fullPath.split('/').filter(p => p);
+        normalizedItem.name = parts[parts.length - 1];
+    }
+
+    // Derive ID if missing
+    if (!normalizedItem.id) {
+        // Use name as ID if available, otherwise generate one
+        // We use the name as ID to ensure stability across reloads if the API doesn't provide IDs
+        normalizedItem.id = normalizedItem.name || `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Add slug if present
+    if (item.slug) normalizedItem.slug = item.slug;
+
+    return normalizedItem;
+  });
+
+  // Pass 0: Cleanup moved items to prevent duplication
+  // This is critical to remove "ghost" items that might exist in old locations in the local state
+  console.log('🔍 Checking for moved items to cleanup. apiOverrides:', JSON.stringify(apiOverrides));
+  normalizedItems.forEach(item => {
+    if (item.slug) {
+        // console.log(`Checking item slug: ${item.slug}`);
+        if (apiOverrides.movedSlugs[item.slug]) {
+            const correctPath = apiOverrides.movedSlugs[item.slug];
+            console.log(`🧹 Cleanup: Item ${item.slug} is moved to ${correctPath}. Scanning for ghosts...`);
+            // Scan all folders and delete incorrect instances
+            for (const folderPath in fs.folders) {
+                const folder = fs.folders[folderPath];
+                for (const itemId in folder) {
+                const fsItem = folder[itemId];
+                if (fsItem && fsItem.slug === item.slug) {
+                    // If the item is not at the correct path, it's a ghost/duplicate. Delete it.
+                    if (fsItem.fullPath !== correctPath) {
+                        console.log(`👻 DESTROYING GHOST: ${item.slug} found at ${fsItem.fullPath} (should be at ${correctPath})`);
+                        delete folder[itemId];
+                    } else {
+                        console.log(`✅ Found valid instance of ${item.slug} at ${fsItem.fullPath}`);
+                    }
+                }
+                }
+            }
+        }
+    }
+  });
+
+  // Filter out items that shouldn't be merged
+  const itemsToMerge = normalizedItems.filter(item => {
+    // Filter out deleted items based on slug
+    if (item.slug && apiOverrides.deletedSlugs.includes(item.slug)) {
+      console.log(`Skipping deleted API item: ${item.slug}`);
+      return false;
+    }
+    // Filter out moved items - we rely on local state for these
+    if (item.slug && apiOverrides.movedSlugs[item.slug]) {
+        console.log(`🚫 Skipping moved API item (relying on local state): ${item.slug}`);
+        return false;
+    }
+    return true;
+  });
+
+  // Pass 1: Ensure all folders have an entry in fs.folders
+  itemsToMerge.forEach(normalizedItem => {
+    // Use normalized item for processing
+    if (normalizedItem.type === 'folder') {
+      if (!fs.folders[normalizedItem.fullPath]) {
+        fs.folders[normalizedItem.fullPath] = {};
+      }
+    }
+  });
+
+  // Pass 2: Link items to their parents
+  itemsToMerge.forEach(normalizedItem => {
+    const parentPath = normalizedItem.parentPath;
+    if (!parentPath) return; // Skip root or invalid
+
+    // Special handling for Compost Bin
+    if (parentPath === 'C://Desktop/compostbin') {
+        if (fs.folders['C://Desktop'] && fs.folders['C://Desktop']['compostbin']) {
+            if (!fs.folders['C://Desktop']['compostbin'].contents) {
+                fs.folders['C://Desktop']['compostbin'].contents = {};
+            }
+            fs.folders['C://Desktop']['compostbin'].contents[normalizedItem.id] = itemEntry;
+            return;
+        }
+    }
+
+    // Ensure parent folder exists in fs.folders
+    if (!fs.folders[parentPath]) {
+      fs.folders[parentPath] = {};
+    }
+
+    const parentFolder = fs.folders[parentPath];
+
+    // Add item to parent folder
+    const itemEntry = { ...normalizedItem };
+    if (normalizedItem.type === 'folder') {
+      itemEntry.contents = {}; // Placeholder
+    }
+
+    parentFolder[normalizedItem.id] = itemEntry;
+  });
+}
+
+function repairFileSystem(fs) {
+  if (!fs || !fs.folders) return fs;
+
+  console.log('🔧 Running file system repair...');
+  let repairCount = 0;
+
+  Object.keys(fs.folders).forEach(folderPath => {
+    const folder = fs.folders[folderPath];
+    if (!folder) return;
+
+    // 1. Fix "undefined" key
+    if (Object.prototype.hasOwnProperty.call(folder, 'undefined')) {
+      console.log(`Repairing 'undefined' key in ${folderPath}`);
+      const item = folder['undefined'];
+
+      // Generate a valid ID
+      let newId = item.name || `repaired-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+      // Ensure ID is unique in this folder
+      if (folder[newId]) {
+          newId = `${newId}-${Math.random().toString(36).substr(2, 5)}`;
+      }
+
+      item.id = newId;
+      if (!item.name) item.name = newId;
+
+      // Move to new key
+      folder[newId] = item;
+      delete folder['undefined'];
+      repairCount++;
+    }
+
+    // 2. Fix items with missing/bad IDs
+    Object.keys(folder).forEach(key => {
+      const item = folder[key];
+      if (item && typeof item === 'object') {
+        let changed = false;
+
+        if (!item.id || item.id === 'undefined') {
+           item.id = key !== 'undefined' ? key : (item.name || `repaired-${Date.now()}`);
+           changed = true;
+        }
+
+        if (!item.name) {
+            item.name = item.id;
+            changed = true;
+        }
+
+        if (changed) repairCount++;
+      }
+    });
+  });
+
+  if (repairCount > 0) {
+      console.log(`✅ Repaired ${repairCount} items in file system`);
+  }
+
+  return fs;
+}
+
 export async function initializeAppState() {
   isInitializing = true; // Prevent saves during initialization
   if (typeof window !== 'undefined') {
@@ -575,9 +773,11 @@ export async function initializeAppState() {
     appStateData = null;
   }
 
-  if (!appStateData) {
-    let initialData = null;
+  let initialData = appStateData;
 
+  // If no stored state, try to load from JSON files
+  if (!initialData) {
+    // 1. Load Local Data First (to get settings, desktop icons, etc.)
     try {
         // Check for custom config
         const customConfigResponse = await fetch('custom-config.js', { method: 'HEAD' });
@@ -590,7 +790,7 @@ export async function initializeAppState() {
 
                 if (customDataResponse.ok && (!dataContentType || !dataContentType.includes('text/html'))) {
                     initialData = await customDataResponse.json();
-                    console.log('Loaded initial state from custom_data');
+                    console.log('Loaded base state from custom_data');
                 }
             } catch (e) {
                 console.warn('Failed to load custom_data/data.json despite custom-config.js presence', e);
@@ -605,7 +805,7 @@ export async function initializeAppState() {
 
                 if (defaultDataResponse.ok && (!defaultContentType || !defaultContentType.includes('text/html'))) {
                     initialData = await defaultDataResponse.json();
-                    console.log('Loaded initial state from default_data');
+                    console.log('Loaded base state from default_data');
                 }
             } catch (e) {
                 // Only warn if it's not a syntax error (which implies HTML response)
@@ -617,187 +817,175 @@ export async function initializeAppState() {
     } catch (e) {
         console.warn('Error checking for initial data', e);
     }
+  }
 
-    if (initialData) {
-        // Use the loaded data
-        if (initialData.fileSystemState) {
-             initialData.fileSystemState = migrateFileSystemToUnifiedStructure(initialData.fileSystemState);
-        }
+  // Ensure we have a basic structure if nothing loaded
+  if (!initialData) {
+      initialData = { fileSystemState: { folders: { "C://": {} } } };
+  }
+  if (!initialData.fileSystemState) {
+      initialData.fileSystemState = { folders: { "C://": {} } };
+  }
 
-        fileSystemState = initialData.fileSystemState || fileSystemState;
-        windowStates = initialData.windowStates || {};
-        desktopIconsState = initialData.desktopIconsState || {};
-        desktopSettings = initialData.desktopSettings || desktopSettings;
-        navWindows = initialData.navWindows || {};
-        startMenuOrder = initialData.startMenuOrder || [];
+  // Initialize apiOverrides from loaded data so it's available for API filtering
+  if (initialData.apiOverrides) {
+      apiOverrides = initialData.apiOverrides;
+      console.log('📦 Loaded apiOverrides from storage:', JSON.stringify(apiOverrides));
+  } else {
+      console.log('⚠️ No apiOverrides found in initialData');
+      // Ensure initialData has the apiOverrides so it gets saved correctly later
+      initialData.apiOverrides = apiOverrides;
+  }
 
-        if (typeof window !== 'undefined') {
-            window.startMenuOrder = startMenuOrder;
-        }
+  // 2. ALWAYS Try to fetch File System from API (Overrides local file system)
+  // This ensures the API is the source of truth for the data it provides
+  try {
+    let fileSystemData = [];
+    let nextUrl = `${API_BASE_URL}${DEFAULT_FILES_PATH}`;
 
-        try {
-            await storage.setItem('appState', initialData);
-        } catch (error) {
-            console.error('Failed to save loaded initial state:', error);
-        }
-    } else {
-        // Initialize startMenuOrder to empty array for new installs
-        startMenuOrder = [];
-        if (typeof window !== 'undefined') {
-          window.startMenuOrder = startMenuOrder;
-        }
-
-        // Migrate the default file system to the unified structure
-        const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
-
-        // No saved state; initialize using the migrated file system.
-        const initialState = {
-          fileSystemState: migratedFileSystemState,
-          windowStates: windowStates,
-          desktopIconsState: desktopIconsState,
-          desktopSettings: desktopSettings,
-          navWindows: navWindows
-        };
-        try {
-          await storage.setItem('appState', initialState);
-        } catch (error) {
-          console.error('Failed to save initial app state:', error);
-        }
+    // Handle potential double slash if DEFAULT_FILES_PATH starts with /
+    if (API_BASE_URL.endsWith('/') && DEFAULT_FILES_PATH.startsWith('/')) {
+      nextUrl = `${API_BASE_URL}${DEFAULT_FILES_PATH.substring(1)}`;
     }
 
-    // Add the default song to the Media folder on first load
-    setTimeout(async () => {
-      // For the default song, create a file entry that references the static media file
-      const fs = await getFileSystemState();
-      if (fs.folders['C://Media']) {
-        // Check if the default song is already there
-        const hasDefaultSong = Object.values(fs.folders['C://Media']).some(file =>
-          file.name === 'too_many_screws_final.mp3'
-        );
-        if (!hasDefaultSong) {
-          const defaultSongFile = {
-            id: 'default-music-file',
-            name: 'too_many_screws_final.mp3',
-            type: 'ugc-file',
-            fullPath: 'C://Media/too_many_screws_final.mp3',
-            content_type: 'mp3',
-            icon: 'image/audio.webp',
-            contents: '',
-            file: null,
-            isDefault: true,
-            path: 'media/too_many_screws_final.mp3', // Reference to static file
-            isSystemFile: true // Mark as system file for proper handling
-          };
-          fs.folders['C://Media']['default-music-file'] = defaultSongFile;
-          setFileSystemState(fs);
-          await saveState();
+    console.log('Fetching file system from:', nextUrl);
+
+    while (nextUrl) {
+      const response = await fetch(nextUrl);
+      if (!response.ok) {
+        // If 404 or other error, break loop and fall back
+        console.warn(`API fetch failed: ${response.status} ${response.statusText}`);
+        break;
+      }
+
+      const json = await response.json();
+
+      if (json.data && Array.isArray(json.data)) {
+        fileSystemData = fileSystemData.concat(json.data);
+      }
+
+      // Handle pagination
+      if (json.links && json.links.next) {
+        const nextLink = json.links.next;
+        if (nextLink.startsWith('http')) {
+          nextUrl = nextLink;
         } else {
+          // Construct absolute URL
+          const baseUrlObj = new URL(API_BASE_URL);
+          nextUrl = new URL(nextLink, baseUrlObj).toString();
         }
       } else {
+        nextUrl = null;
       }
-    }, 100);
-
-    // Initialize Documents folder with default files
-    await processSystemManifest();
-
-    // Load and add custom apps to the file system
-    await integrateCustomApps();
-  } else {
-    // Load state from IndexedDB with validation
-    const storedState = appStateData;
-
-    // Validate and sanitize the loaded state
-    if (storedState.fileSystemState && typeof storedState.fileSystemState === 'object') {
-      // Apply migration to existing file system state
-      const migratedFS = migrateFileSystemToUnifiedStructure(storedState.fileSystemState);
-      setFileSystemState(migratedFS);
-    } else {
-      console.warn('Invalid fileSystemState in saved data, using default');
-      const migratedFileSystemState = migrateFileSystemToUnifiedStructure(fileSystemState);
-      setFileSystemState(migratedFileSystemState);
     }
 
-    windowStates = (storedState.windowStates && typeof storedState.windowStates === 'object')
-      ? storedState.windowStates : {};
-    desktopIconsState = (storedState.desktopIconsState && typeof storedState.desktopIconsState === 'object')
-      ? storedState.desktopIconsState : {};
-    navWindows = (storedState.navWindows && typeof storedState.navWindows === 'object')
-      ? storedState.navWindows : {};
+    if (fileSystemData.length > 0) {
+      console.log(`Loaded ${fileSystemData.length} items from API`);
 
-    // Try to load startMenuOrder from direct storage first
-    let finalStartMenuOrder = [];
-    try {
-      const directStartMenuOrder = await storage.getItem('startMenuOrder');
-      if (directStartMenuOrder && Array.isArray(directStartMenuOrder)) {
-        finalStartMenuOrder = directStartMenuOrder;
-      } else if (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder)) {
-        finalStartMenuOrder = storedState.startMenuOrder;
-      }
-    } catch (error) {
-      console.warn('⚠ Error loading from direct storage, using appState:', error);
-      finalStartMenuOrder = (storedState.startMenuOrder && Array.isArray(storedState.startMenuOrder))
-        ? storedState.startMenuOrder : [];
+      // Ensure we are working with unified structure before merging
+      initialData.fileSystemState = migrateFileSystemToUnifiedStructure(initialData.fileSystemState);
+
+      // Merge API data into existing file system (overwriting existing items)
+      populateFileSystemFromFlatArray(fileSystemData, initialData.fileSystemState);
+      repairFileSystem(initialData.fileSystemState);
+      console.log('Merged API data into local file system state');
     }
-
-    startMenuOrder = finalStartMenuOrder;
-
-    // Also update window reference for consistency
-    if (typeof window !== 'undefined') {
-      window.startMenuOrder = startMenuOrder;
-    }
-
-
-    // Merge stored desktop settings with defaults to ensure all properties exist
-    desktopSettings = {
-      clockSeconds: false,
-      bgColor: "#20b1b1",
-      bgImage: "",
-      ...(storedState.desktopSettings || {})
-    };
-
-
-    // Apply desktop settings after loading them
-    if (typeof window !== 'undefined' && typeof window.applyDesktopSettings === 'function') {
-      window.applyDesktopSettings();
-    }
-
-    // Ensure custom apps are loaded and integrated (needed for restoration)
-    await integrateCustomApps();
-
-    // Check if default song exists in Media folder, add if not (for migration)
-    setTimeout(async () => {
-      const fs = await getFileSystemState();
-      if (fs && fs.folders && fs.folders['C://Media']) {
-        const musicFolder = fs.folders['C://Media'];
-        if (musicFolder) {
-          const hasDefaultSong = Object.values(musicFolder).some(file =>
-            file.name === 'too_many_screws_final.mp3'
-          );
-          if (!hasDefaultSong) {
-            const defaultSongFile = {
-              id: 'default-music-file',
-              name: 'too_many_screws_final.mp3',
-              type: 'ugc-file',
-              fullPath: 'C://Media/too_many_screws_final.mp3',
-              content_type: 'mp3',
-              icon: 'image/audio.webp',
-              contents: '',
-              file: null,
-              isDefault: true,
-              path: 'media/too_many_screws_final.mp3', // Reference to static file
-              isSystemFile: true // Mark as system file for proper handling
-            };
-            fs.folders['C://Media']['default-music-file'] = defaultSongFile;
-            setFileSystemState(fs);
-            await saveState();
-          }
-        }
-      }
-
-      // Also check if Documents folder needs to be populated
-      await processSystemManifest();
-    }, 100);
+  } catch (e) {
+    console.warn('Error fetching from API, falling back to local data:', e);
   }
+
+  // Apply migration/repair to whatever we have
+  if (initialData.fileSystemState) {
+       initialData.fileSystemState = migrateFileSystemToUnifiedStructure(initialData.fileSystemState);
+       repairFileSystem(initialData.fileSystemState);
+  }
+
+  // Set global state
+  fileSystemState = initialData.fileSystemState || fileSystemState;
+  windowStates = initialData.windowStates || {};
+  desktopIconsState = initialData.desktopIconsState || {};
+  desktopSettings = initialData.desktopSettings || desktopSettings;
+  navWindows = initialData.navWindows || {};
+  apiOverrides = initialData.apiOverrides || { deletedSlugs: [], movedSlugs: {} };
+
+  // Handle start menu order
+  let finalStartMenuOrder = [];
+  if (initialData.startMenuOrder && Array.isArray(initialData.startMenuOrder)) {
+      finalStartMenuOrder = initialData.startMenuOrder;
+  } else {
+      // Try direct storage fallback
+      try {
+          const directStartMenuOrder = await storage.getItem('startMenuOrder');
+          if (directStartMenuOrder && Array.isArray(directStartMenuOrder)) {
+              finalStartMenuOrder = directStartMenuOrder;
+          }
+      } catch (e) {}
+  }
+  startMenuOrder = finalStartMenuOrder;
+  if (typeof window !== 'undefined') {
+      window.startMenuOrder = startMenuOrder;
+  }
+
+  // Merge stored desktop settings with defaults
+  desktopSettings = {
+    clockSeconds: false,
+    bgColor: "#20b1b1",
+    bgImage: "",
+    ...(initialData.desktopSettings || {})
+  };
+
+  // Apply desktop settings
+  if (typeof window !== 'undefined' && typeof window.applyDesktopSettings === 'function') {
+    window.applyDesktopSettings();
+  }
+
+  // Update initialData with current global state before saving
+  initialData.apiOverrides = apiOverrides;
+
+  // Save the updated state (including API data)
+  try {
+      await storage.setItem('appState', initialData);
+  } catch (error) {
+      console.error('Failed to save loaded initial state:', error);
+  }
+
+  // Post-initialization tasks
+
+  // Add the default song to the Media folder on first load
+  setTimeout(async () => {
+    // For the default song, create a file entry that references the static media file
+    const fs = await getFileSystemState();
+    if (fs.folders['C://Media']) {
+      // Check if the default song is already there
+      const hasDefaultSong = Object.values(fs.folders['C://Media']).some(file =>
+        file.name === 'too_many_screws_final.mp3'
+      );
+      if (!hasDefaultSong) {
+        const defaultSongFile = {
+          id: 'default-music-file',
+          name: 'too_many_screws_final.mp3',
+          type: 'ugc-file',
+          fullPath: 'C://Media/too_many_screws_final.mp3',
+          content_type: 'mp3',
+          icon: 'image/audio.webp',
+          contents: '',
+          file: null,
+          isDefault: true,
+          path: 'media/too_many_screws_final.mp3', // Reference to static file
+          isSystemFile: true // Mark as system file for proper handling
+        };
+        fs.folders['C://Media']['default-music-file'] = defaultSongFile;
+        setFileSystemState(fs);
+        await saveState();
+      }
+    }
+
+    // Also check if Documents folder needs to be populated
+    await processSystemManifest();
+  }, 100);
+
+  // Load and add custom apps to the file system
+  await integrateCustomApps();
 
   // Initialization complete, allow saves now
   isInitializing = false;
@@ -1307,8 +1495,36 @@ async function simulateRestart() {
   await storage.setItem('explicitRestart', true);
 }
 
+// Helper functions for API overrides
+export function markSlugAsDeleted(slug) {
+  if (!slug) return;
+  if (!apiOverrides.deletedSlugs.includes(slug)) {
+    apiOverrides.deletedSlugs.push(slug);
+    saveState();
+  }
+}
+
+export function unmarkSlugAsDeleted(slug) {
+  if (!slug) return;
+  const index = apiOverrides.deletedSlugs.indexOf(slug);
+  if (index > -1) {
+    apiOverrides.deletedSlugs.splice(index, 1);
+    saveState();
+  }
+}
+
+export function markSlugAsMoved(slug, newFullPath) {
+  if (!slug || !newFullPath) return;
+  console.log(`📝 Marking slug as moved: ${slug} -> ${newFullPath}`);
+  apiOverrides.movedSlugs[slug] = newFullPath;
+  saveState();
+}
+
 // Make debug functions globally available
 if (typeof window !== 'undefined') {
+  window.markSlugAsDeleted = markSlugAsDeleted;
+  window.unmarkSlugAsDeleted = unmarkSlugAsDeleted;
+  window.markSlugAsMoved = markSlugAsMoved;
   window.debugWindowStates = debugWindowStates;
   window.forceSaveState = forceSaveState;
   window.testAppRestoration = testAppRestoration;
@@ -1327,13 +1543,18 @@ if (typeof window !== 'undefined') {
 // Add beforeunload handler to ensure data is saved before page closes
 window.addEventListener('beforeunload', async (event) => {
   try {
+    // Get startMenuOrder from either global var or window object
+    const currentStartMenuOrder = (typeof startMenuOrder !== 'undefined') ? startMenuOrder : (window.startMenuOrder || []);
+
     // Force immediate save using sync method to ensure it completes before unload
     const appState = {
       fileSystemState: fileSystemState,
       windowStates: windowStates,
       desktopIconsState: desktopIconsState,
       desktopSettings: desktopSettings,
-      navWindows: navWindows
+      navWindows: navWindows,
+      startMenuOrder: currentStartMenuOrder,
+      apiOverrides: apiOverrides
     };
     storage.setItemSync('appState', appState);
   } catch (error) {

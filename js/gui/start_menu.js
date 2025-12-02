@@ -105,17 +105,13 @@ function generateStartMenuHTML() {
   // Insert custom apps into the menu
   try {
     const customAppsByLocation = getCustomAppsForStartMenu();
-    console.log('[START MENU] Custom apps by location:', customAppsByLocation);
 
     // Add custom apps to 'default' location (insert before utilities group)
     if (customAppsByLocation.default && customAppsByLocation.default.length > 0) {
-      console.log('[START MENU] Adding', customAppsByLocation.default.length, 'custom app(s) to default location');
       const utilitiesIndex = itemsToRender.findIndex(item => item.id === 'utilities-group');
       const insertIndex = utilitiesIndex >= 0 ? utilitiesIndex : itemsToRender.length - 1;
       itemsToRender.splice(insertIndex, 0, ...customAppsByLocation.default);
-      console.log('[START MENU] itemsToRender now has', itemsToRender.length, 'items');
     } else {
-      console.log('[START MENU] No custom apps for default location');
     }
 
     // Track which custom apps are added to groups (to avoid duplicates in saved order processing)
@@ -169,8 +165,6 @@ function generateStartMenuHTML() {
 
   // If we have a saved order, rearrange items accordingly
   if (currentOrder && currentOrder.length > 0) {
-    console.log('[START MENU] Processing saved order with', currentOrder.length, 'items');
-    console.log('[START MENU] itemsToRender before order processing:', itemsToRender.map(i => i.id || i.text));
     const orderedItems = [];
     const processedItemIds = new Set();
 
@@ -224,11 +218,7 @@ function generateStartMenuHTML() {
     });
 
     itemsToRender = orderedItems;
-    console.log('[START MENU] After order processing, itemsToRender has', itemsToRender.length, 'items');
-    console.log('[START MENU] Final items:', itemsToRender.map(i => i.id || i.text));
   } else {
-    console.log('[START MENU] No saved order, using default order with', itemsToRender.length, 'items');
-    console.log('[START MENU] Final items:', itemsToRender.map(i => i.id || i.text));
   }
 
   // Generate HTML

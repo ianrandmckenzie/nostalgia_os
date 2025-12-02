@@ -1,0 +1,62 @@
+{
+  "data": [
+    {
+      "id": "Documents",
+      "name": "Documents",
+      "type": "folder",
+      "fullPath": "C://Documents",
+      "parentPath": "C://"
+    },
+    {
+      "id": "Desktop",
+      "name": "Desktop",
+      "type": "folder",
+      "fullPath": "C://Desktop",
+      "parentPath": "C://"
+    },
+    {
+      "id": "Media",
+      "name": "Media",
+      "type": "folder",
+      "fullPath": "C://Media",
+      "parentPath": "C://"
+    },
+    {
+      "id": "compostbin",
+      "name": "Compost Bin",
+      "type": "app",
+      "fullPath": "C://Desktop/compostbin",
+      "parentPath": "C://Desktop",
+      "content_type": "html",
+      "icon": "./image/compost-bin.webp",
+      "contents": {}
+    },
+    {
+      "id": "example-text-file",
+      "name": "hello.txt",
+      "type": "ugc-file",
+      "fullPath": "C://Documents/hello.txt",
+      "parentPath": "C://Documents",
+      "content_type": "txt",
+      "content": "Hello World!",
+      "icon": "image/doc.webp"
+    },
+    {
+      "id": "example-image-file",
+      "name": "photo.jpg",
+      "type": "ugc-file",
+      "fullPath": "C://Documents/photo.jpg",
+      "parentPath": "C://Documents",
+      "content_type": "jpg",
+      "url": "https://example.com/images/photo.jpg",
+      "icon": "image/image.webp",
+      "isLargeFile": true
+    }
+  ],
+  "links": {
+    "first": "/end_data/public/custom_apps?page=1",
+    "last": "/end_data/public/custom_apps?page=3",
+    "prev": null,
+    "next": "/end_data/public/custom_apps?page=2"
+  }
+}

@@ -1,5 +1,5 @@
 import { getFileSystemStateSync, setFileSystemState as setFileSystemStateStorage } from './storage.js';
-import { updateContent } from '../../os/manage_data.js';
+import { updateContent, markSlugAsMoved } from '../../os/manage_data.js';
 import { refreshExplorerViews, openExplorerInNewWindow, getExplorerWindowContent } from './gui.js';
 import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, highestZ } from '../../os/manage_data.js';
@@ -437,6 +437,45 @@ function editItemName(e, menuItem) {
         updateNestedFolderPaths(oldFullPath, newFullPath);
       }
       item.name = newName;
+
+      // If item has a slug, mark it as moved/renamed
+      if (item.slug) {
+          // For files, fullPath is updated implicitly if it's a file in a folder?
+          // Wait, if it's a file, item.fullPath is NOT updated in the block above (that block is for folders).
+          // We need to update item.fullPath for files too if we want to track it correctly.
+          // But the code above only updates fullPath for folders?
+
+          // Let's check the code again.
+          // if (item.type === "folder" && item.fullPath) { ... }
+          // It seems files don't have their fullPath updated here?
+          // That seems like a bug in the existing code, or maybe files rely on parent folder path?
+          // But in unified structure, files have fullPath.
+
+          // Let's fix the fullPath update for files as well.
+          const driveRootRegex = /^[A-Z]:\/\/$/;
+          let newFullPath;
+          if (driveRootRegex.test(contextPath)) {
+            newFullPath = contextPath + newName;
+          } else {
+            newFullPath = contextPath + "/" + newName;
+          }
+
+          if (item.type !== 'folder') {
+              item.fullPath = newFullPath;
+          }
+
+          markSlugAsMoved(item.slug, newFullPath);
+      } else if (item.type !== 'folder') {
+          // Even if no slug, we should update fullPath for files
+          const driveRootRegex = /^[A-Z]:\/\/$/;
+          let newFullPath;
+          if (driveRootRegex.test(contextPath)) {
+            newFullPath = contextPath + newName;
+          } else {
+            newFullPath = contextPath + "/" + newName;
+          }
+          item.fullPath = newFullPath;
+      }
 
       // Refresh the UI to show the updated name
       if (contextPath === "C://Desktop") {

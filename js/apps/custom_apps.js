@@ -18,7 +18,6 @@ let customApps = [];
 export async function loadCustomApps() {
   try {
     // Try loading from remote API first
-    console.log('🔍 Attempting to load custom apps from remote API...');
     const apiUrl = `${API_BASE_URL}${CUSTOM_APPS_PATH}`;
 
     try {
@@ -30,17 +29,13 @@ export async function loadCustomApps() {
       if (apiResponse.ok) {
         const apiData = await apiResponse.json();
         customApps = apiData.data || apiData.apps || [];
-        console.log(`✅ Loaded ${customApps.length} custom app(s) from remote API:`, customApps.map(a => a.title));
         return customApps;
       } else {
-        console.log('⚠️ Remote API returned non-OK status:', apiResponse.status);
       }
     } catch (apiError) {
-      console.log('⚠️ Remote API unavailable, falling back to local JSON:', apiError.message);
     }
 
     // Fallback to local JSON file
-    console.log('🔍 Loading custom apps from /custom_branding/custom_apps.json');
     const localResponse = await fetch('/custom_branding/custom_apps.json');
     if (!localResponse.ok) {
       console.warn('No custom apps configuration found locally');
@@ -50,7 +45,6 @@ export async function loadCustomApps() {
     const localData = await localResponse.json();
     customApps = localData.apps || localData.data || [];
 
-    console.log(`✅ Loaded ${customApps.length} custom app(s) from local JSON:`, customApps.map(a => a.title));
     return customApps;
   } catch (error) {
     console.warn('❌ Failed to load custom apps:', error);
@@ -108,16 +102,13 @@ export function getCustomAppById(appId) {
  * Launch a custom app
  */
 export function launchCustomApp(appId) {
-  console.log(`🚀 Launching custom app: ${appId}`);
   const app = getCustomAppById(appId);
 
   if (!app) {
     console.warn(`❌ Custom app not found: ${appId}`);
-    console.log('Available custom apps:', customApps.map(a => ({ id: generateCustomAppId(a), title: a.title })));
     return;
   }
 
-  console.log(`✅ Found custom app:`, app.title);
   const windowId = generateCustomAppId(app);
 
   // Check for existing window - must be in windows-container, not just any element with this ID
@@ -125,21 +116,13 @@ export function launchCustomApp(appId) {
   const existingWindow = windowsContainer?.querySelector(`#${windowId}`);
 
   if (existingWindow) {
-    console.log('♻️ Window already exists, bringing to front');
     bringToFront(existingWindow);
     return;
   }
 
-  console.log('✨ No existing window, creating new one');
 
   // Get the icon path (handles both local and remote URLs)
   const iconPath = getAppIconUrl(app);
-
-  console.log('📦 Creating window with params:', {
-    title: app.title,
-    windowId,
-    icon: iconPath
-  });
 
   // Create window with icon parameter
   const win = createWindow(
@@ -156,8 +139,6 @@ export function launchCustomApp(appId) {
     null,
     iconPath
   );
-
-  console.log('📦 Window created:', win ? 'success' : 'FAILED', win?.id);
 
   // Load HTML content
   loadCustomAppContent(win, app).catch(console.warn);

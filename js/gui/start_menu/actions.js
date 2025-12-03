@@ -53,10 +53,10 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openAboutWindow === 'function') openAboutWindow();
       break;
     case 'sysset':
-      if (typeof openNav === 'function') openNav();
+      if (typeof openNav === 'function') openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
       break;
     case 'storageapp':
-      if (typeof openApp === 'function') openApp('storage_manager');
+      if (typeof openApp === 'function') openApp('storage');
       break;
     case 'mailboxapp':
       if (typeof openApp === 'function') openApp('mailbox');
@@ -104,7 +104,7 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openApp === 'function') openApp('mediaplayer');
       break;
     case 'tubestreamapp':
-      if (typeof openApp === 'function') openApp('tube_stream');
+      if (typeof openApp === 'function') openApp('tubestream');
       break;
     case 'rstrtcomp':
       if (typeof restart === 'function') restart();

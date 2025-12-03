@@ -91,7 +91,6 @@ import {
 } from './apps/file_explorer/context_menu.js';
 import { launchCompostBin, loadCompostBinContents, emptyCompostBin } from './apps/compost_bin.js';
 import { launchStorageManager, refreshStorageData, fullSystemRestart, openCleanupWindow, makeWin95Dropdown } from './apps/storage_manager.js';
-import { launchOSUpdate, refreshUpdateCheck } from './apps/os_update.js';
 import { openAboutWindow } from './os/about.js';
 import { launchCalculator, initializeCalculatorUI } from './apps/calculator.js';
 import { launchSolitaire, initializeSolitaireUI } from './apps/solitaire.js';
@@ -232,10 +231,6 @@ if (typeof window !== 'undefined') {
   window.fullSystemRestart = fullSystemRestart;
   window.openCleanupWindow = openCleanupWindow;
   window.makeWin95Dropdown = makeWin95Dropdown;
-
-  // OS Update functions
-  window.launchOSUpdate = launchOSUpdate;
-  window.refreshUpdateCheck = refreshUpdateCheck;
 
   // About window function
   window.openAboutWindow = openAboutWindow;

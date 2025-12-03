@@ -12,7 +12,6 @@ import { launchKeyboard } from './keyboard.js';
 import { launchPong } from './pong.js';
 import { launchSnake } from './snake.js';
 import { launchHappyTurd } from './happyturd.js';
-import { launchOSUpdate } from './os_update.js';
 import { isCustomApp, launchCustomApp } from './custom_apps.js';
 
 export function openApp(id) {
@@ -51,7 +50,6 @@ export function openApp(id) {
   if (id === 'compostbin' || id.includes('shortcut-compostbinapp')) launchCompostBin();
   if (id === 'storage' || id.includes('shortcut-storageapp')) launchStorageManager();
   if (id === 'tubestream' || id.includes('shortcut-tubestreamapp')) launchTubeStream();
-  if (id === 'osupdate' || id.includes('shortcut-osupdateapp')) launchOSUpdate();
   if (id === 'pong' || id.includes('shortcut-pongapp')) launchPong();
   if (id === 'snake' || id.includes('shortcut-snakeapp')) launchSnake();
   if (id === 'happyturd' || id.includes('shortcut-happyturdapp')) launchHappyTurd();

@@ -61,9 +61,6 @@ export function handleStartMenuItemClick(itemId) {
     case 'mailboxapp':
       if (typeof openApp === 'function') openApp('mailbox');
       break;
-    case 'osupdateapp':
-      if (typeof openApp === 'function') openApp('os_update');
-      break;
     // case 'mailapp':
     //   if (typeof launchMailbox === 'function') launchMailbox();
     //   break;

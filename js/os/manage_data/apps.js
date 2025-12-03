@@ -2,7 +2,6 @@ import { windowStates } from './state.js';
 import { loadStorageData } from '../../apps/storage_manager.js';
 import { initializeTubeStreamUI } from '../../apps/tube_stream.js';
 import { initializeMailboxUI } from '../../apps/mailbox.js';
-import { refreshUpdateCheck } from '../../apps/os_update.js';
 import { getFileSystemStateSync } from '../../apps/file_explorer/storage.js';
 import { isCustomApp, restoreCustomApp } from '../../apps/custom_apps.js';
 
@@ -237,11 +236,6 @@ export async function initializeRestoredApp(windowId) {
       const win = document.getElementById('mailbox');
       if (win && typeof initializeMailboxUI === 'function') {
         initializeMailboxUI(win);
-      }
-    },
-    'os-update-window': () => {
-      if (typeof refreshUpdateCheck === 'function') {
-        refreshUpdateCheck();
       }
     },
     'explorer-window': () => {

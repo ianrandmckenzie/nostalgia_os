@@ -240,7 +240,7 @@ export async function initializeAppState() {
     }
 
     // Also check if Documents folder needs to be populated
-    await processSystemManifest();
+    // await processSystemManifest();
   }, 100);
 
   // Load and add custom apps to the file system
@@ -331,99 +331,6 @@ async function restoreDesktopSettings() {
 // Initialize async
 restoreFileSystemState().then(() => {
 }).catch(console.error);
-
-let systemUpdatePromise = null;
-
-export async function processSystemManifest() {
-  if (systemUpdatePromise) return systemUpdatePromise;
-
-  systemUpdatePromise = (async () => {
-    try {
-      const response = await fetch('/api/system_manifest.json');
-      if (!response.ok) throw new Error('Manifest fetch failed');
-      const manifest = await response.json();
-
-      const storedVersion = await storage.getItem('systemVersion');
-      const shouldUpdate = !storedVersion || (manifest.version !== storedVersion);
-
-      if (shouldUpdate) {
-        // Process default files
-        for (const fileDef of manifest.defaultFiles) {
-          const fs = await getFileSystemState();
-          const targetFolder = fs.folders[fileDef.targetFolder];
-
-          // Check if file exists by name
-          let existingFileId = null;
-          if (targetFolder) {
-             existingFileId = Object.keys(targetFolder).find(key => targetFolder[key].name === fileDef.name);
-          }
-
-          if (!existingFileId) {
-             // File doesn't exist, add it
-             let content = '';
-             if (['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
-               try {
-                 const contentRes = await fetch(fileDef.path);
-                 if (contentRes.ok) content = await contentRes.text();
-               } catch (e) {
-                 console.warn('Failed to fetch content for', fileDef.name);
-               }
-             }
-
-             const newFile = await addFileToFileSystem(
-               fileDef.name,
-               content,
-               fileDef.targetFolder,
-               fileDef.contentType,
-               null,
-               true // skipSave
-             );
-
-             if (newFile) {
-               // Add extra properties
-               if (fileDef.path && !['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
-                  newFile.path = fileDef.path;
-               }
-               newFile.isSystemFile = true;
-               newFile.version = fileDef.version;
-               if (fileDef.description) newFile.description = fileDef.description;
-             }
-          } else {
-             // File exists, update if needed
-             const fileEntry = targetFolder[existingFileId];
-             if (fileEntry.isSystemFile || !fileEntry.version || fileEntry.version !== fileDef.version) {
-                // Update content
-                 if (['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
-                   try {
-                     const contentRes = await fetch(fileDef.path);
-                     if (contentRes.ok) fileEntry.contents = await contentRes.text();
-                   } catch (e) {}
-                 }
-
-                 if (fileDef.path && !['md', 'txt', 'html', 'json'].includes(fileDef.contentType)) {
-                    fileEntry.path = fileDef.path;
-                 }
-                 fileEntry.version = fileDef.version;
-                 if (fileDef.description) fileEntry.description = fileDef.description;
-                 fileEntry.isSystemFile = true;
-             }
-          }
-        }
-
-        await storage.setItem('systemVersion', manifest.version);
-        await saveState();
-      }
-    } catch (error) {
-      console.warn('System manifest processing failed:', error);
-    } finally {
-      // Optional: clear promise if we want to allow retries on failure,
-      // but for now keeping it to prevent multiple runs in same session
-      // systemUpdatePromise = null;
-    }
-  })();
-
-  return systemUpdatePromise;
-}
 
 /**
  * Integrate custom apps into the file system

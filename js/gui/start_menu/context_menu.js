@@ -10,6 +10,10 @@ export function setupContextMenu(menuItem, itemData, isSubmenuItem = false, pare
   const protectedItems = ['mycomp', 'storageapp', 'sysset'];
   const canUninstall = !protectedItems.includes(itemData.id);
 
+  // Define items that cannot have shortcuts
+  const noShortcutItems = ['sysset', 'keyboard', 'abtcomp'];
+  const canCreateShortcut = !noShortcutItems.includes(itemData.id);
+
   // Create context menu element
   const contextMenu = document.createElement('div');
   contextMenu.className = 'start-menu-context-menu absolute hidden bg-gray-100 border-r border-t border-b border-gray-500 z-50 w-48';
@@ -19,10 +23,14 @@ export function setupContextMenu(menuItem, itemData, isSubmenuItem = false, pare
   let contextMenuHTML = `
     <div class="context-menu-item px-4 py-2 hover:bg-gray-50 cursor-pointer select-none flex items-center" data-action="open">
       Open
-    </div>
+    </div>`;
+
+  if (canCreateShortcut) {
+    contextMenuHTML += `
     <div class="context-menu-item px-4 py-2 hover:bg-gray-50 cursor-pointer select-none flex items-center" data-action="shortcut">
       Create shortcut
     </div>`;
+  }
 
   // Only add uninstall option for non-protected items
   if (canUninstall) {

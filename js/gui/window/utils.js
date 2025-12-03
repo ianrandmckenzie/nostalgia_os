@@ -60,6 +60,20 @@ export function getAppIcon(windowId, title) {
     return titleIconMap[title];
   }
 
+  // Check if title looks like a file system path
+  if (title && title.match(/^[A-Z]:\/\//)) {
+    // It's a path
+    if (title.endsWith('//')) {
+       // Root drive
+       const drive = title.charAt(0).toLowerCase();
+       if (drive === 'c') return 'image/drive_c.webp';
+       if (drive === 'a') return 'image/floppy.webp';
+       return 'image/cd.webp';
+    }
+    // Folder
+    return 'image/folder.webp';
+  }
+
   // Special handling for file windows that may have IDs like file names
   if (windowId && windowId.includes('-')) {
     // Check if this might be a file window

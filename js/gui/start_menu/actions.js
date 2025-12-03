@@ -47,7 +47,7 @@ export function handleStartMenuItemClick(itemId) {
   // Handle different item types
   switch (itemId) {
     case 'mycomp':
-      if (typeof openExplorer === 'function') openExplorer();
+      if (typeof openExplorer === 'function') openExplorer('C://');
       break;
     case 'abtcomp':
       if (typeof openAboutWindow === 'function') openAboutWindow();

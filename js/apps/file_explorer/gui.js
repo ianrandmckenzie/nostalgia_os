@@ -9,7 +9,7 @@ import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, windowStates, updateContent } from '../../os/manage_data.js';
 import { createWindow, showDialogBox, closeWindow, bringToFront } from '../../gui/window.js';
 import { storage } from '../../os/indexeddb_storage.js';
-export function openExplorer(folderIdOrPath, forceNewWindow = false) {
+export function openExplorer(folderIdOrPath = 'C://', forceNewWindow = false) {
   let fullPath;
 
   // Check if it's already a full path (starts with drive letter and contains ://)

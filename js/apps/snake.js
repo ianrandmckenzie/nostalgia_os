@@ -226,7 +226,7 @@ export async function initializeSnakeUI(win) {
   }, { passive: false });
 
   canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Prevent scrolling
+    if (e.cancelable) e.preventDefault(); // Prevent scrolling
   }, { passive: false });
 
   canvas.addEventListener('touchend', (e) => {

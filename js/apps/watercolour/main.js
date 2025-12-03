@@ -268,7 +268,7 @@ export async function initializeWatercolour() {
 
   // Prevent Scrolling (Global)
   document.body.addEventListener("touchmove", (e) => {
-    if (painting) e.preventDefault(); // Block touch scrolling
+    if (painting && e.cancelable) e.preventDefault(); // Block touch scrolling
   }, { passive: false });
 
   document.addEventListener("wheel", (e) => {

@@ -34,7 +34,7 @@ function enableTouchWindowDragging() {
 
       win.style.left = (t.clientX + scrollLeft - offsetX) + 'px';
       win.style.top = (t.clientY + scrollTop - offsetY) + 'px';
-      ev.preventDefault();
+      if (ev.cancelable) ev.preventDefault();
     }
 
     function endHandler(ev) {

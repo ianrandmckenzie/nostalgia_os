@@ -278,10 +278,7 @@ async function loadCustomAppContent(win, app) {
     // Note: This is a basic implementation. For complex HTML, a DOM parser would be better
     // but we want to avoid executing scripts during parsing.
     processedHtml = processedHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
-      console.log(`🎨 Scoping CSS for app: ${app.title}`);
       const scoped = scopeCss(css, `#${contentId}`);
-      // console.log('Original:', css);
-      // console.log('Scoped:', scoped);
       return `<style>${scoped}</style>`;
     });
 

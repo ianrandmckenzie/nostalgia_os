@@ -229,7 +229,7 @@ export async function initializePongUI(win) {
 
   // Touch controls
   canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Prevent scrolling
+    if (e.cancelable) e.preventDefault(); // Prevent scrolling
     if (e.touches.length > 0) {
       const touchY = e.touches[0].clientY;
       const rect = canvas.getBoundingClientRect();

@@ -117,10 +117,6 @@ export function makeIconDraggable(icon) {
         // Add touch-specific styling
         if (isTouch) {
           icon.classList.add('touch-dragging');
-          // Provide haptic feedback if available
-          if (navigator.vibrate) {
-            navigator.vibrate(50);
-          }
         }
 
         // Add visual feedback for potential drop targets
@@ -189,6 +185,7 @@ export function makeIconDraggable(icon) {
 
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
+        icon.classList.remove('touch-dragging');
         console.log('Drag ended. Reparented to desktop-icons.');
 
         // Check if dropped on a folder or file explorer window
@@ -276,3 +273,14 @@ export function makeIconDraggable(icon) {
     }
   });
 }
+
+// Global listener to clear icon selection when clicking elsewhere
+function clearIconSelection(e) {
+  // If the click is not on a draggable icon (or inside one), clear all selections
+  if (!e.target.closest('.draggable-icon')) {
+    document.querySelectorAll('.draggable-icon').forEach(i => i.classList.remove('bg-gray-50'));
+  }
+}
+
+document.addEventListener('click', clearIconSelection);
+document.addEventListener('pointerdown', clearIconSelection);

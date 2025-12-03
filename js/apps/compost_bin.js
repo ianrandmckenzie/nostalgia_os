@@ -406,17 +406,17 @@ function handleCompostDragOver(e) {
       return;
   }
   e.dataTransfer.dropEffect = 'move';
-  this.classList.add('bg-blue-50');
+  this.classList.add('dragover');
 }
 
 function handleCompostDragLeave(e) {
-  this.classList.remove('bg-blue-50');
+  this.classList.remove('dragover');
 }
 
 async function handleCompostDrop(e) {
   e.preventDefault();
   e.stopPropagation();
-  this.classList.remove('bg-blue-50');
+  this.classList.remove('dragover');
 
   const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
   if (isNonCompostable) return;

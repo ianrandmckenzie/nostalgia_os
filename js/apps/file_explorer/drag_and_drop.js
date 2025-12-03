@@ -82,6 +82,12 @@ function handleDragStart(e) {
 
   if (!isCompostable) {
       e.dataTransfer.setData("application/x-non-compostable", "true");
+  } else {
+      // Highlight compost bin window if it exists
+      const compostBinContent = document.getElementById('compost-bin-content');
+      if (compostBinContent) {
+          compostBinContent.classList.add('drag-hover-target');
+      }
   }
 }
 

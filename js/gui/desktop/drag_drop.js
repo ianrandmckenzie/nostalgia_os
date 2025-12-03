@@ -16,7 +16,7 @@ export function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
 
   // Also remove highlight from compost bin window content
   const compostContent = document.getElementById('compost-bin-content');
-  if (compostContent) compostContent.classList.remove('bg-blue-50');
+  if (compostContent) compostContent.classList.remove('dragover');
 
   // Get element at cursor position (temporarily hide dragging icon)
   const originalVisibility = draggingIcon.style.visibility;
@@ -48,7 +48,7 @@ export function updateDropTargetFeedback(clientX, clientY, draggingIcon) {
   } else if (targetCompostBinWindow) {
       const isCompostable = draggingIcon.dataset.isCompostable === 'true';
       if (isCompostable) {
-          targetCompostBinWindow.classList.add('bg-blue-50');
+          targetCompostBinWindow.classList.add('dragover');
       }
   }
 }
@@ -129,6 +129,14 @@ export function makeIconDraggable(icon) {
             target.classList.add('drag-hover-target');
           }
         });
+
+        // Also highlight compost bin window if open and item is compostable
+        if (isCompostable) {
+            const compostBinContent = document.getElementById('compost-bin-content');
+            if (compostBinContent) {
+                compostBinContent.classList.add('drag-hover-target');
+            }
+        }
 
         // Disable scrolling on the desktop during drag
         document.body.style.overflow = 'hidden';
@@ -248,7 +256,7 @@ export function makeIconDraggable(icon) {
         target.classList.remove('dragover');
       });
       const compostContent = document.getElementById('compost-bin-content');
-      if (compostContent) compostContent.classList.remove('bg-blue-50');
+      if (compostContent) compostContent.classList.remove('dragover');
 
       // Re-enable scrolling
       document.body.style.overflow = '';

@@ -4,14 +4,16 @@ const CONFIG = {
         SUGGESTIONS_LIST_PATH: 'end_data/public/ananan',
         SUGGESTIONS_SUBMISSIONS_PATH: 'end_data/public/kfjbwef',
         TUBE_STREAMS_PATH: 'tube-streams.json',
-        CUSTOM_APPS_PATH: 'end_data/public/custom_apps'
+        CUSTOM_APPS_PATH: 'end_data/public/custom_apps',
+        DEFAULT_FILES_PATH: 'end_data/public/default-files'
     },
     production: {
         API_BASE_URL: 'https://backend.failureunit.tv/',
         SUGGESTIONS_LIST_PATH: 'end_data/public/suggestions',
         SUGGESTIONS_SUBMISSIONS_PATH: 'end_data/public/submit-suggestion',
         TUBE_STREAMS_PATH: 'end_data/public/tube-streams',
-        CUSTOM_APPS_PATH: 'end_data/public/custom_apps'
+        CUSTOM_APPS_PATH: 'end_data/public/custom_apps',
+        DEFAULT_FILES_PATH: 'end_data/public/default-files'
     },
     trusted_providers: [
       {
@@ -49,4 +51,5 @@ export const SUGGESTIONS_LIST_PATH = CONFIG[currentEnv].SUGGESTIONS_LIST_PATH;
 export const SUGGESTIONS_SUBMISSIONS_PATH = CONFIG[currentEnv].SUGGESTIONS_SUBMISSIONS_PATH;
 export const TUBE_STREAMS_PATH = CONFIG[currentEnv].TUBE_STREAMS_PATH;
 export const CUSTOM_APPS_PATH = CONFIG[currentEnv].CUSTOM_APPS_PATH;
+export const DEFAULT_FILES_PATH = CONFIG[currentEnv].DEFAULT_FILES_PATH;
 export const DISABLE_DEVVIT = CONFIG.disable_devvit || false;

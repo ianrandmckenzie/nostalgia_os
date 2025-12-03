@@ -1,5 +1,5 @@
 import { getFileSystemStateSync } from './storage.js';
-import { setFileSystemState } from '../../os/manage_data.js';
+import { setFileSystemState, markSlugAsMoved, unmarkSlugAsDeleted, markSlugAsDeleted } from '../../os/manage_data.js';
 import { saveState, desktopIconsState } from '../../os/manage_data.js';
 import { refreshExplorerViews } from './gui.js';
 import { renderDesktopIcons } from '../../gui/desktop.js';
@@ -240,12 +240,17 @@ async function moveItemToFolder(itemId, folderId) {
 
   if (targetFullPath) {
       item.fullPath = targetFullPath + "/" + item.name;
+
+      // If item has a slug, mark it as moved
+      if (item.slug) {
+          markSlugAsMoved(item.slug, item.fullPath);
+      }
   } else {
       console.warn("Could not determine full path for target folder", targetFolder);
   }
 
   await setFileSystemState(fs);
-  saveState();
+  await saveState();
   refreshExplorerViews();
 
   // If moving from or to desktop, refresh desktop icons
@@ -294,8 +299,13 @@ async function moveItemToExplorerPath(itemId, targetPath) {
   // Update the moved item's fullPath
   item.fullPath = targetPath + "/" + item.name;
 
+  // If item has a slug, mark it as moved
+  if (item.slug) {
+      markSlugAsMoved(item.slug, item.fullPath);
+  }
+
   await setFileSystemState(fs);
-  saveState();
+  await saveState();
   refreshExplorerViews();
 
   // If moving from or to desktop, refresh desktop icons
@@ -327,7 +337,7 @@ async function updateOrderForCurrentPath() {
   });
   folderObj.contents = newContents;
   await setFileSystemState(fs);
-  saveState();
+  await saveState();
 }
 
 /*
@@ -545,12 +555,18 @@ async function restoreItemFromCompostBin(itemId, targetPath) {
   // Update item's fullPath
   item.fullPath = targetPath === 'C://Desktop' ? targetPath + '/' + item.id : targetPath + '/' + item.id;
 
+  // If item has a slug, unmark as deleted and mark as moved to new location
+  if (item.slug) {
+      unmarkSlugAsDeleted(item.slug);
+      markSlugAsMoved(item.slug, item.fullPath);
+  }
+
   // Add to target location
   targetContainer[itemId] = item;
 
   // Save and refresh
   await setFileSystemState(fs);
-  saveState();
+  await saveState();
   refreshExplorerViews();
   renderDesktopIcons();
 
@@ -640,9 +656,14 @@ async function moveItemToDesktop(itemId) {
   // Update item's fullPath
   item.fullPath = 'C://Desktop/' + item.id;
 
+  // If item has a slug, mark it as moved
+  if (item.slug) {
+      markSlugAsMoved(item.slug, item.fullPath);
+  }
+
   // Save changes
   await setFileSystemState(fs);
-  saveState();
+  await saveState();
   refreshExplorerViews();
   renderDesktopIcons();
 }

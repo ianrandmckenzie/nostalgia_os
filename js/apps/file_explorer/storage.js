@@ -68,6 +68,14 @@ export async function setFileSystemState(newFS) {
 }
 
 export function getFileSystemStateSync() {
+  // Check global variable first for most up-to-date in-memory state
+  if (typeof window !== 'undefined' && window.fileSystemState) {
+    return window.fileSystemState;
+  }
+  if (typeof fileSystemState !== 'undefined') {
+    return fileSystemState;
+  }
+
   try {
     const appState = storage.getItemSync('appState');
     if (appState && appState.fileSystemState) {

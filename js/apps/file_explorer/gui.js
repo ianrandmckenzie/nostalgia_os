@@ -479,8 +479,10 @@ export async function openFile(incoming_file, e) {
 
   // Check for existing window - must be in windows-container, not just any element with this ID
   const windowsContainer = document.getElementById('windows-container');
-  const existingWindow = windowsContainer?.querySelector(`#${incoming_file}`);
-  if (existingWindow) {
+  // Use getElementById instead of querySelector to handle IDs with special characters (like dots in filenames)
+  const existingWindow = document.getElementById(incoming_file);
+
+  if (existingWindow && windowsContainer && windowsContainer.contains(existingWindow)) {
     console.log('[FILE EXPLORER] Window already exists, bringing to front');
     bringToFront(existingWindow);
     return;
@@ -595,6 +597,8 @@ export async function openFile(incoming_file, e) {
 
         if (file.dataURL) {
           content = `<img src="${file.dataURL}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
+        } else if (file.url) {
+          content = `<img src="${file.url}" alt="${file.name}" class="mx-auto max-h-full max-w-full" style="padding:10px;">`;
         } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
           // For large files stored in IndexedDB, we need to load them asynchronously
           content = `<div style="padding:10px; text-align:center;">Loading image...</div>`;
@@ -644,6 +648,11 @@ export async function openFile(incoming_file, e) {
         if (file.dataURL) {
           content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
                 <source src="${file.dataURL}" type="audio/mpeg">
+                Your browser does not support the audio element.
+              </audio>`;
+        } else if (file.url) {
+          content = `<audio controls class="mx-auto" style="min-width:320px; min-height:60px; padding:10px;">
+                <source src="${file.url}" type="audio/mpeg">
                 Your browser does not support the audio element.
               </audio>`;
         } else if (file.isLargeFile && file.storageLocation === 'indexeddb') {
@@ -707,6 +716,11 @@ export async function openFile(incoming_file, e) {
         if (file.dataURL) {
           content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
               <source src="${file.dataURL}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>`;
+        } else if (file.url) {
+          content = `<video controls class="mx-auto max-h-full max-w-full" style="padding:10px;">
+              <source src="${file.url}" type="video/mp4">
               Your browser does not support the video tag.
             </video>`;
         } else if (file.tempObjectURL) {

@@ -1,6 +1,6 @@
 // Compost Bin - A parody successor to the Recycle Bin
 import { getFileSystemStateSync, getFileSystemState } from './file_explorer/storage.js';
-import { setFileSystemState } from '../os/manage_data.js';
+import { setFileSystemState, markSlugAsDeleted, markSlugAsMoved } from '../os/manage_data.js';
 import { saveState, desktopIconsState } from '../os/manage_data.js';
 import { createWindow, showDialogBox, bringToFront, closeWindow } from '../gui/window.js';
 import { renderDesktopIcons } from '../gui/desktop.js';
@@ -219,6 +219,11 @@ async function moveItemToCompostBin(itemId, fromPath) {
     sourceItem.originalPath = fromPath;
     compostBin.contents[itemId] = sourceItem;
 
+    // Mark slug as moved to compost bin
+    if (sourceItem.slug) {
+        markSlugAsMoved(sourceItem.slug, 'C://Desktop/compostbin/' + sourceItem.name);
+    }
+
     // Remove from original location
     delete sourceContainer[itemId];
 
@@ -325,6 +330,11 @@ export function emptyCompostBin() {
         if (!fs.deletedCustomApps.includes(item.id)) {
           fs.deletedCustomApps.push(item.id);
         }
+      }
+
+      // Mark slug as deleted if present
+      if (item.slug) {
+        markSlugAsDeleted(item.slug);
       }
     });
 

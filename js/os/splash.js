@@ -1,5 +1,3 @@
-import { processSystemManifest } from './manage_data.js';
-
 export function showSplash() {
   const splashDiv = document.createElement('div');
   splashDiv.className = 'w-3xl fixed left-0 top-0 h-full w-full bg-gradient-to-b from-40% from-blue-500 to-cyan-500';

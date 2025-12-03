@@ -165,13 +165,6 @@
       "version": "1.0.0",
       "icon": "image/happyturd.webp",
       "type": "game"
-    },
-    {
-      "id": "osupdateapp",
-      "name": "OS Update",
-      "version": "1.0.0",
-      "icon": "image/power.webp",
-      "type": "system"
     }
   ]
 }

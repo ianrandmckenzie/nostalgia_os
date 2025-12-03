@@ -9,7 +9,7 @@ import { setupFolderDrop } from './drag_and_drop.js';
 import { saveState, windowStates, updateContent } from '../../os/manage_data.js';
 import { createWindow, showDialogBox, closeWindow, bringToFront } from '../../gui/window.js';
 import { storage } from '../../os/indexeddb_storage.js';
-export function openExplorer(folderIdOrPath, forceNewWindow = false) {
+export function openExplorer(folderIdOrPath = 'C://', forceNewWindow = false) {
   let fullPath;
 
   // Check if it's already a full path (starts with drive letter and contains ://)
@@ -329,7 +329,6 @@ document.addEventListener('click', e => {
 
 document.addEventListener('dblclick', e => {
   const li = e.target.closest('[data-open-folder],[data-open-file],[data-open-shortcut]');
-  console.log('[FILE EXPLORER] Double-click detected, target li:', li);
   if (!li) return;
 
   // Check if this is in image selection mode - if so, completely disable double-clicks
@@ -340,7 +339,6 @@ document.addEventListener('dblclick', e => {
     return false;
   }
 
-  console.log('[FILE EXPLORER] Dataset:', li.dataset);
 
   if (li.dataset.openFolder) {
     // Check if we're within a file explorer window
@@ -469,11 +467,9 @@ const openingFiles = new Set();
 
 // Looks up a file by its ID (from desktop or current folder) and opens it.
 export async function openFile(incoming_file, e) {
-  console.log('[FILE EXPLORER] openFile called with:', incoming_file);
 
   // Check if file is already being opened
   if (openingFiles.has(incoming_file)) {
-    console.log('[FILE EXPLORER] File already being opened, skipping');
     return;
   }
 
@@ -483,7 +479,6 @@ export async function openFile(incoming_file, e) {
   const existingWindow = document.getElementById(incoming_file);
 
   if (existingWindow && windowsContainer && windowsContainer.contains(existingWindow)) {
-    console.log('[FILE EXPLORER] Window already exists, bringing to front');
     bringToFront(existingWindow);
     return;
   }
@@ -507,15 +502,11 @@ export async function openFile(incoming_file, e) {
       currentPath = 'C://Desktop';
     }
 
-    console.log('[FILE EXPLORER] Current path:', currentPath);
     const itemsObj = getItemsForPath(currentPath);
-    console.log('[FILE EXPLORER] Items in path:', Object.keys(itemsObj));
     file = Object.values(itemsObj).find(it => it.id === incoming_file);
-    console.log('[FILE EXPLORER] Found file:', file);
 
     // If not found in current path, try to find it globally (fallback)
     if (!file) {
-       console.log('[FILE EXPLORER] File not found in current path');
        // This might happen if opened from a shortcut or other means
        // For now, we'll stick to the existing logic but be aware
     }
@@ -527,9 +518,7 @@ export async function openFile(incoming_file, e) {
     }
 
     // Check if this is an app (custom or built-in) - launch it instead of opening as file
-    console.log('[FILE EXPLORER] File type:', file.type, 'isCustomApp:', file.isCustomApp);
     if (file.type === 'app' || file.isCustomApp) {
-      console.log('[FILE EXPLORER] Detected as app, launching via openApp:', file.id);
       // Launch the app using openApp
       if (typeof openApp === 'function') {
         openApp(file.id);
@@ -923,6 +912,20 @@ function openShortcut(target) {
   if (!target) return;
   const url = target.getAttribute('data-url');
   if (url) {
+    // Check if it's an internal path (drive letter)
+    if (/^[A-Z]:\/\//.test(url)) {
+       openExplorerInNewWindow(url);
+       return;
+    }
+    // Check if it's an app launch command (custom scheme)
+    if (url.startsWith('app:')) {
+       const appId = url.substring(4);
+       if (typeof window.openApp === 'function') {
+         window.openApp(appId);
+       }
+       return;
+    }
+
     window.open(url, '_blank');
   }
 }
@@ -1015,8 +1018,6 @@ export function handleWatercolourImageSelection(file) {
     return true;
   }
 
-  alert('Could not load the selected image.');
-  return false;
 }
 
 // Helper function to get current path from active file explorer

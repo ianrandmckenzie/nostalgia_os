@@ -431,13 +431,10 @@ export function populateFileSystemFromFlatArray(flatArray, fs) {
 
   // Pass 0: Cleanup moved items to prevent duplication
   // This is critical to remove "ghost" items that might exist in old locations in the local state
-  console.log('🔍 Checking for moved items to cleanup. apiOverrides:', JSON.stringify(apiOverrides));
   normalizedItems.forEach(item => {
     if (item.slug) {
-        // console.log(`Checking item slug: ${item.slug}`);
         if (apiOverrides.movedSlugs[item.slug]) {
             const correctPath = apiOverrides.movedSlugs[item.slug];
-            console.log(`🧹 Cleanup: Item ${item.slug} is moved to ${correctPath}. Scanning for ghosts...`);
             // Scan all folders and delete incorrect instances
             for (const folderPath in fs.folders) {
                 const folder = fs.folders[folderPath];
@@ -446,10 +443,8 @@ export function populateFileSystemFromFlatArray(flatArray, fs) {
                 if (fsItem && fsItem.slug === item.slug) {
                     // If the item is not at the correct path, it's a ghost/duplicate. Delete it.
                     if (fsItem.fullPath !== correctPath) {
-                        console.log(`👻 DESTROYING GHOST: ${item.slug} found at ${fsItem.fullPath} (should be at ${correctPath})`);
                         delete folder[itemId];
                     } else {
-                        console.log(`✅ Found valid instance of ${item.slug} at ${fsItem.fullPath}`);
                     }
                 }
                 }
@@ -519,7 +514,6 @@ export function populateFileSystemFromFlatArray(flatArray, fs) {
 export function repairFileSystem(fs) {
   if (!fs || !fs.folders) return fs;
 
-  console.log('🔧 Running file system repair...');
   let repairCount = 0;
 
   Object.keys(fs.folders).forEach(folderPath => {
@@ -528,7 +522,6 @@ export function repairFileSystem(fs) {
 
     // 1. Fix "undefined" key
     if (Object.prototype.hasOwnProperty.call(folder, 'undefined')) {
-      console.log(`Repairing 'undefined' key in ${folderPath}`);
       const item = folder['undefined'];
 
       // Generate a valid ID
@@ -570,7 +563,6 @@ export function repairFileSystem(fs) {
   });
 
   if (repairCount > 0) {
-      console.log(`✅ Repaired ${repairCount} items in file system`);
   }
 
   return fs;

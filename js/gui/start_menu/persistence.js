@@ -105,7 +105,6 @@ export function mergeNewCustomAppsIntoOrder(savedOrder) {
 
   // If no saved order, return empty to use default + custom apps logic
   if (!savedOrder || savedOrder.length === 0) {
-    console.log('[START MENU MERGE] No saved order, using defaults');
     return savedOrder;
   }
 
@@ -119,7 +118,6 @@ export function mergeNewCustomAppsIntoOrder(savedOrder) {
     }
   });
 
-  console.log('[START MENU MERGE] Existing IDs in saved order:', Array.from(existingIds));
 
   // Collect all new custom apps that aren't in the saved order
   const newCustomApps = [];
@@ -149,11 +147,9 @@ export function mergeNewCustomAppsIntoOrder(savedOrder) {
 
   // If no new apps, return original order
   if (newCustomApps.length === 0) {
-    console.log('[START MENU MERGE] No new custom apps to add');
     return savedOrder;
   }
 
-  console.log('[START MENU MERGE] Adding', newCustomApps.length, 'new custom app(s)');
 
   // Create a new order array with the new apps merged in
   const newOrder = [...savedOrder];
@@ -203,7 +199,6 @@ export function mergeNewCustomAppsIntoOrder(savedOrder) {
     }
   });
 
-  console.log('[START MENU MERGE] Merge complete, new order has', newOrder.length, 'items');
   return newOrder;
 }
 

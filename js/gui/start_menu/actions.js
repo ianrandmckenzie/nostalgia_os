@@ -7,7 +7,6 @@ import { storage } from '../../os/indexeddb_storage.js';
 
 // Handle start menu item clicks
 export function handleStartMenuItemClick(itemId) {
-  console.log('🔍 Start menu item clicked:', itemId);
 
   // Don't handle click if context menu is visible
   // This check is usually done in the event listener, but good to have here too
@@ -47,16 +46,16 @@ export function handleStartMenuItemClick(itemId) {
   // Handle different item types
   switch (itemId) {
     case 'mycomp':
-      if (typeof openExplorer === 'function') openExplorer();
+      if (typeof openExplorer === 'function') openExplorer('C://');
       break;
     case 'abtcomp':
       if (typeof openAboutWindow === 'function') openAboutWindow();
       break;
     case 'sysset':
-      if (typeof openNav === 'function') openNav();
+      if (typeof openNav === 'function') openNav('Settings', '', { type: 'integer', width: 600, height: 400 }, 'Settings');
       break;
     case 'storageapp':
-      if (typeof openApp === 'function') openApp('storage_manager');
+      if (typeof openApp === 'function') openApp('storage');
       break;
     case 'mailboxapp':
       if (typeof openApp === 'function') openApp('mailbox');
@@ -68,16 +67,17 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openApp === 'function') openApp('watercolour');
       break;
     case 'letterpad':
-      if (typeof createNewFile === 'function') {
-        createNewFile('txt');
-        if (typeof openApp === 'function') openApp('letterpad');
+      if (typeof createNewLetterpad === 'function') {
+        createNewLetterpad(null);
+      } else if (typeof createNewFile === 'function') {
+        // Fallback if createNewLetterpad is not available
+        createNewFile(null);
       }
       break;
     case 'calcapp':
       if (typeof openApp === 'function') openApp('calculator');
       break;
     case 'keyboard':
-      console.log('🔍 Keyboard case triggered, calling openApp');
       if (typeof openApp === 'function') openApp('keyboard');
       break;
     case 'solapp':
@@ -102,7 +102,7 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openApp === 'function') openApp('mediaplayer');
       break;
     case 'tubestreamapp':
-      if (typeof openApp === 'function') openApp('tube_stream');
+      if (typeof openApp === 'function') openApp('tubestream');
       break;
     case 'rstrtcomp':
       if (typeof restart === 'function') restart();

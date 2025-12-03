@@ -854,7 +854,7 @@ function createNewShortcut(e, fromFullPath) {
 /* =====================
    Create a new LetterPad file
 ====================== */
-async function createNewLetterpad(e, fromFullPath, onCreated = null) {
+export async function createNewLetterpad(e, fromFullPath, onCreated = null) {
   if (e) e.stopPropagation();
   hideContextMenu();
 

@@ -47,8 +47,6 @@ export async function saveState() {
     apiOverrides: apiOverrides
   };
 
-  console.log('💾 Saving state. apiOverrides:', JSON.stringify(apiOverrides));
-
   const startTime = Date.now();
 
   try {

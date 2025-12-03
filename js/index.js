@@ -344,14 +344,7 @@ function setupKeyboardSupport() {
       const contextMenu = document.getElementById('context-menu');
 
       if (startMenu && !startMenu.classList.contains('hidden')) {
-        const startButton = document.getElementById('start-button');
-        startButton.setAttribute('aria-expanded', 'false');
-        startMenu.classList.add('hidden');
-        startMenu.setAttribute('aria-hidden', 'true');
-        const { toggleButtonActiveState } = window;
-        if (toggleButtonActiveState) {
-          toggleButtonActiveState('start-button');
-        }
+        toggleStartMenu();
       }
 
       if (contextMenu && !contextMenu.classList.contains('hidden')) {
@@ -367,12 +360,8 @@ window.addEventListener('click', async function (e) {
   const startButton = document.getElementById('start-button');
   if (!startMenu.contains(e.target) && !startButton.contains(e.target)) {
     if (!startMenu.classList.contains('hidden')) {
-      const { toggleButtonActiveState } = await import('./gui/main.js');
-      toggleButtonActiveState('start-button');
+      toggleStartMenu();
     }
-    startMenu.classList.add('hidden');
-    startMenu.setAttribute('aria-hidden', 'true');
-    startButton.setAttribute('aria-expanded', 'false');
   }
 });
 

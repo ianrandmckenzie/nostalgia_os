@@ -242,7 +242,7 @@ export function createGroupItem(item) {
       <div class="flex items-center">
         ${item.text}
       </div>
-      <span class="md:rotate-0 text-xs">&#9654;</span>
+      <span class="submenu-arrow text-xs transition-transform duration-200">&#9654;</span>
     </a>
     <ul class="submenu hidden pl-4 bg-gray-100 md:pl-0 md:absolute md:left-full md:bottom-0 md:w-48 md:bg-white md:border md:border-gray-500 md:shadow-lg" data-submenu-container data-group-id="${item.id}" role="menu">
       ${submenuItems}
@@ -278,6 +278,7 @@ export function createGroupItem(item) {
   // Add responsive submenu behavior
   const submenuTrigger = li.querySelector('[data-submenu-trigger]');
   const submenuContainer = li.querySelector('[data-submenu-container]');
+  const submenuArrow = li.querySelector('.submenu-arrow');
 
   // Add mouse interaction handler to the submenu trigger
   if (submenuTrigger) {
@@ -301,6 +302,7 @@ export function createGroupItem(item) {
         if (!dragState.isDragging) {
           submenuContainer.classList.remove('hidden');
           submenuContainer.classList.add('block');
+          if (submenuArrow) submenuArrow.classList.add('rotate-90');
         }
       });
 
@@ -308,6 +310,7 @@ export function createGroupItem(item) {
         if (!dragState.isDragging) {
           submenuContainer.classList.add('hidden');
           submenuContainer.classList.remove('block');
+          if (submenuArrow) submenuArrow.classList.remove('rotate-90');
         }
       });
     } else {
@@ -323,14 +326,19 @@ export function createGroupItem(item) {
             if (el !== submenuContainer) {
               el.classList.add('hidden');
               el.classList.remove('block');
+              // Reset arrow for other submenus
+              const otherArrow = el.parentElement?.querySelector('.submenu-arrow');
+              if (otherArrow) otherArrow.classList.remove('rotate-90');
             }
           });
 
           submenuContainer.classList.remove('hidden');
           submenuContainer.classList.add('block');
+          if (submenuArrow) submenuArrow.classList.add('rotate-90');
         } else {
           submenuContainer.classList.add('hidden');
           submenuContainer.classList.remove('block');
+          if (submenuArrow) submenuArrow.classList.remove('rotate-90');
         }
       });
     }

@@ -72,9 +72,10 @@ export function launchCompostBin() {
   contentArea.id = 'compost-bin-content';
 
   // Add drag and drop listeners
-  contentArea.addEventListener('dragover', handleCompostDragOver);
-  contentArea.addEventListener('dragleave', handleCompostDragLeave);
-  contentArea.addEventListener('drop', handleCompostDrop);
+  win.addEventListener('dragenter', handleCompostDragEnter, true);
+  win.addEventListener('dragover', handleCompostDragOver, true);
+  win.addEventListener('dragleave', handleCompostDragLeave, true);
+  win.addEventListener('drop', handleCompostDrop, true);
 
   // Load compost bin contents
   loadCompostBinContents(contentArea);
@@ -139,6 +140,14 @@ function createCompostBinItem(item) {
     e.dataTransfer.setData('text/plain', item.id);
     e.dataTransfer.setData('application/x-compost-item', 'true');
     e.dataTransfer.effectAllowed = 'move';
+  });
+
+  itemDiv.addEventListener('dragend', (e) => {
+    const desktop = document.getElementById('desktop');
+    if (desktop) {
+      desktop.classList.remove('drag-hover-target');
+    }
+    document.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover'));
   });
 
   return itemDiv;
@@ -397,7 +406,19 @@ function getDefaultIcon(type) {
   }
 }
 
+function handleCompostDragEnter(e) {
+  console.log('Compost Bin: dragenter', e.target);
+  e.preventDefault();
+  e.stopPropagation();
+  const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
+  if (isNonCompostable) return;
+
+  const contentArea = document.getElementById('compost-bin-content');
+  if (contentArea) contentArea.classList.add('dragover');
+}
+
 function handleCompostDragOver(e) {
+  console.log('Compost Bin: dragover', e.target);
   e.preventDefault();
   e.stopPropagation();
   const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
@@ -406,17 +427,24 @@ function handleCompostDragOver(e) {
       return;
   }
   e.dataTransfer.dropEffect = 'move';
-  this.classList.add('dragover');
+  const contentArea = document.getElementById('compost-bin-content');
+  if (contentArea) contentArea.classList.add('dragover');
 }
 
 function handleCompostDragLeave(e) {
-  this.classList.remove('dragover');
+  const win = document.getElementById('compost-bin');
+  if (win && !win.contains(e.relatedTarget)) {
+      const contentArea = document.getElementById('compost-bin-content');
+      if (contentArea) contentArea.classList.remove('dragover');
+  }
 }
 
 async function handleCompostDrop(e) {
+  console.log('Compost Bin: drop', e.target);
   e.preventDefault();
   e.stopPropagation();
-  this.classList.remove('dragover');
+  const contentArea = document.getElementById('compost-bin-content');
+  if (contentArea) contentArea.classList.remove('dragover');
 
   const isNonCompostable = e.dataTransfer.types.includes('application/x-non-compostable');
   if (isNonCompostable) return;

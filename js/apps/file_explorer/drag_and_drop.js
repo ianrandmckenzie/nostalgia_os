@@ -442,6 +442,9 @@ async function handleDesktopFolderDrop(e) {
   e.stopPropagation();
   this.classList.remove('dragover');
 
+  const desktop = document.getElementById('desktop');
+  if (desktop) desktop.classList.remove('drag-hover-target');
+
   const sourceId = e.dataTransfer.getData("text/plain");
   const targetId = this.getAttribute('data-item-id');
   const isCompostItem = e.dataTransfer.getData('application/x-compost-item') === 'true';
@@ -487,6 +490,9 @@ async function handleExplorerDrop(e) {
   e.preventDefault();
   e.stopPropagation();
   this.classList.remove('dragover');
+
+  const desktop = document.getElementById('desktop');
+  if (desktop) desktop.classList.remove('drag-hover-target');
 
   const sourceId = e.dataTransfer.getData("text/plain");
   const explorerPath = this.getAttribute('data-current-path');
@@ -611,6 +617,7 @@ function setupDesktopDrop() {
     });
 
     desktop.addEventListener('drop', async (e) => {
+      console.log('Desktop: drop', e.target);
       e.preventDefault();
       desktop.classList.remove('drag-hover-target');
 

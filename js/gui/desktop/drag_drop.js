@@ -175,6 +175,23 @@ export function makeIconDraggable(icon) {
       document.removeEventListener('pointerup', pointerUpHandler);
       document.removeEventListener('pointercancel', pointerUpHandler);
 
+      const cleanupVisuals = () => {
+        document.querySelectorAll('.drag-hover-target').forEach(target => {
+          target.classList.remove('drag-hover-target');
+        });
+        document.querySelectorAll('.desktop-folder-icon').forEach(target => {
+          target.classList.remove('dragover');
+        });
+        document.querySelectorAll('.file-explorer-window').forEach(target => {
+          target.classList.remove('dragover');
+        });
+        const compostContent = document.getElementById('compost-bin-content');
+        if (compostContent) compostContent.classList.remove('dragover');
+
+        // Re-enable scrolling
+        document.body.style.overflow = '';
+      };
+
       if (isDragging) {
         // Reparent back to desktop-icons
         const desktopIcons = document.getElementById('desktop-icons');
@@ -216,10 +233,12 @@ export function makeIconDraggable(icon) {
           if (sourceId !== targetId) {
             // Special case for compost bin
             if (targetId === 'compostbin') {
+              cleanupVisuals();
               await moveItemToCompostBin(sourceId, 'C://Desktop');
               return; // Don't save position if moved to compost bin
             } else if (targetItem && targetItem.type === 'folder') {
               // Move the item into the folder
+              cleanupVisuals();
               await moveItemToFolder(sourceId, targetId);
               return; // Don't save position if moved to folder
             }
@@ -229,6 +248,7 @@ export function makeIconDraggable(icon) {
           const sourceId = icon.getAttribute('data-item-id');
           const explorerPath = targetExplorer.getAttribute('data-current-path');
           if (explorerPath && sourceId) {
+            cleanupVisuals();
             await moveItemToExplorerPath(sourceId, explorerPath);
             return; // Don't save position if moved to explorer
           }
@@ -236,6 +256,7 @@ export function makeIconDraggable(icon) {
              const sourceId = icon.getAttribute('data-item-id');
              const isCompostable = icon.dataset.isCompostable === 'true';
              if (isCompostable) {
+                 cleanupVisuals();
                  await moveItemToCompostBin(sourceId, 'C://Desktop');
                  return;
              }
@@ -246,20 +267,7 @@ export function makeIconDraggable(icon) {
         desktopIconsState[icon.id] = { left: icon.style.left, top: icon.style.top };
         saveState();
       }      // Remove visual feedback
-      document.querySelectorAll('.drag-hover-target').forEach(target => {
-        target.classList.remove('drag-hover-target');
-      });
-      document.querySelectorAll('.desktop-folder-icon').forEach(target => {
-        target.classList.remove('dragover');
-      });
-      document.querySelectorAll('.file-explorer-window').forEach(target => {
-        target.classList.remove('dragover');
-      });
-      const compostContent = document.getElementById('compost-bin-content');
-      if (compostContent) compostContent.classList.remove('dragover');
-
-      // Re-enable scrolling
-      document.body.style.overflow = '';
+      cleanupVisuals();
 
       isDragging = false;
     }

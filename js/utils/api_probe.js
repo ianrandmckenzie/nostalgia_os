@@ -48,6 +48,5 @@ export async function probeApiEndpoints() {
   results.mailbox = mailboxAlive;
   results.tubestream = tubeAlive;
 
-  console.log('🔍 API Probe Results:', results);
   return results;
 }

@@ -1,3 +1,5 @@
+import { openExplorerInNewWindow } from './file_explorer/gui.js';
+import { createNewLetterpad } from './file_explorer/context_menu.js';
 import { launchMailbox } from './mailbox.js';
 import { launchTubeStream } from './tube_stream.js';
 import { launchWatercolour } from './watercolour/main.js';
@@ -15,20 +17,16 @@ import { launchHappyTurd } from './happyturd.js';
 import { isCustomApp, launchCustomApp } from './custom_apps.js';
 
 export function openApp(id) {
-  console.log(`🔍 openApp called with id: ${id}`);
   // Check if it's a custom app first
   if (isCustomApp(id)) {
-    console.log(`✅ Identified as custom app: ${id}`);
     launchCustomApp(id);
     return;
   }
-  console.log(`⚠️ Not a custom app, checking built-in apps...`);
 
   const existingWindow = document.getElementById(id);
   if (existingWindow) {
     // Special handling for keyboard since it conflicts with another element
     if (id === 'keyboard') {
-      console.log('🔍 Skipping generic keyboard element, will handle in keyboard case');
     } else {
       const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
       const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
@@ -39,7 +37,14 @@ export function openApp(id) {
     }
   }
 
-  console.log(`🔍 Checking app cases for ${id}...`);
+  if (id === 'mycomp' || id.includes('shortcut-mycomp')) {
+    openExplorerInNewWindow('C://');
+    return;
+  }
+  if (id === 'letterpad' || id.includes('shortcut-letterpad')) {
+    createNewLetterpad(null);
+    return;
+  }
   if (id === 'mailbox' || id.includes('shortcut-mailboxapp')) launchMailbox();
   if (id === 'watercolour' || id.includes('shortcut-watercolourapp')) launchWatercolour();
   if (id === 'calculator' || id.includes('shortcut-calcapp')) launchCalculator();
@@ -57,7 +62,6 @@ export function openApp(id) {
     // Check for the actual keyboard app window instead of just 'keyboard'
     const existingKeyboardWindow = document.getElementById('keyboard-app');
     if (existingKeyboardWindow) {
-      console.log('🔍 Keyboard app window already exists, bringing to front');
       const elementsWithZIndex = [...document.querySelectorAll('*')].filter(el => (getComputedStyle(el).zIndex > 100 && getComputedStyle(el).zIndex < 1000));
       const highestZIndex = elementsWithZIndex.reduce((maxEl, el) =>
         getComputedStyle(el).zIndex > getComputedStyle(maxEl).zIndex ? el : maxEl
@@ -67,5 +71,4 @@ export function openApp(id) {
     }
     launchKeyboard().catch(console.error);
   }
-  console.log('🔍 Finished checking all cases');
 }

@@ -3,12 +3,12 @@ const CONFIG = {
         API_BASE_URL: 'http://abc.localhost:3000/',
         SUGGESTIONS_LIST_PATH: 'end_data/public/ananan',
         SUGGESTIONS_SUBMISSIONS_PATH: 'end_data/public/kfjbwef',
-        TUBE_STREAMS_PATH: 'tube-streams.json',
+        TUBE_STREAMS_PATH: 'end_data/public/tube-streams',
         CUSTOM_APPS_PATH: 'end_data/public/custom_apps',
         DEFAULT_FILES_PATH: 'end_data/public/default-files'
     },
     production: {
-        API_BASE_URL: 'https://backend.failureunit.tv/',
+        API_BASE_URL: 'https://www.relentlesscurious.com/',
         SUGGESTIONS_LIST_PATH: 'end_data/public/suggestions',
         SUGGESTIONS_SUBMISSIONS_PATH: 'end_data/public/submit-suggestion',
         TUBE_STREAMS_PATH: 'end_data/public/tube-streams',
@@ -17,12 +17,12 @@ const CONFIG = {
     },
     trusted_providers: [
       {
-        domains: ['s3.ca-central-1.amazonaws.com', 'www.failureunit.tv'],
+        domains: ['s3.ca-central-1.amazonaws.com', 'www.relentlesscurious.com'],
         dev_domains: ['localhost', '*.localhost', 'abc.localhost:3000'],
         types: ['img', 'audio', 'video']
       },
       {
-        domains: ['backend.failureunit.tv'],
+        domains: ['www.relentlesscurious.com'],
         dev_domains: ['abc.localhost:3000'],
         types: ['connect']
       },
@@ -34,13 +34,12 @@ const CONFIG = {
       {
         domains: ['www.youtube.com'],
         dev_domains: [],
-        types: ['frame']
+        types: ['frame', 'script']
       }
     ],
-    db_name: 'FailureUnitTV',
-    site_name: 'FU TV',
-    branding_images: 'custom_branding',
-    disable_devvit: true
+    db_name: 'NostalgiaOS',
+    site_name: 'Doorways ‘25',
+    branding_images: 'default_branding'
 };
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '0.0.0.0';

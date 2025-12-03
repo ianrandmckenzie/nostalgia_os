@@ -123,15 +123,20 @@ export async function renderDesktopIcons() {
       }
     };
 
+    // Debounce helper to prevent double-firing (dblclick + mobiledbltap)
+    let lastClickTime = 0;
+    const handleAction = (actionFn) => (e) => {
+      const now = Date.now();
+      if (now - lastClickTime < 500) return;
+      lastClickTime = now;
+      if (e && e.stopPropagation) e.stopPropagation();
+      actionFn(e);
+    };
+
     if (item.type === 'ugc-file' || item.type === 'file') {
-      iconElem.addEventListener('dblclick', e => {
-        e.stopPropagation();
-        openFile(item.id, e);
-      });
-      iconElem.addEventListener('mobiledbltap', e => {
-        e.stopPropagation();
-        openFile(item.id, e);
-      });
+      const action = (e) => openFile(item.id, e);
+      iconElem.addEventListener('dblclick', handleAction(action));
+      iconElem.addEventListener('mobiledbltap', handleAction(action));
     } else if (item.type === 'app') {
       iconElem.dataset.isVendorApplication = true;
       // Check if custom app is compostable
@@ -139,16 +144,19 @@ export async function renderDesktopIcons() {
         iconElem.dataset.compostable = String(item.customAppData.compostable);
       }
       iconSrc = item.icon;
-      iconElem.addEventListener('dblclick', () => openApp(item.id));
-      iconElem.addEventListener('mobiledbltap', () => openApp(item.id));
+      const action = () => openApp(item.id);
+      iconElem.addEventListener('dblclick', handleAction(action));
+      iconElem.addEventListener('mobiledbltap', handleAction(action));
     } else if (item.type === 'folder') {
-      iconElem.addEventListener('dblclick', () => openExplorerInNewWindow(item.id));
-      iconElem.addEventListener('mobiledbltap', () => openExplorerInNewWindow(item.id));
+      const action = () => openExplorerInNewWindow(item.id);
+      iconElem.addEventListener('dblclick', handleAction(action));
+      iconElem.addEventListener('mobiledbltap', handleAction(action));
     } else if (item.type === 'shortcut') {
       iconElem.dataset.url = item.url;
       iconSrc = item.icon_url;
-      iconElem.addEventListener('dblclick', () => openShortcut(iconElem));
-      iconElem.addEventListener('mobiledbltap', () => openShortcut(iconElem));
+      const action = () => openShortcut(iconElem);
+      iconElem.addEventListener('dblclick', handleAction(action));
+      iconElem.addEventListener('mobiledbltap', handleAction(action));
     }
 
     // Add keyboard support

@@ -7,7 +7,6 @@ import { storage } from '../../os/indexeddb_storage.js';
 
 // Handle start menu item clicks
 export function handleStartMenuItemClick(itemId) {
-  console.log('🔍 Start menu item clicked:', itemId);
 
   // Don't handle click if context menu is visible
   // This check is usually done in the event listener, but good to have here too
@@ -79,7 +78,6 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openApp === 'function') openApp('calculator');
       break;
     case 'keyboard':
-      console.log('🔍 Keyboard case triggered, calling openApp');
       if (typeof openApp === 'function') openApp('keyboard');
       break;
     case 'solapp':

@@ -114,10 +114,8 @@ export function makeIconDraggable(icon) {
         }
         icon.dataset.isCompostable = String(isCompostable);
 
-        // Add touch-specific styling
-        if (isTouch) {
-          icon.classList.add('touch-dragging');
-        }
+        // Add dragging styling
+        icon.classList.add('point-dragging');
 
         // Add visual feedback for potential drop targets
         document.querySelectorAll('.desktop-folder-icon[data-item-id]').forEach(target => {
@@ -185,7 +183,7 @@ export function makeIconDraggable(icon) {
 
         icon.style.zIndex = ''; // Reset z-index
         icon.classList.remove('dragging');
-        icon.classList.remove('touch-dragging');
+        icon.classList.remove('point-dragging');
         console.log('Drag ended. Reparented to desktop-icons.');
 
         // Check if dropped on a folder or file explorer window

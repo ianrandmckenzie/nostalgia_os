@@ -87,6 +87,7 @@ import {
   hideContextMenu,
   createNewFolder,
   createNewFile,
+  createNewLetterpad,
   refreshAllExplorerWindows
 } from './apps/file_explorer/context_menu.js';
 import { launchCompostBin, loadCompostBinContents, emptyCompostBin } from './apps/compost_bin.js';
@@ -216,6 +217,7 @@ if (typeof window !== 'undefined') {
   window.hideContextMenu = hideContextMenu;
   window.createNewFolder = createNewFolder;
   window.createNewFile = createNewFile;
+  window.createNewLetterpad = createNewLetterpad;
   window.refreshAllExplorerWindows = refreshAllExplorerWindows;
   window.saveFileExplorerState = saveFileExplorerState;
   window.handleWatercolourImageSelection = handleWatercolourImageSelection;

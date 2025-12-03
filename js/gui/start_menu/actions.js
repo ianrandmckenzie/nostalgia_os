@@ -68,9 +68,11 @@ export function handleStartMenuItemClick(itemId) {
       if (typeof openApp === 'function') openApp('watercolour');
       break;
     case 'letterpad':
-      if (typeof createNewFile === 'function') {
-        createNewFile('txt');
-        if (typeof openApp === 'function') openApp('letterpad');
+      if (typeof createNewLetterpad === 'function') {
+        createNewLetterpad(null);
+      } else if (typeof createNewFile === 'function') {
+        // Fallback if createNewLetterpad is not available
+        createNewFile(null);
       }
       break;
     case 'calcapp':
